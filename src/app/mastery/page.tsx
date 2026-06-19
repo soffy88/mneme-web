@@ -93,15 +93,22 @@ export default function MasteryPage() {
     setLoading(true); setError('');
     const res = await api.getMastery(sid);
     setLoading(false);
-    if (res.ok) setKcs(res.data.knowledge_points);
-    else setError(res.error);
+    if (res.ok) {
+      // 后端返回裸 KnowledgePoint[]；mock 返回 { knowledge_points: [...] }
+      const d = res.data as unknown;
+      const pts = Array.isArray(d) ? (d as KnowledgePoint[]) : ((d as typeof res.data).knowledge_points ?? []);
+      setKcs(pts);
+    } else {
+      setError(res.error);
+    }
   };
 
   useEffect(() => { void load(); }, []);
 
   /* summary stats */
-  const weak = kcs.filter((k) => k.effective_mastery < 0.5).length;
-  const strong = kcs.filter((k) => k.effective_mastery >= 0.75).length;
+  const safeKcs = kcs ?? [];
+  const weak   = safeKcs.filter((k) => k.effective_mastery < 0.5).length;
+  const strong = safeKcs.filter((k) => k.effective_mastery >= 0.75).length;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -111,9 +118,9 @@ export default function MasteryPage() {
         <h1 style={{ fontSize: '22px', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--mn-ink)' }}>
           掌握度
         </h1>
-        {!loading && !error && kcs.length > 0 && (
+        {!loading && !error && safeKcs.length > 0 && (
           <p style={{ fontSize: '13px', color: 'var(--mn-ink-3)', marginTop: '4px' }}>
-            共 {kcs.length} 个考点 · <span style={{ color: 'var(--mn-red)' }}>{weak} 个需加强</span>
+            共 {safeKcs.length} 个考点 · <span style={{ color: 'var(--mn-red)' }}>{weak} 个需加强</span>
             {strong > 0 && <> · <span style={{ color: 'var(--mn-green)' }}>{strong} 个已掌握</span></>}
           </p>
         )}
@@ -129,7 +136,7 @@ export default function MasteryPage() {
           <div style={{ fontSize: '14px', marginBottom: '12px' }}>加载失败</div>
           <button type="button" className="mn-btn-secondary" onClick={load}>重试</button>
         </div>
-      ) : kcs.length === 0 ? (
+      ) : safeKcs.length === 0 ? (
         <div className="mn-card" style={{ padding: '40px 24px', textAlign: 'center' }}>
           <div style={{ fontSize: '32px', marginBottom: '12px' }}>📚</div>
           <div style={{ fontWeight: 600, color: 'var(--mn-ink)', marginBottom: '6px' }}>暂无掌握度数据</div>
@@ -147,7 +154,7 @@ export default function MasteryPage() {
           gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
           gap: '10px',
         }}>
-          {kcs.map((kc) => (
+          {safeKcs.map((kc) => (
             <KCCard
               key={kc.kc_id}
               kc={kc}
@@ -158,12 +165,12 @@ export default function MasteryPage() {
       )}
 
       {/* 练习入口 */}
-      {!loading && !error && kcs.length > 0 && (
+      {!loading && !error && safeKcs.length > 0 && (
         <button
           type="button"
           className="mn-btn-primary"
           style={{ width: '100%' }}
-          onClick={() => router.push(`/practice?kc=${kcs[0].kc_id}&name=${encodeURIComponent(kcs[0].kc_name)}`)}
+          onClick={() => router.push(`/practice?kc=${safeKcs[0].kc_id}&name=${encodeURIComponent(safeKcs[0].kc_name)}`)}
         >
           练习最薄弱的考点
         </button>

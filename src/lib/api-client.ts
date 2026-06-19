@@ -43,7 +43,9 @@ async function req<T>(
     if (res.status === 401) { clearToken(); return { ok: false, error: 'UNAUTHORIZED' }; }
     if (!res.ok) {
       const body = await res.json().catch(() => ({ detail: res.statusText }));
-      return { ok: false, error: (body as { detail?: string }).detail ?? res.statusText };
+      const detail = (body as { detail?: unknown }).detail ?? res.statusText;
+      const errMsg = typeof detail === 'string' ? detail : JSON.stringify(detail);
+      return { ok: false, error: errMsg };
     }
     const data = await res.json();
     return { ok: true, data: data as T };
@@ -142,8 +144,11 @@ export const getMission      = (sid: string)       => USE_MOCK ? mock.mockMissio
 export const completeMission = (mid: string)       => USE_MOCK ? mock.mockCompleteMission()  : post<CompleteMissionRes>(`/v1/missions/${mid}/complete`, {});
 
 // ── 变式题 ───────────────────────────────────────────────────
-export const generatePractice = (kcId: string, count = 3, difficulty = 0.5) =>
-  USE_MOCK ? mock.mockPractice() : post<PracticeRes>('/v1/practice/generate', { kc_id: kcId, count, difficulty });
+export const generatePractice = (kcId: string, count = 3, difficulty = 0.5) => {
+  if (USE_MOCK) return mock.mockPractice();
+  const qs = new URLSearchParams({ kc_id: kcId, count: String(count), difficulty: String(difficulty) });
+  return req<PracticeRes>(`/v1/practice/generate?${qs}`, { method: 'POST' });
+};
 
 // ── 讲解页 ───────────────────────────────────────────────────
 export const getLesson = (qid: string) =>
