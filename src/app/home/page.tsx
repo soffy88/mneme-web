@@ -1,0 +1,264 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { getUserId } from '@/lib/auth-store';
+import * as api from '@/lib/api-client';
+import { StreakBadge } from '@/components/shared/StreakBadge';
+import type { MissionRes, CompleteMissionRes, ReviewDueItem } from '@/types/api';
+
+
+const TYPE_META: Record<string, { icon: string; color: string; bg: string; action: string; href: string }> = {
+  review:          { icon: '↺',  color: 'var(--mn-blue)',   bg: 'var(--mn-blue-dim)',   action: '开始复习', href: '/mastery' },
+  socratic:        { icon: '◌',  color: '#6d28d9',          bg: '#ede9fe',              action: '开始对话', href: '/socratic' },
+  upload:          { icon: '⊕',  color: 'var(--mn-blue)',   bg: 'var(--mn-blue-dim)',   action: '上传试卷', href: '/upload' },
+  knowledge_focus: { icon: '✐',  color: 'var(--mn-orange)', bg: 'var(--mn-orange-dim)', action: '开始练习', href: '/practice' },
+  rest:            { icon: '◐',  color: 'var(--mn-ink-3)',  bg: 'var(--mn-border)',     action: '',        href: '' },
+};
+
+function Skeleton() {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="mn-skeleton" style={{ height: '24px', width: '80px' }} />
+        <div className="mn-skeleton" style={{ height: '28px', width: '80px', borderRadius: '99px' }} />
+      </div>
+      <div className="mn-skeleton" style={{ height: '160px', borderRadius: '16px' }} />
+      <div className="mn-skeleton" style={{ height: '64px', borderRadius: '16px' }} />
+    </div>
+  );
+}
+
+export default function HomePage() {
+  const router = useRouter();
+  const [data,       setData]       = useState<MissionRes | null>(null);
+  const [loading,    setLoading]    = useState(true);
+  const [completing, setCompleting] = useState(false);
+  const [done,       setDone]       = useState<CompleteMissionRes | null>(null);
+  const [error,      setError]      = useState('');
+  const [reviewDue,  setReviewDue]  = useState<ReviewDueItem[]>([]);
+
+  const load = async () => {
+    const sid = getUserId();
+    if (!sid) { router.push('/login'); return; }
+    setLoading(true);
+    const [missionRes, reviewRes] = await Promise.all([
+      api.getMission(sid),
+      api.getReviewDue(sid),
+    ]);
+    setLoading(false);
+    if (missionRes.ok) setData(missionRes.data);
+    else setError(missionRes.error);
+    if (reviewRes.ok) setReviewDue(reviewRes.data);
+  };
+
+  useEffect(() => { void load(); }, []);
+
+  const complete = async () => {
+    if (!data?.mission.id || completing) return;
+    setCompleting(true);
+    const res = await api.completeMission(data.mission.id);
+    setCompleting(false);
+    if (!res.ok) return;
+    setDone(res.data);
+    setData((d) => d ? { ...d, streak: res.data.streak } : d);
+  };
+
+  if (loading) return <Skeleton />;
+
+  if (error) return (
+    <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--mn-ink-3)', fontSize: '14px' }}>
+      加载失败 — <button type="button" onClick={load} style={{ color: 'var(--mn-blue)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}>重试</button>
+    </div>
+  );
+
+  if (!data) return null;
+
+  const { mission, streak } = data;
+  const isRest = mission.mission_type === 'rest';
+  const meta   = TYPE_META[mission.mission_type] ?? TYPE_META.review;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <h1 style={{ fontSize: '22px', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--mn-ink)', lineHeight: 1.2 }}>
+            今日目标
+          </h1>
+          <p style={{ fontSize: '13px', color: 'var(--mn-ink-3)', marginTop: '2px' }}>
+            第 {streak.current_streak} 天
+          </p>
+        </div>
+        <StreakBadge days={streak.current_streak} />
+      </div>
+
+      {/* Mission card */}
+      {isRest ? (
+        <div className="mn-card" style={{ padding: '32px 24px', textAlign: 'center' }}>
+          <div style={{ fontSize: '40px', marginBottom: '12px' }}>🌙</div>
+          <div style={{ fontWeight: 700, fontSize: '18px', color: 'var(--mn-ink)', marginBottom: '6px' }}>
+            今天做得够多了
+          </div>
+          <div style={{ fontSize: '14px', color: 'var(--mn-ink-3)' }}>好好休息，明天继续 ✨</div>
+        </div>
+      ) : done ? (
+        /* 完成状态 */
+        <div className="mn-card" style={{ padding: '24px', textAlign: 'center' }}>
+          <div style={{ fontSize: '36px', marginBottom: '12px' }}>🎉</div>
+          <div style={{ fontWeight: 700, fontSize: '18px', color: 'var(--mn-green)', marginBottom: '6px' }}>
+            完成！连续 {done.streak.current_streak} 天
+          </div>
+          <div style={{ fontSize: '13px', color: 'var(--mn-ink-3)', marginTop: '4px' }}>
+            {done.next_preview}
+          </div>
+        </div>
+      ) : (
+        /* 目标卡片 */
+        <div className="mn-card" style={{ overflow: 'hidden' }}>
+          {/* 顶部色条 */}
+          <div style={{ height: '4px', background: meta.color }} />
+
+          <div style={{ padding: '20px' }}>
+            {/* 类型标签 */}
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px',
+              padding: '3px 10px', borderRadius: '99px',
+              background: meta.bg, color: meta.color,
+              fontSize: '12px', fontWeight: 600, marginBottom: '14px' }}>
+              <span>{meta.icon}</span>
+              <span>
+                {{ review:'复习', socratic:'苏格拉底对话', upload:'上传试卷', knowledge_focus:'专项练习', rest:'' }[mission.mission_type]}
+              </span>
+            </div>
+
+            {/* 考点名 */}
+            <div style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--mn-ink)', lineHeight: 1.3, marginBottom: '6px' }}>
+              {mission.content.kc_name ?? mission.content.description}
+            </div>
+            {mission.content.kc_name && (
+              <div style={{ fontSize: '14px', color: 'var(--mn-ink-2)', marginBottom: '6px' }}>
+                {mission.content.description}
+              </div>
+            )}
+
+            {/* 元信息 */}
+            <div style={{ display: 'flex', gap: '12px', marginTop: '12px', marginBottom: '20px' }}>
+              <span style={{ fontSize: '12px', color: 'var(--mn-ink-3)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                ⏱ {mission.estimated_minutes} 分钟
+              </span>
+              {mission.requires_active_recall && (
+                <span style={{ fontSize: '12px', color: 'var(--mn-ink-3)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  ◎ 主动回忆
+                </span>
+              )}
+              {mission.interleaved && (
+                <span style={{ fontSize: '12px', color: 'var(--mn-ink-3)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  ⇄ 交错练习
+                </span>
+              )}
+            </div>
+
+            {/* 操作按钮 */}
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                type="button"
+                className="mn-btn-primary"
+                style={{ flex: 1 }}
+                onClick={() => router.push(meta.href)}
+              >
+                {meta.action}
+              </button>
+              <button
+                type="button"
+                className="mn-btn-secondary"
+                disabled={completing}
+                onClick={complete}
+                style={{ minWidth: '88px' }}
+              >
+                {completing ? '…' : '标记完成'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 今日复习卡片（仅在有待复习内容时显示） */}
+      {reviewDue.length > 0 && (
+        <button
+          type="button"
+          className="mn-card-interactive"
+          onClick={() => router.push(`/practice?kc=${reviewDue[0].kc_id}&name=复习`)}
+          style={{
+            width: '100%', textAlign: 'left', background: 'none',
+            border: '1.5px solid var(--mn-blue)', borderRadius: '16px',
+            padding: '16px 18px', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: '14px',
+          }}
+        >
+          <div style={{
+            width: '38px', height: '38px', borderRadius: '10px',
+            background: 'var(--mn-blue-dim)', display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+            fontSize: '18px', flexShrink: 0,
+          }}>↺</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, fontSize: '15px', color: 'var(--mn-blue)' }}>
+              今日复习
+            </div>
+            <div style={{ fontSize: '13px', color: 'var(--mn-ink-2)', marginTop: '2px' }}>
+              {reviewDue.length} 个知识点到了复习时间
+            </div>
+          </div>
+          <span style={{ color: 'var(--mn-ink-3)', fontSize: '16px' }}>›</span>
+        </button>
+      )}
+
+      {/* 最长连续天数 */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: '8px',
+        padding: '12px 16px', borderRadius: '12px',
+        background: 'var(--mn-surface)', border: '1px solid var(--mn-border)',
+      }}>
+        <span style={{ fontSize: '18px' }}>🏆</span>
+        <div style={{ fontSize: '13px' }}>
+          <span style={{ color: 'var(--mn-ink-2)' }}>最长连续 </span>
+          <span style={{ fontWeight: 700, color: 'var(--mn-ink)', fontVariantNumeric: 'tabular-nums' }}>
+            {streak.longest_streak}
+          </span>
+          <span style={{ color: 'var(--mn-ink-2)' }}> 天 — 继续加油！</span>
+        </div>
+      </div>
+
+      {/* 我的错题本入口 */}
+      <button
+        type="button"
+        className="mn-card-interactive"
+        onClick={() => router.push('/error-journal')}
+        style={{
+          width: '100%', textAlign: 'left', background: 'none',
+          border: '1px solid var(--mn-border)', borderRadius: '16px',
+          padding: '16px 18px', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: '14px',
+        }}
+      >
+        <div style={{
+          width: '38px', height: '38px', borderRadius: '10px',
+          background: 'var(--mn-surface)', display: 'flex',
+          alignItems: 'center', justifyContent: 'center',
+          fontSize: '18px', flexShrink: 0,
+        }}>◈</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: 700, fontSize: '15px', color: 'var(--mn-ink)' }}>
+            我的错题本
+          </div>
+          <div style={{ fontSize: '13px', color: 'var(--mn-ink-3)', marginTop: '2px' }}>
+            整理错误，举一反三
+          </div>
+        </div>
+        <span style={{ color: 'var(--mn-ink-3)', fontSize: '16px' }}>›</span>
+      </button>
+
+    </div>
+  );
+}

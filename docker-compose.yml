@@ -1,0 +1,20 @@
+# Mneme Web — 加入 helios-net,Cloudflare Tunnel 反代
+services:
+  mneme-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mneme-web:latest
+    container_name: mneme-web
+    restart: unless-stopped
+    environment:
+      # 生产 API(也可由 .env.production 在构建期注入,这里运行期兜底)
+      NEXT_PUBLIC_API_BASE: https://mneme.uex.hk
+      NEXT_PUBLIC_USE_MOCK: "false"
+    networks:
+      - helios-net
+    # 不暴露宿主端口,只走 Cloudflare Tunnel 内网访问 mneme-web:3000
+
+networks:
+  helios-net:
+    external: true

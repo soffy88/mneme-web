@@ -1,0 +1,33 @@
+{
+  "name": "mneme-web",
+  "version": "0.6.1",
+  "private": true,
+  "description": "Mneme 学鉴 Web 前端 — K12 认知状态追踪。Frontend scaffold by Helios 前端架构组。",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@helios/blocks": "file:./vendor/helios-blocks-2.7.1.tgz",
+    "@helios/oui": "file:./vendor/helios-oui-1.5.3.tgz",
+    "katex": "^0.16.10",
+    "mafs": "^0.18.8",
+    "next": "^16.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.0.0",
+    "@types/katex": "^0.16.7",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "eslint": "^9.0.0",
+    "eslint-config-next": "^16.0.0",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.6.0"
+  }
+}
