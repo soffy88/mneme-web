@@ -17,6 +17,7 @@ const CONFIG: SubjectConfig = {
         { icon: '✏', title: '专题练习', desc: '按考点分层练习', href: '/subjects/math/practice' },
         { icon: '⊕', title: '拍照解题', desc: '拍下题目秒出解析', href: '/upload' },
         { icon: '◌', title: '苏格拉底答疑', desc: '引导而非直接告知', href: '/socratic' },
+        { icon: '📖', title: '教材阅读', desc: '高亮·笔记·知识点', href: '/library' },
       ],
     },
     {

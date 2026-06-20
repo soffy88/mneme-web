@@ -17,6 +17,7 @@ const CONFIG: SubjectConfig = {
         { icon: '→', title: '受力分析引导', desc: '结构化受力分析', href: '/subjects/physics/force-analysis' },
         { icon: '✏', title: '专题练习', desc: '按考点分层练习', href: '/subjects/physics/practice' },
         { icon: '⊕', title: '拍照解题', desc: '拍下题目秒出解析', href: '/upload' },
+        { icon: '📖', title: '教材阅读', desc: '高亮·笔记·知识点', href: '/library' },
       ],
     },
     {

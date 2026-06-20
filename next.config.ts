@@ -2,10 +2,15 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  transpilePackages: ['@helios/blocks', '@helios/oui'],
-  // 容器化部署:standalone 产出自包含 server,镜像更小
+  transpilePackages: [
+    '@helios/blocks', '@helios/oui',
+    '@react-pdf-viewer/core', '@react-pdf-viewer/default-layout', '@react-pdf-viewer/highlight',
+  ],
   output: 'standalone',
-  serverExternalPackages: ['three', '@react-three/fiber', '@react-three/drei'],
+  serverExternalPackages: [
+    'three', '@react-three/fiber', '@react-three/drei',
+    'pdfjs-dist', 'epubjs', 'react-reader',
+  ],
 };
 
 export default nextConfig;

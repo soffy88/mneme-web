@@ -17,6 +17,7 @@ const CONFIG: SubjectConfig = {
         { icon: '字', title: '字词典', desc: '字音字形词义查询', href: '/subjects/chinese/dictionary' },
         { icon: '📖', title: '阅读理解引导', desc: '引导式文本分析', href: '/subjects/chinese/reading' },
         { icon: '◌', title: '苏格拉底答疑', desc: '引导而非直接告知', href: '/socratic' },
+        { icon: '📖', title: '教材阅读', desc: '高亮·笔记·知识点', href: '/library' },
       ],
     },
     {
