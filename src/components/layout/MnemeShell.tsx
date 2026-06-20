@@ -8,6 +8,7 @@ interface Tab { id: string; label: string; icon: string; href: string }
 
 const STUDENT_TABS: Tab[] = [
   { id: 'home',          label: '今日',  icon: '◎', href: '/home' },
+  { id: 'subjects',      label: '学科',  icon: '⊞', href: '/subjects' },
   { id: 'mastery',       label: '掌握',  icon: '◑', href: '/mastery' },
   { id: 'practice',      label: '练习',  icon: '✐', href: '/practice' },
   { id: 'error-journal', label: '错题',  icon: '◈', href: '/error-journal' },

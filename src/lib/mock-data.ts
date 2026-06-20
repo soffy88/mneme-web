@@ -14,6 +14,7 @@ import type {
   PracticeRes, LessonRes, PlotTrace,
   ParentOverviewRes, ParentAlertsRes, ChildInfo,
   ErrorJournalRes, ReviewDueItem, EssayGuideRes, SpeakingPracticeRes, SpeakingHistoryItem,
+  DailyPlanRes,
 } from '@/types/api';
 
 const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -266,6 +267,21 @@ export const mockSpeakingPractice = async (): Promise<ApiResult<SpeakingPractice
       { overall_score: 0.78, fluency_score: 0.80, accuracy_score: 0.76, word_scores: [] },
     ],
     overall_progress: 0.78,
+  });
+};
+
+export const mockDailyPlan = async (subject: string): Promise<ApiResult<DailyPlanRes>> => {
+  await delay(350);
+  const names: Record<string, string> = { math: '数学', physics: '物理', english: '英语', chinese: '语文' };
+  return ok({
+    date: new Date().toISOString().slice(0, 10),
+    subject,
+    exam_countdown_days: 350,
+    tasks: [
+      { type: 'review',        title: '复习3个到期知识点',          ku_ids: [], estimated_minutes: 15, priority: 1, reason: 'FSRS到期' },
+      { type: 'weak_practice', title: `薄弱专题：${names[subject] ?? subject}核心考点`, ku_ids: [], estimated_minutes: 20, priority: 2, reason: '掌握度低于60%' },
+      { type: 'error_review',  title: '重做2道错题',                ku_ids: [], estimated_minutes: 10, priority: 3, reason: '错题本待巩固' },
+    ],
   });
 };
 

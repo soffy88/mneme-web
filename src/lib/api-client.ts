@@ -19,6 +19,7 @@ import type {
   ErrorJournalRes, ReviewDueItem,
   EssayGuideReq, EssayGuideRes,
   SpeakingPracticeReq, SpeakingPracticeRes, SpeakingHistoryItem,
+  DailyPlanRes,
 } from '@/types/api';
 import * as mock from './mock-data';
 
@@ -187,3 +188,7 @@ export const postSpeakingPractice = (r: SpeakingPracticeReq) =>
   USE_MOCK ? mock.mockSpeakingPractice() : post<SpeakingPracticeRes>('/v1/speaking/practice', r);
 export const getSpeakingHistory = (sid: string) =>
   USE_MOCK ? mock.mockSpeakingHistory() : req<SpeakingHistoryItem[]>(`/v1/speaking/history/${sid}`);
+
+// ── 每日学科计划 ──────────────────────────────────────────────
+export const getDailyPlan = (sid: string, subject: string) =>
+  USE_MOCK ? mock.mockDailyPlan(subject) : req<DailyPlanRes>(`/v1/daily-plan/${sid}?subject=${subject}`);

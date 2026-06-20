@@ -13,11 +13,14 @@
   "dependencies": {
     "@helios/blocks": "file:./vendor/helios-blocks-2.7.1.tgz",
     "@helios/oui": "file:./vendor/helios-oui-1.5.3.tgz",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.6.1",
     "katex": "^0.16.10",
     "mafs": "^0.18.8",
     "next": "^16.0.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "three": "^0.170.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.0.0",

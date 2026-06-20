@@ -196,3 +196,20 @@ export interface SpeakingPracticeRes {
 export interface SpeakingHistoryItem {
   session_id: string; topic: string; overall_progress: number; created_at: string;
 }
+
+// ── 每日学科计划（桩接口，未来由规则引擎生成） ────────────────
+export type DailyPlanTaskType = 'review' | 'weak_practice' | 'error_review';
+export interface DailyPlanTask {
+  type: DailyPlanTaskType;
+  title: string;
+  ku_ids: string[];
+  estimated_minutes: number;
+  priority: number;
+  reason: string;
+}
+export interface DailyPlanRes {
+  date: string;
+  subject: string;
+  exam_countdown_days: number;
+  tasks: DailyPlanTask[];
+}

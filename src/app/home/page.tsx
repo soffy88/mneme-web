@@ -230,6 +230,37 @@ export default function HomePage() {
         </div>
       </div>
 
+      {/* 学科中心入口 */}
+      <div>
+        <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--mn-ink-3)', marginBottom: '10px', letterSpacing: '0.02em' }}>
+          学科中心
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+          {[
+            { slug: 'math',    emoji: '📐', label: '数学' },
+            { slug: 'physics', emoji: '⚛️', label: '物理' },
+            { slug: 'english', emoji: '🔤', label: '英语' },
+            { slug: 'chinese', emoji: '📝', label: '语文' },
+          ].map((s) => (
+            <button
+              key={s.slug}
+              type="button"
+              className="mn-card mn-card-interactive"
+              onClick={() => router.push(`/subjects/${s.slug}`)}
+              style={{
+                width: '100%', textAlign: 'left', cursor: 'pointer',
+                padding: '14px 14px',
+                display: 'flex', alignItems: 'center', gap: '10px',
+              }}
+            >
+              <span style={{ fontSize: '20px', lineHeight: 1 }}>{s.emoji}</span>
+              <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--mn-ink)' }}>{s.label}</span>
+              <span style={{ marginLeft: 'auto', color: 'var(--mn-ink-3)', fontSize: '14px' }}>›</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* 我的错题本入口 */}
       <button
         type="button"

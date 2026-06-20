@@ -1,0 +1,238 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { getUserId } from '@/lib/auth-store';
+import * as api from '@/lib/api-client';
+import type { DailyPlanRes } from '@/types/api';
+
+// ── Types ────────────────────────────────────────────────────
+
+export interface ModuleCard {
+  icon: string;
+  title: string;
+  desc: string;
+  href: string;
+}
+
+export interface SubjectSection {
+  phase: string;
+  color: string;
+  bg: string;
+  cards: ModuleCard[];
+}
+
+export interface SubjectConfig {
+  subject: string;
+  title: string;
+  emoji: string;
+  sections: SubjectSection[];
+}
+
+// ── Daily plan widget ────────────────────────────────────────
+
+const TASK_META: Record<string, { color: string; bg: string; label: string }> = {
+  review:        { color: 'var(--mn-blue)',   bg: 'var(--mn-blue-dim)',   label: '复习' },
+  weak_practice: { color: 'var(--mn-orange)', bg: 'var(--mn-orange-dim)', label: '练习' },
+  error_review:  { color: '#dc2626',          bg: '#fef2f2',              label: '错题' },
+};
+
+function DailyPlanWidget({ subject }: { subject: string }) {
+  const router = useRouter();
+  const [plan, setPlan]       = useState<DailyPlanRes | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const sid = getUserId();
+    if (!sid) { router.push('/login'); return; }
+    api.getDailyPlan(sid, subject).then((res) => {
+      setLoading(false);
+      if (res.ok) setPlan(res.data);
+    });
+  }, [subject, router]);
+
+  return (
+    <div className="mn-card" style={{ padding: '18px 20px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '14px' }}>
+        <span style={{
+          fontSize: '12px', fontWeight: 600, color: 'var(--mn-blue)',
+          padding: '2px 8px', borderRadius: '99px', background: 'var(--mn-blue-dim)',
+        }}>今日任务</span>
+        {plan && (
+          <span style={{ fontSize: '11px', color: 'var(--mn-ink-3)', marginLeft: 'auto' }}>
+            高考倒计时 {plan.exam_countdown_days} 天
+          </span>
+        )}
+      </div>
+
+      {loading ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="mn-skeleton" style={{ height: '44px', borderRadius: '8px' }} />
+          ))}
+        </div>
+      ) : !plan || plan.tasks.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--mn-ink-3)', fontSize: '14px' }}>
+          今日任务已全部完成，继续保持！🎉
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {plan.tasks.map((task, i) => {
+            const m = TASK_META[task.type] ?? TASK_META.review;
+            return (
+              <div key={i} style={{
+                display: 'flex', alignItems: 'center', gap: '10px',
+                padding: '10px 12px', borderRadius: '10px',
+                background: 'var(--mn-surface)', border: '1px solid var(--mn-border)',
+              }}>
+                <div style={{
+                  width: '28px', height: '28px', borderRadius: '7px', flexShrink: 0,
+                  background: m.bg, color: m.color,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '11px', fontWeight: 700,
+                }}>
+                  {m.label}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontSize: '14px', fontWeight: 600, color: 'var(--mn-ink)',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {task.title}
+                  </div>
+                  <div style={{ fontSize: '11px', color: 'var(--mn-ink-3)', marginTop: '1px' }}>
+                    {task.reason}
+                  </div>
+                </div>
+                <span style={{ fontSize: '11px', color: 'var(--mn-ink-3)', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
+                  ⏱{task.estimated_minutes}分
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Module card ──────────────────────────────────────────────
+
+function CardBtn({ card }: { card: ModuleCard }) {
+  const router = useRouter();
+  return (
+    <button
+      type="button"
+      className="mn-card mn-card-interactive"
+      onClick={() => router.push(card.href)}
+      style={{
+        width: '100%', textAlign: 'left', cursor: 'pointer',
+        padding: '14px 12px',
+        display: 'flex', flexDirection: 'column', gap: '5px',
+      }}
+    >
+      <span style={{ fontSize: '20px', lineHeight: 1 }}>{card.icon}</span>
+      <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--mn-ink)', lineHeight: 1.3 }}>
+        {card.title}
+      </div>
+      <div style={{ fontSize: '11px', color: 'var(--mn-ink-3)', lineHeight: 1.4 }}>
+        {card.desc}
+      </div>
+    </button>
+  );
+}
+
+// ── SRL section ──────────────────────────────────────────────
+
+function SectionBlock({ section }: { section: SubjectSection }) {
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+        <div style={{ width: '3px', height: '14px', borderRadius: '2px', background: section.color }} />
+        <span style={{ fontSize: '13px', fontWeight: 700, color: section.color, letterSpacing: '0.02em' }}>
+          {section.phase}
+        </span>
+      </div>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
+        gap: '10px',
+      }}>
+        {section.cards.map((card) => (
+          <CardBtn key={card.title} card={card} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── SubjectHub (main export) ─────────────────────────────────
+
+export function SubjectHub({ config }: { config: SubjectConfig }) {
+  const router = useRouter();
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+
+      {/* Header */}
+      <div>
+        <h1 style={{
+          fontSize: '24px', fontWeight: 800, letterSpacing: '-0.03em',
+          color: 'var(--mn-ink)', lineHeight: 1.2,
+        }}>
+          {config.emoji} {config.title}
+        </h1>
+        <p style={{ fontSize: '13px', color: 'var(--mn-ink-3)', marginTop: '4px' }}>
+          选择模块开始学习
+        </p>
+      </div>
+
+      {/* 计划区 */}
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+          <div style={{ width: '3px', height: '14px', borderRadius: '2px', background: 'var(--mn-blue)' }} />
+          <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--mn-blue)', letterSpacing: '0.02em' }}>
+            计划
+          </span>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {/* Daily plan */}
+          <DailyPlanWidget subject={config.subject} />
+          {/* Mastery map */}
+          <button
+            type="button"
+            className="mn-card mn-card-interactive"
+            onClick={() => router.push(`/mastery?subject=${config.subject}`)}
+            style={{
+              width: '100%', textAlign: 'left', cursor: 'pointer',
+              padding: '14px 18px',
+              display: 'flex', alignItems: 'center', gap: '14px',
+            }}
+          >
+            <div style={{
+              width: '36px', height: '36px', borderRadius: '10px',
+              background: 'var(--mn-blue-dim)', flexShrink: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '18px',
+            }}>
+              ◑
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--mn-ink)' }}>掌握度地图</div>
+              <div style={{ fontSize: '12px', color: 'var(--mn-ink-3)', marginTop: '2px' }}>
+                查看各知识点掌握情况
+              </div>
+            </div>
+            <span style={{ color: 'var(--mn-ink-3)', fontSize: '16px' }}>›</span>
+          </button>
+        </div>
+      </div>
+
+      {/* 执行 / 反思 / 独立功能 sections */}
+      {config.sections.map((section) => (
+        <SectionBlock key={section.phase} section={section} />
+      ))}
+
+    </div>
+  );
+}
