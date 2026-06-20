@@ -117,9 +117,9 @@ function Shell({
 }
 
 export function MnemeShell({ children }: { children: ReactNode }) {
-  return <Shell tabs={STUDENT_TABS} title="学鉴" depth={0}>{children}</Shell>;
+  return <Shell tabs={STUDENT_TABS} title="善学记" depth={0}>{children}</Shell>;
 }
 
 export function ParentShell({ children }: { children: ReactNode }) {
-  return <Shell tabs={PARENT_TABS} title="学鉴 · 家长" depth={1}>{children}</Shell>;
+  return <Shell tabs={PARENT_TABS} title="善学记 · 家长" depth={1}>{children}</Shell>;
 }

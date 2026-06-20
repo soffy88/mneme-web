@@ -3,8 +3,8 @@ import { ThemeProvider, LangProvider } from '@helios/blocks';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Mneme 学鉴',
-  description: 'K12 认知状态追踪 — 学鉴',
+  title: 'Mneme 善学记',
+  description: 'K12 认知状态追踪 — 善学记',
   viewport: 'width=device-width, initial-scale=1, viewport-fit=cover',
 };
 

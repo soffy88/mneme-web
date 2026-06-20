@@ -48,7 +48,7 @@ export default function LoginPage() {
             margin: '0 auto 16px', boxShadow: '0 4px 16px rgba(30,58,95,.25)',
           }}>◎</div>
           <h1 style={{ fontSize: '28px', fontWeight: 900, letterSpacing: '-0.04em', color: 'var(--mn-ink)', marginBottom: '6px' }}>
-            学鉴
+            善学记
           </h1>
           <p style={{ fontSize: '14px', color: 'var(--mn-ink-3)', lineHeight: 1.5 }}>
             认知状态追踪<br />每天进步一点点
