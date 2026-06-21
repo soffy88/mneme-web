@@ -189,6 +189,88 @@ export const postSpeakingPractice = (r: SpeakingPracticeReq) =>
 export const getSpeakingHistory = (sid: string) =>
   USE_MOCK ? mock.mockSpeakingHistory() : req<SpeakingHistoryItem[]>(`/v1/speaking/history/${sid}`);
 
+// ── 受力分析引导（物理）──────────────────────────────────────────
+export const startForceAnalysis = (questionText: string) =>
+  USE_MOCK
+    ? Promise.resolve({ ok: true as const, data: { session_id: 'mock-fa', first_question: '这道题的物体处于什么状态？' } })
+    : req<{ session_id: string; first_question: string }>(
+        `/v1/physics/force-analysis/start?question_text=${encodeURIComponent(questionText)}`,
+        { method: 'POST' },
+      );
+
+export async function forceAnalysisStream(
+  sessionId: string,
+  message: string,
+  onDelta: (reply: string, equationReady: boolean) => void,
+): Promise<void> {
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 400));
+    onDelta('这个物体受哪些力的作用？你能一一列举吗？', false);
+    return;
+  }
+  const res = await fetch(
+    `${MNEME_API_BASE}/v1/physics/force-analysis/message?session_id=${encodeURIComponent(sessionId)}&message=${encodeURIComponent(message)}`,
+    { method: 'POST', headers: { ...authHeader() } },
+  );
+  if (!res.ok || !res.body) throw new Error(`SSE error: ${res.status}`);
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    const parts = buf.split('\n');
+    buf = parts.pop() ?? '';
+    for (const line of parts) {
+      if (!line.startsWith('data: ') || line === 'data: [DONE]') continue;
+      const json = JSON.parse(line.slice(6));
+      if ('reply' in json) onDelta(json.reply as string, json.equation_ready as boolean ?? false);
+    }
+  }
+}
+
+// ── 阅读理解引导（英语/语文）────────────────────────────────────
+export const startReadingGuide = (params: { article_text: string; question: string; subject: string }) =>
+  USE_MOCK
+    ? Promise.resolve({ ok: true as const, data: { session_id: 'mock-rg', first_question: '先找找哪个段落和题目最相关？', subject: params.subject } })
+    : req<{ session_id: string; first_question: string; subject: string }>(
+        `/v1/reading/guide/start?article_text=${encodeURIComponent(params.article_text)}&question=${encodeURIComponent(params.question)}&subject=${encodeURIComponent(params.subject)}`,
+        { method: 'POST' },
+      );
+
+export async function readingGuideStream(
+  sessionId: string,
+  message: string,
+  onDelta: (reply: string, locatedPassage: boolean) => void,
+): Promise<void> {
+  if (USE_MOCK) {
+    await new Promise((r) => setTimeout(r, 400));
+    onDelta('你觉得答案在文章的哪个部分？', false);
+    return;
+  }
+  const res = await fetch(
+    `${MNEME_API_BASE}/v1/reading/guide/message?session_id=${encodeURIComponent(sessionId)}&message=${encodeURIComponent(message)}`,
+    { method: 'POST', headers: { ...authHeader() } },
+  );
+  if (!res.ok || !res.body) throw new Error(`SSE error: ${res.status}`);
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    const parts = buf.split('\n');
+    buf = parts.pop() ?? '';
+    for (const line of parts) {
+      if (!line.startsWith('data: ') || line === 'data: [DONE]') continue;
+      const json = JSON.parse(line.slice(6));
+      if ('reply' in json) onDelta(json.reply as string, json.located_passage as boolean ?? false);
+    }
+  }
+}
+
 // ── 每日学科计划 ──────────────────────────────────────────────
 // subject=undefined → 所有科目汇总（首页）; subject='math' → 单科（学科页）
 export const getDailyPlan = (sid: string, subject?: string) => {
