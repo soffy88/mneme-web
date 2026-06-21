@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { getUserId } from '@/lib/auth-store';
 import * as api from '@/lib/api-client';
 import { StreakBadge } from '@/components/shared/StreakBadge';
-import type { MissionRes, CompleteMissionRes, ReviewDueItem } from '@/types/api';
+import type { MissionRes, CompleteMissionRes, ReviewDueItem, DailyPlanRes } from '@/types/api';
 
 
 const TYPE_META: Record<string, { icon: string; color: string; bg: string; action: string; href: string }> = {
@@ -37,19 +37,22 @@ export default function HomePage() {
   const [done,       setDone]       = useState<CompleteMissionRes | null>(null);
   const [error,      setError]      = useState('');
   const [reviewDue,  setReviewDue]  = useState<ReviewDueItem[]>([]);
+  const [dailyPlan,  setDailyPlan]  = useState<DailyPlanRes | null>(null);
 
   const load = async () => {
     const sid = getUserId();
     if (!sid) { router.push('/login'); return; }
     setLoading(true);
-    const [missionRes, reviewRes] = await Promise.all([
+    const [missionRes, reviewRes, planRes] = await Promise.all([
       api.getMission(sid),
       api.getReviewDue(sid),
+      api.getDailyPlan(sid),   // 无 subject → 多科汇总
     ]);
     setLoading(false);
     if (missionRes.ok) setData(missionRes.data);
     else setError(missionRes.error);
     if (reviewRes.ok) setReviewDue(reviewRes.data);
+    if (planRes.ok)   setDailyPlan(planRes.data);
   };
 
   useEffect(() => { void load(); }, []);
@@ -229,6 +232,60 @@ export default function HomePage() {
           <span style={{ color: 'var(--mn-ink-2)' }}> 天 — 继续加油！</span>
         </div>
       </div>
+
+      {/* 今日全科任务汇总 */}
+      {dailyPlan && dailyPlan.tasks.length > 0 && (
+        <div className="mn-card" style={{ padding: '16px 18px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
+            <span style={{
+              fontSize: '12px', fontWeight: 600, color: '#16a34a',
+              padding: '2px 8px', borderRadius: '99px', background: '#f0fdf4',
+            }}>全科今日任务</span>
+            <span style={{ fontSize: '11px', color: 'var(--mn-ink-3)', marginLeft: 'auto' }}>
+              共 {dailyPlan.tasks.length} 项
+            </span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {dailyPlan.tasks.slice(0, 5).map((t, i) => {
+              const colors: Record<string, string> = {
+                review: 'var(--mn-blue)', weak_practice: 'var(--mn-orange)',
+                error_review: '#dc2626',  new_learn: '#16a34a',
+              };
+              const labels: Record<string, string> = {
+                math: '数学', physics: '物理', english: '英语', chinese: '语文',
+              };
+              const color = colors[t.type] ?? 'var(--mn-ink-3)';
+              return (
+                <div key={i} style={{
+                  display: 'flex', alignItems: 'center', gap: '8px',
+                  padding: '8px 10px', borderRadius: '8px',
+                  background: 'var(--mn-surface)', border: '1px solid var(--mn-border)',
+                }}>
+                  <div style={{
+                    width: '6px', height: '6px', borderRadius: '50%',
+                    background: color, flexShrink: 0,
+                  }} />
+                  <span style={{ fontSize: '12px', color: 'var(--mn-ink-3)', flexShrink: 0 }}>
+                    {labels[t.subject] ?? t.subject}
+                  </span>
+                  <span style={{
+                    fontSize: '13px', color: 'var(--mn-ink)', flex: 1,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>{t.title}</span>
+                  <span style={{ fontSize: '11px', color: 'var(--mn-ink-3)', flexShrink: 0 }}>
+                    ⏱{t.estimated_minutes}分
+                  </span>
+                </div>
+              );
+            })}
+            {dailyPlan.tasks.length > 5 && (
+              <div style={{ textAlign: 'center', fontSize: '12px', color: 'var(--mn-ink-3)', paddingTop: '2px' }}>
+                还有 {dailyPlan.tasks.length - 5} 项，进入各学科页查看
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* 学科中心入口 */}
       <div>

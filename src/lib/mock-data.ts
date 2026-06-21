@@ -272,16 +272,19 @@ export const mockSpeakingPractice = async (): Promise<ApiResult<SpeakingPractice
 
 export const mockDailyPlan = async (subject: string): Promise<ApiResult<DailyPlanRes>> => {
   await delay(350);
+  const subj = subject || 'math';
   const names: Record<string, string> = { math: '数学', physics: '物理', english: '英语', chinese: '语文' };
+  const tasks: DailyPlanRes['tasks'] = [
+    { type: 'review',        subject: subj, title: '复习3个到期知识点',          ku_ids: [], estimated_minutes: 15, priority: 1, reason: 'FSRS到期' },
+    { type: 'weak_practice', subject: subj, title: `薄弱专题：${names[subj] ?? subj}核心考点`, ku_ids: [], estimated_minutes: 20, priority: 3, reason: '掌握度低于60%' },
+    { type: 'error_review',  subject: subj, title: '重做2道错题',                ku_ids: [], estimated_minutes: 10, priority: 2, reason: '错题本待巩固' },
+    { type: 'new_learn',     subject: subj, title: '学习2个新知识点',            ku_ids: [], estimated_minutes: 40, priority: 4, reason: '按课程进度' },
+  ];
   return ok({
     date: new Date().toISOString().slice(0, 10),
-    subject,
-    exam_countdown_days: 350,
-    tasks: [
-      { type: 'review',        title: '复习3个到期知识点',          ku_ids: [], estimated_minutes: 15, priority: 1, reason: 'FSRS到期' },
-      { type: 'weak_practice', title: `薄弱专题：${names[subject] ?? subject}核心考点`, ku_ids: [], estimated_minutes: 20, priority: 2, reason: '掌握度低于60%' },
-      { type: 'error_review',  title: '重做2道错题',                ku_ids: [], estimated_minutes: 10, priority: 3, reason: '错题本待巩固' },
-    ],
+    exam_countdown_days: null,
+    subjects_summary: [{ subject: subj, task_count: tasks.length, estimated_minutes: 85 }],
+    tasks,
   });
 };
 

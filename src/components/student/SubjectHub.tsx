@@ -35,6 +35,7 @@ const TASK_META: Record<string, { color: string; bg: string; label: string }> = 
   review:        { color: 'var(--mn-blue)',   bg: 'var(--mn-blue-dim)',   label: '复习' },
   weak_practice: { color: 'var(--mn-orange)', bg: 'var(--mn-orange-dim)', label: '练习' },
   error_review:  { color: '#dc2626',          bg: '#fef2f2',              label: '错题' },
+  new_learn:     { color: '#16a34a',          bg: '#f0fdf4',              label: '新学' },
 };
 
 function DailyPlanWidget({ subject }: { subject: string }) {
@@ -58,7 +59,7 @@ function DailyPlanWidget({ subject }: { subject: string }) {
           fontSize: '12px', fontWeight: 600, color: 'var(--mn-blue)',
           padding: '2px 8px', borderRadius: '99px', background: 'var(--mn-blue-dim)',
         }}>今日任务</span>
-        {plan && (
+        {plan?.exam_countdown_days != null && (
           <span style={{ fontSize: '11px', color: 'var(--mn-ink-3)', marginLeft: 'auto' }}>
             高考倒计时 {plan.exam_countdown_days} 天
           </span>

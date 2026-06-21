@@ -190,5 +190,8 @@ export const getSpeakingHistory = (sid: string) =>
   USE_MOCK ? mock.mockSpeakingHistory() : req<SpeakingHistoryItem[]>(`/v1/speaking/history/${sid}`);
 
 // ── 每日学科计划 ──────────────────────────────────────────────
-export const getDailyPlan = (sid: string, subject: string) =>
-  USE_MOCK ? mock.mockDailyPlan(subject) : req<DailyPlanRes>(`/v1/daily-plan/${sid}?subject=${subject}`);
+// subject=undefined → 所有科目汇总（首页）; subject='math' → 单科（学科页）
+export const getDailyPlan = (sid: string, subject?: string) => {
+  const qs = subject ? `?subject=${encodeURIComponent(subject)}` : '';
+  return USE_MOCK ? mock.mockDailyPlan(subject ?? '') : req<DailyPlanRes>(`/v1/daily-plan/${sid}${qs}`);
+};
