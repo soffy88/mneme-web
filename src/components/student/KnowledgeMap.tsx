@@ -7,10 +7,10 @@ import type { KnowledgeUnitItem, MasteryColor } from '@/types/api';
 
 // ── 类型 ─────────────────────────────────────────────────────────────
 
-export type SortMode = 'chapter' | 'topic' | 'mastery' | 'difficulty' | 'exam_freq' | 'prereq';
+export type SortMode = 'textbook' | 'topic' | 'mastery' | 'difficulty' | 'exam_freq' | 'prereq';
 
 const SORT_OPTS: { key: SortMode; label: string }[] = [
-  { key: 'chapter',    label: '章节' },
+  { key: 'textbook',   label: '教材' },
   { key: 'topic',      label: '主题' },
   { key: 'mastery',    label: '掌握度' },
   { key: 'difficulty', label: '难度' },
@@ -28,8 +28,6 @@ export interface KnowledgeMapProps {
   onStartSocratic?: (ku: KnowledgeUnitItem) => void;
 }
 
-interface Group { label: string; kus: KnowledgeUnitItem[] }
-
 // ── 掌握度 ────────────────────────────────────────────────────────────
 
 const MASTERY_DOT: Record<MasteryColor, { bg: string; label: string }> = {
@@ -39,7 +37,98 @@ const MASTERY_DOT: Record<MasteryColor, { bg: string; label: string }> = {
   unknown: { bg: '#c7c7cc', label: '未学习' },
 };
 
+// ── 教材树类型 ────────────────────────────────────────────────────────
+
+interface TextbookLeaf {
+  textbookId: string;
+  bookName: string;
+  kus: KnowledgeUnitItem[];
+}
+interface GradeNode {
+  grade: string;
+  gradeLabel: string;
+  textbooks: TextbookLeaf[];
+}
+interface StageNode {
+  stage: string;
+  grades: GradeNode[];
+}
+
 // ── 工具函数 ─────────────────────────────────────────────────────────
+
+function gradeNum(grade: string): number {
+  const m = grade.match(/^G(\d+)$/);
+  if (m) return parseInt(m[1]);
+  if (grade.startsWith('高一')) return 10;
+  if (grade.startsWith('高二')) return 11;
+  if (grade.startsWith('高三')) return 12;
+  if (grade.startsWith('初一')) return 7;
+  if (grade.startsWith('初二')) return 8;
+  if (grade.startsWith('初三')) return 9;
+  return 99;
+}
+
+function stageOf(grade: string): string {
+  const n = gradeNum(grade);
+  if (n <= 6) return '小学';
+  if (n <= 9) return '初中';
+  return '高中';
+}
+
+const GRADE_LABEL: Record<string, string> = {
+  G1: '一年级', G2: '二年级', G3: '三年级', G4: '四年级',
+  G5: '五年级', G6: '六年级', G7: '七年级', G8: '八年级', G9: '九年级',
+  G10: '高一', G11: '高二', G12: '高三',
+};
+
+function gradeLabel(grade: string): string {
+  if (GRADE_LABEL[grade]) return GRADE_LABEL[grade];
+  if (grade.startsWith('高') || grade.startsWith('初')) return grade;
+  return grade;
+}
+
+function buildTextbookTree(kus: KnowledgeUnitItem[]): StageNode[] {
+  const sorted = [...kus].sort((a, b) => {
+    const gd = gradeNum(a.grade) - gradeNum(b.grade);
+    if (gd !== 0) return gd;
+    const td = a.textbook_id.toLowerCase().localeCompare(b.textbook_id.toLowerCase());
+    if (td !== 0) return td;
+    return a.id.localeCompare(b.id);
+  });
+
+  // stage → grade → textbookId → leaf
+  const stageMap = new Map<string, Map<string, Map<string, TextbookLeaf>>>();
+
+  for (const ku of sorted) {
+    const stage = stageOf(ku.grade);
+    const gl = gradeLabel(ku.grade);
+    const gradeKey = `${String(gradeNum(ku.grade)).padStart(2, '0')}|${ku.grade}|${gl}`;
+
+    if (!stageMap.has(stage)) stageMap.set(stage, new Map());
+    const gradeMap = stageMap.get(stage)!;
+    if (!gradeMap.has(gradeKey)) gradeMap.set(gradeKey, new Map());
+    const tbMap = gradeMap.get(gradeKey)!;
+    if (!tbMap.has(ku.textbook_id)) {
+      tbMap.set(ku.textbook_id, { textbookId: ku.textbook_id, bookName: ku.book_name, kus: [] });
+    }
+    tbMap.get(ku.textbook_id)!.kus.push(ku);
+  }
+
+  return ['小学', '初中', '高中']
+    .filter(s => stageMap.has(s))
+    .map(stage => ({
+      stage,
+      grades: [...stageMap.get(stage)!.entries()]
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([gradeKey, tbMap]) => ({
+          grade: gradeKey.split('|')[1],
+          gradeLabel: gradeKey.split('|')[2],
+          textbooks: [...tbMap.values()],
+        })),
+    }));
+}
+
+interface FlatGroup { label: string; kus: KnowledgeUnitItem[] }
 
 function topoSort(kus: KnowledgeUnitItem[]): KnowledgeUnitItem[] {
   const idMap  = new Map(kus.map(k => [k.id, k]));
@@ -69,8 +158,8 @@ function topoSort(kus: KnowledgeUnitItem[]): KnowledgeUnitItem[] {
   return result;
 }
 
-function buildGroups(kus: KnowledgeUnitItem[], sort: SortMode): Group[] {
-  if (sort === 'chapter' || sort === 'topic') {
+function buildFlatGroups(kus: KnowledgeUnitItem[], sort: SortMode): FlatGroup[] {
+  if (sort === 'topic') {
     const clusterMap = new Map<string, { order: number; name: string; kus: KnowledgeUnitItem[] }>();
     for (const ku of kus) {
       if (!clusterMap.has(ku.cluster_id)) {
@@ -78,13 +167,9 @@ function buildGroups(kus: KnowledgeUnitItem[], sort: SortMode): Group[] {
       }
       clusterMap.get(ku.cluster_id)!.kus.push(ku);
     }
-    const entries = [...clusterMap.values()];
-    if (sort === 'chapter') {
-      entries.sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, 'zh'));
-    } else {
-      entries.sort((a, b) => a.name.localeCompare(b.name, 'zh'));
-    }
-    return entries.map(e => ({ label: e.name, kus: e.kus }));
+    return [...clusterMap.values()]
+      .sort((a, b) => a.name.localeCompare(b.name, 'zh'))
+      .map(e => ({ label: e.name, kus: e.kus }));
   }
 
   if (sort === 'mastery') {
@@ -93,8 +178,7 @@ function buildGroups(kus: KnowledgeUnitItem[], sort: SortMode): Group[] {
       red: '待加强', yellow: '学习中', unknown: '未学习', green: '已掌握',
     };
     const sorted = [...kus].sort((a, b) => {
-      const ao = ORDER.indexOf(a.mastery_color);
-      const bo = ORDER.indexOf(b.mastery_color);
+      const ao = ORDER.indexOf(a.mastery_color), bo = ORDER.indexOf(b.mastery_color);
       if (ao !== bo) return ao - bo;
       return (a.p_mastery ?? -1) - (b.p_mastery ?? -1);
     });
@@ -108,7 +192,7 @@ function buildGroups(kus: KnowledgeUnitItem[], sort: SortMode): Group[] {
 
   if (sort === 'difficulty') {
     const sorted = [...kus].sort((a, b) => a.difficulty - b.difficulty);
-    const buckets: Group[] = [
+    const buckets: FlatGroup[] = [
       { label: '易（0~0.4）', kus: [] },
       { label: '中（0.4~0.7）', kus: [] },
       { label: '难（0.7+）', kus: [] },
@@ -133,7 +217,7 @@ function buildGroups(kus: KnowledgeUnitItem[], sort: SortMode): Group[] {
       .map(k => ({ label: LABEL[k], kus: groups.get(k)! }));
   }
 
-  // prereq: flat list
+  // prereq
   return [{ label: '学习路径', kus: topoSort(kus) }];
 }
 
@@ -153,9 +237,9 @@ function DifficultyBadge({ d }: { d: number }) {
 
 // ── KuRow ─────────────────────────────────────────────────────────────
 
-function KuRow({ ku, selected, sort, onSelect }: {
+function KuRow({ ku, selected, sort, indent, onSelect }: {
   ku: KnowledgeUnitItem; selected: boolean; sort: SortMode;
-  onSelect: () => void;
+  indent?: number; onSelect: () => void;
 }) {
   const dot = MASTERY_DOT[ku.mastery_color];
   return (
@@ -163,7 +247,7 @@ function KuRow({ ku, selected, sort, onSelect }: {
       onClick={onSelect}
       style={{
         display: 'flex', alignItems: 'center', gap: '10px',
-        padding: '10px 16px',
+        padding: `10px 16px 10px ${indent ?? 16}px`,
         background: selected ? 'var(--mn-blue-dim)' : 'transparent',
         borderLeft: selected ? '3px solid var(--mn-blue)' : '3px solid transparent',
         cursor: 'pointer', transition: 'background 0.15s',
@@ -174,19 +258,133 @@ function KuRow({ ku, selected, sort, onSelect }: {
         flex: 1, fontSize: '13px', color: 'var(--mn-ink)',
         lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
       }}>{ku.name}</span>
-      {sort === 'difficulty' || sort === 'chapter' || sort === 'topic' || sort === 'prereq'
-        ? <DifficultyBadge d={ku.difficulty} />
-        : sort === 'exam_freq'
-          ? <span style={{ fontSize: '10px', color: 'var(--mn-ink-3)', flexShrink: 0 }}>
-              {{ low: '低', mid: '中', high: '高' }[ku.exam_frequency] ?? ''}
-            </span>
-          : null
-      }
+      {(sort === 'textbook' || sort === 'topic' || sort === 'prereq') && <DifficultyBadge d={ku.difficulty} />}
+      {sort === 'exam_freq' && (
+        <span style={{ fontSize: '10px', color: 'var(--mn-ink-3)', flexShrink: 0 }}>
+          {{ low: '低', mid: '中', high: '高' }[ku.exam_frequency] ?? ''}
+        </span>
+      )}
     </div>
   );
 }
 
-// ── GroupSection ──────────────────────────────────────────────────────
+// ── 教材三层组件 ────────────────────────────────────────────────────
+
+function TextbookSection({ tb, selectedId, sort, onSelect }: {
+  tb: TextbookLeaf; selectedId: string | null; sort: SortMode;
+  onSelect: (ku: KnowledgeUnitItem) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const green = tb.kus.filter(k => k.mastery_color === 'green').length;
+  return (
+    <div>
+      <div
+        onClick={() => setOpen(o => !o)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '8px',
+          padding: '8px 16px 8px 40px',
+          cursor: 'pointer', background: 'var(--mn-surface)',
+          borderBottom: '1px solid var(--mn-border)',
+        }}
+      >
+        <span style={{
+          fontSize: '11px', color: 'var(--mn-ink-3)', transition: 'transform 0.2s',
+          transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', display: 'inline-block',
+        }}>▾</span>
+        <span style={{ flex: 1, fontSize: '12px', color: 'var(--mn-ink)', lineHeight: 1.4 }}>
+          {tb.bookName}
+        </span>
+        <span style={{ fontSize: '10px', color: 'var(--mn-ink-3)', flexShrink: 0 }}>
+          {green}/{tb.kus.length}
+        </span>
+      </div>
+      {open && tb.kus.map(ku => (
+        <KuRow
+          key={ku.id} ku={ku} selected={selectedId === ku.id}
+          sort={sort} indent={56} onSelect={() => onSelect(ku)}
+        />
+      ))}
+    </div>
+  );
+}
+
+function GradeSection({ grade, selectedId, sort, onSelect }: {
+  grade: GradeNode; selectedId: string | null; sort: SortMode;
+  onSelect: (ku: KnowledgeUnitItem) => void;
+}) {
+  const [open, setOpen] = useState(true);
+  const total = grade.textbooks.reduce((n, t) => n + t.kus.length, 0);
+  const green = grade.textbooks.reduce((n, t) => n + t.kus.filter(k => k.mastery_color === 'green').length, 0);
+  return (
+    <div>
+      <div
+        onClick={() => setOpen(o => !o)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '8px',
+          padding: '9px 16px 9px 24px',
+          cursor: 'pointer', background: 'var(--mn-paper)',
+          borderBottom: '1px solid var(--mn-border)',
+          position: 'sticky', top: '40px', zIndex: 4,
+        }}
+      >
+        <span style={{
+          fontSize: '11px', color: 'var(--mn-ink-3)', transition: 'transform 0.2s',
+          transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', display: 'inline-block',
+        }}>▾</span>
+        <span style={{ flex: 1, fontSize: '13px', fontWeight: 600, color: 'var(--mn-ink)' }}>
+          {grade.gradeLabel}
+        </span>
+        <span style={{ fontSize: '10px', color: 'var(--mn-ink-3)', flexShrink: 0 }}>
+          {green}/{total}
+        </span>
+      </div>
+      {open && grade.textbooks.map(tb => (
+        <TextbookSection
+          key={tb.textbookId} tb={tb} selectedId={selectedId}
+          sort={sort} onSelect={onSelect}
+        />
+      ))}
+    </div>
+  );
+}
+
+function StageSection({ stage, selectedId, sort, onSelect }: {
+  stage: StageNode; selectedId: string | null; sort: SortMode;
+  onSelect: (ku: KnowledgeUnitItem) => void;
+}) {
+  const [open, setOpen] = useState(true);
+  const total = stage.grades.reduce((n, g) => n + g.textbooks.reduce((m, t) => m + t.kus.length, 0), 0);
+  return (
+    <div style={{ borderBottom: '2px solid var(--mn-border)' }}>
+      <div
+        onClick={() => setOpen(o => !o)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '8px',
+          padding: '10px 16px',
+          cursor: 'pointer', background: 'var(--mn-surface)',
+          position: 'sticky', top: 0, zIndex: 5,
+        }}
+      >
+        <span style={{
+          fontSize: '12px', color: 'var(--mn-blue)', transition: 'transform 0.2s',
+          transform: open ? 'rotate(0deg)' : 'rotate(-90deg)', display: 'inline-block',
+        }}>▼</span>
+        <span style={{ flex: 1, fontSize: '14px', fontWeight: 800, color: 'var(--mn-ink)' }}>
+          {stage.stage}
+        </span>
+        <span style={{ fontSize: '11px', color: 'var(--mn-ink-3)' }}>{total} 个</span>
+      </div>
+      {open && stage.grades.map(g => (
+        <GradeSection
+          key={g.grade} grade={g} selectedId={selectedId}
+          sort={sort} onSelect={onSelect}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ── 平铺分组 (topic/mastery/difficulty/exam_freq/prereq) ─────────────
 
 function GroupSection({ label, kus, sort, selectedId, onSelect, defaultOpen = true }: {
   label: string; kus: KnowledgeUnitItem[]; sort: SortMode;
@@ -216,10 +414,7 @@ function GroupSection({ label, kus, sort, selectedId, onSelect, defaultOpen = tr
         </span>
       </div>
       {open && kus.map(ku => (
-        <KuRow
-          key={ku.id} ku={ku} selected={selectedId === ku.id}
-          sort={sort} onSelect={() => onSelect(ku)}
-        />
+        <KuRow key={ku.id} ku={ku} selected={selectedId === ku.id} sort={sort} onSelect={() => onSelect(ku)} />
       ))}
     </div>
   );
@@ -227,8 +422,8 @@ function GroupSection({ label, kus, sort, selectedId, onSelect, defaultOpen = tr
 
 // ── KuDetailPanel ────────────────────────────────────────────────────
 
-function KuDetailPanel({ ku, studentId, onClose, onJumpPractice, onJumpReader, onStartSocratic }: {
-  ku: KnowledgeUnitItem; studentId: string | null;
+function KuDetailPanel({ ku, onClose, onJumpPractice, onJumpReader, onStartSocratic }: {
+  ku: KnowledgeUnitItem;
   onClose: () => void;
   onJumpPractice: (kuId: string) => void;
   onJumpReader: (fileId: string) => void;
@@ -252,7 +447,7 @@ function KuDetailPanel({ ku, studentId, onClose, onJumpPractice, onJumpReader, o
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--mn-ink)', lineHeight: 1.3 }}>{ku.name}</div>
             <div style={{ fontSize: '11px', color: 'var(--mn-ink-3)', marginTop: '2px' }}>
-              {ku.book_name} · {ku.cluster_name}
+              {ku.book_name}
             </div>
           </div>
         </div>
@@ -282,8 +477,7 @@ function KuDetailPanel({ ku, studentId, onClose, onJumpPractice, onJumpReader, o
             {[
               { label: '难度', value: ku.difficulty < 0.4 ? '容易' : ku.difficulty < 0.7 ? '适中' : '较难',
                 sub: `(${Math.round(ku.difficulty * 10) / 10})` },
-              { label: '考试频率', value: ({ low: '低频', mid: '中频', high: '高频' } as Record<string, string>)[ku.exam_frequency] ?? ku.exam_frequency,
-                sub: '' },
+              { label: '考试频率', value: ({ low: '低频', mid: '中频', high: '高频' } as Record<string, string>)[ku.exam_frequency] ?? ku.exam_frequency, sub: '' },
             ].map(({ label, value, sub }) => (
               <div key={label} style={{
                 flex: 1, padding: '10px 12px', borderRadius: '10px',
@@ -366,10 +560,10 @@ function KuDetailPanel({ ku, studentId, onClose, onJumpPractice, onJumpReader, o
 export default function KnowledgeMap({
   subject, title, textbookId, onBack, onJumpPractice, onJumpReader, onStartSocratic,
 }: KnowledgeMapProps) {
-  const [kus,       setKus]      = useState<KnowledgeUnitItem[]>([]);
-  const [loading,   setLoading]  = useState(true);
-  const [selected,  setSelected] = useState<KnowledgeUnitItem | null>(null);
-  const [sort,      setSort]     = useState<SortMode>('chapter');
+  const [kus,        setKus]      = useState<KnowledgeUnitItem[]>([]);
+  const [loading,    setLoading]  = useState(true);
+  const [selected,   setSelected] = useState<KnowledgeUnitItem | null>(null);
+  const [sort,       setSort]     = useState<SortMode>('textbook');
   const [socLoading, setSocLoading] = useState(false);
 
   const studentId = getUserId();
@@ -384,17 +578,15 @@ export default function KnowledgeMap({
       .finally(() => setLoading(false));
   }, [subject, textbookId, studentId]);
 
-  const groups = buildGroups(kus, sort);
-
   const handleStartSocratic = useCallback(async (ku: KnowledgeUnitItem) => {
     if (!onStartSocratic) return;
     setSocLoading(true);
-    try {
-      await onStartSocratic(ku);
-    } finally {
-      setSocLoading(false);
-    }
+    try { await onStartSocratic(ku); }
+    finally { setSocLoading(false); }
   }, [onStartSocratic]);
+
+  const textbookTree = sort === 'textbook' ? buildTextbookTree(kus) : null;
+  const flatGroups   = sort !== 'textbook' ? buildFlatGroups(kus, sort) : null;
 
   if (loading) {
     return (
@@ -428,7 +620,7 @@ export default function KnowledgeMap({
         {/* Sort tabs */}
         <div style={{
           display: 'flex', gap: '4px', padding: '0 16px 10px',
-          overflowX: 'auto', WebkitOverflowScrolling: 'touch',
+          overflowX: 'auto', WebkitOverflowScrolling: 'touch' as React.CSSProperties['WebkitOverflowScrolling'],
         }}>
           {SORT_OPTS.map(opt => (
             <button
@@ -461,19 +653,23 @@ export default function KnowledgeMap({
             <div style={{ padding: '40px 24px', textAlign: 'center', color: 'var(--mn-ink-3)', fontSize: '14px' }}>
               暂无{title}数据
             </div>
-          ) : (
-            groups.map((g, i) => (
+          ) : sort === 'textbook' && textbookTree ? (
+            textbookTree.map(stage => (
+              <StageSection
+                key={stage.stage} stage={stage} selectedId={selected?.id ?? null}
+                sort={sort} onSelect={ku => setSelected(ku)}
+              />
+            ))
+          ) : flatGroups ? (
+            flatGroups.map((g, i) => (
               <GroupSection
-                key={g.label + i}
-                label={g.label}
-                kus={g.kus}
-                sort={sort}
+                key={g.label + i} label={g.label} kus={g.kus} sort={sort}
                 selectedId={selected?.id ?? null}
                 onSelect={ku => setSelected(ku)}
                 defaultOpen={sort === 'prereq' || i < 3}
               />
             ))
-          )}
+          ) : null}
         </div>
 
         {/* Detail panel (desktop) */}
@@ -481,7 +677,6 @@ export default function KnowledgeMap({
           <div style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
             <KuDetailPanel
               ku={selected}
-              studentId={studentId}
               onClose={() => setSelected(null)}
               onJumpPractice={onJumpPractice}
               onJumpReader={onJumpReader}
@@ -508,7 +703,6 @@ export default function KnowledgeMap({
           )}
           <KuDetailPanel
             ku={selected}
-            studentId={studentId}
             onClose={() => setSelected(null)}
             onJumpPractice={onJumpPractice}
             onJumpReader={onJumpReader}
