@@ -52,6 +52,25 @@ export interface ReadingNoteItem {
   updated_at: string;
 }
 
+export interface LibraryTextbook {
+  textbook_id: string;
+  book_name: string;
+  grade: string;
+  edition: string;
+  file_id: string;
+  has_text_layer: boolean | null;
+}
+
+export interface LibrarySubject {
+  subject: string;
+  name: string;
+  textbooks: LibraryTextbook[];
+}
+
+export interface LibraryData {
+  subjects: LibrarySubject[];
+}
+
 // ── 底层 fetch ────────────────────────────────────────────────
 
 async function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
@@ -72,6 +91,12 @@ export async function uploadTextbookFile(
   form.append('file', file);
   if (textbookId) form.append('textbook_id', textbookId);
   const res = await apiFetch('/v1/textbook-files/upload', { method: 'POST', body: form });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+export async function listLibraryTextbooks(): Promise<LibraryData> {
+  const res = await apiFetch('/v1/library/textbooks');
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
