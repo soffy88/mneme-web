@@ -281,13 +281,15 @@ export const getDailyPlan = (sid: string, subject?: string) => {
 
 // ── 知识单元 ──────────────────────────────────────────────────
 export const listKnowledgePoints = (params: {
-  subject?: string; textbook_id?: string; cluster_id?: string; student_id?: string;
+  subject?: string; textbook_id?: string; cluster_id?: string;
+  student_id?: string; sort?: string;
 }) => {
   const p = new URLSearchParams();
   if (params.subject)      p.set('subject',      params.subject);
   if (params.textbook_id)  p.set('textbook_id',  params.textbook_id);
   if (params.cluster_id)   p.set('cluster_id',   params.cluster_id);
   if (params.student_id)   p.set('student_id',   params.student_id);
+  if (params.sort)         p.set('sort',          params.sort);
   return req<KnowledgeUnitItem[]>(`/v1/knowledge-points?${p.toString()}`);
 };
 
