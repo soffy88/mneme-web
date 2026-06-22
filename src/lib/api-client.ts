@@ -20,6 +20,7 @@ import type {
   EssayGuideReq, EssayGuideRes,
   SpeakingPracticeReq, SpeakingPracticeRes, SpeakingHistoryItem,
   DailyPlanRes,
+  KnowledgeUnitItem, QuestionBankRes, PracticeSubmitReq, PracticeSubmitRes,
 } from '@/types/api';
 import * as mock from './mock-data';
 
@@ -277,3 +278,49 @@ export const getDailyPlan = (sid: string, subject?: string) => {
   const qs = subject ? `?subject=${encodeURIComponent(subject)}` : '';
   return USE_MOCK ? mock.mockDailyPlan(subject ?? '') : req<DailyPlanRes>(`/v1/daily-plan/${sid}${qs}`);
 };
+
+// ── 知识单元 ──────────────────────────────────────────────────
+export const listKnowledgePoints = (params: {
+  subject?: string; textbook_id?: string; cluster_id?: string; student_id?: string;
+}) => {
+  const p = new URLSearchParams();
+  if (params.subject)      p.set('subject',      params.subject);
+  if (params.textbook_id)  p.set('textbook_id',  params.textbook_id);
+  if (params.cluster_id)   p.set('cluster_id',   params.cluster_id);
+  if (params.student_id)   p.set('student_id',   params.student_id);
+  return req<KnowledgeUnitItem[]>(`/v1/knowledge-points?${p.toString()}`);
+};
+
+export const getKnowledgePoint = (kuId: string, studentId?: string) => {
+  const qs = studentId ? `?student_id=${encodeURIComponent(studentId)}` : '';
+  return req<KnowledgeUnitItem>(`/v1/knowledge-points/${encodeURIComponent(kuId)}${qs}`);
+};
+
+// ── 题库 & 专题练习 ───────────────────────────────────────────
+export const listQuestionBank = (params: {
+  subject?: string; ku_id?: string; needs_image?: boolean; limit?: number; offset?: number;
+}) => {
+  const p = new URLSearchParams();
+  if (params.subject)                    p.set('subject',      params.subject);
+  if (params.ku_id)                      p.set('ku_id',        params.ku_id);
+  if (params.needs_image !== undefined)  p.set('needs_image',  String(params.needs_image));
+  if (params.limit !== undefined)        p.set('limit',        String(params.limit));
+  if (params.offset !== undefined)       p.set('offset',       String(params.offset));
+  return req<QuestionBankRes>(`/v1/question-bank?${p.toString()}`);
+};
+
+export const submitPracticeAnswer = (body: PracticeSubmitReq) =>
+  req<PracticeSubmitRes>('/v1/practice/submit', { method: 'POST', body: JSON.stringify(body) });
+
+// ── 苏格拉底（KU 入口） ───────────────────────────────────────
+export const startSocraticForKu = (kuId: string, studentId: string) =>
+  req<SocraticStartRes>('/v1/socratic/start-for-ku', {
+    method: 'POST',
+    body: JSON.stringify({ ku_id: kuId, student_id: studentId }),
+  });
+
+// ── 教材文件元数据（供阅读器初始化） ──────────────────────────
+export const getTextbookFileMeta = (fileId: string) =>
+  req<{ file_id: string; filename: string; file_type: 'pdf' | 'epub'; file_size: number | null;
+        textbook_id: string | null; owner_student_id: string | null; has_text_layer: boolean | null;
+        uploaded_at: string; }>(`/v1/textbook-files/${encodeURIComponent(fileId)}/meta`);

@@ -197,6 +197,66 @@ export interface SpeakingHistoryItem {
   session_id: string; topic: string; overall_progress: number; created_at: string;
 }
 
+// ── 知识单元 ────────────────────────────────────────────────────
+export type MasteryColor = 'green' | 'yellow' | 'red' | 'unknown';
+
+export interface KnowledgeUnitItem {
+  id: string;
+  name: string;
+  description: string | null;
+  textbook_id: string;
+  textbook_file_id: string | null;
+  cluster_id: string;
+  cluster_name: string;
+  cluster_order: number;
+  subject: string;
+  grade: string;
+  edition: string;
+  book_name: string;
+  prerequisites: string[];
+  related_kus: string[];
+  difficulty: number;
+  exam_frequency: 'low' | 'mid' | 'high';
+  question_types: string[];
+  ku_type: 'concept' | 'method' | 'theorem' | string;
+  curriculum_standard: string | null;
+  mastery_levels: unknown[];
+  p_mastery: number | null;
+  mastery_color: MasteryColor;
+  prereq_mastery?: { ku_id: string; p_mastery: number | null; mastery_color: MasteryColor }[];
+}
+
+// ── 题库 ─────────────────────────────────────────────────────────
+export interface QuestionBankItem {
+  id: string;
+  subject: string;
+  question_text: string;
+  correct_answer: string | null;
+  knowledge_points: Record<string, string>;
+  needs_image: boolean;
+}
+export interface QuestionBankRes {
+  total: number;
+  offset: number;
+  limit: number;
+  items: QuestionBankItem[];
+}
+
+export interface PracticeSubmitReq {
+  question_id: string;
+  student_id: string;
+  student_answer: string;
+  is_correct: boolean;
+  ku_id: string;
+}
+export interface PracticeSubmitRes {
+  is_correct: boolean;
+  wrong_question_id: string | null;
+  p_mastery: number | null;
+  mastery_color: MasteryColor;
+  feedback: { text: string; type: string | null } | null;
+}
+
 // ── 每日学科计划（规则引擎） ────────────────────────────────────
 export type DailyPlanTaskType = 'review' | 'weak_practice' | 'error_review' | 'new_learn';
 export interface DailyPlanTask {

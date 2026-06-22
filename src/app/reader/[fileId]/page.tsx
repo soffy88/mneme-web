@@ -5,9 +5,10 @@ import { useParams, useRouter } from 'next/navigation';
 import { DocumentViewer } from '@/components/reader/DocumentViewer';
 import { HighlightPanel } from '@/components/reader/HighlightPanel';
 import {
-  listTextbookFiles, listHighlights, listReadingNotes,
+  listHighlights, listReadingNotes,
   type TextbookFile, type HighlightItem, type ReadingNoteItem,
 } from '@/lib/reader-api';
+import { getTextbookFileMeta } from '@/lib/api-client';
 
 // ── 知识点占位栏 ────────────────────────────────────────────
 
@@ -75,13 +76,21 @@ export default function ReaderPage() {
   useEffect(() => {
     (async () => {
       try {
-        const [files, hs, ns] = await Promise.all([
-          listTextbookFiles(),
+        const [metaRes, hs, ns] = await Promise.all([
+          getTextbookFileMeta(fileId),
           listHighlights(fileId),
           listReadingNotes(fileId),
         ]);
-        const f = files.find(f => f.file_id === fileId);
-        setFile(f ?? null);
+        const f: TextbookFile | null = metaRes.ok ? {
+          file_id: metaRes.data.file_id,
+          filename: metaRes.data.filename,
+          file_type: metaRes.data.file_type,
+          file_size: metaRes.data.file_size,
+          uploaded_at: metaRes.data.uploaded_at,
+          textbook_id: metaRes.data.textbook_id,
+          owner_student_id: metaRes.data.owner_student_id,
+        } : null;
+        setFile(f);
         setHighlights(hs);
         setNotes(ns);
       } finally {

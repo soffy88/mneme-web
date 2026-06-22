@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import * as api from '@/lib/api-client';
 import type { SocraticOutcome } from '@/types/api';
 
@@ -12,16 +13,20 @@ const EMOTION_HINT: Record<string, { text: string; color: string }> = {
   angry:   { text: '🤝 题目确实有挑战性，一步一步来。', color: 'var(--mn-blue)' },
 };
 
-export default function SocraticPage() {
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [msgs,      setMsgs]      = useState<Msg[]>([]);
+function SocraticPageInner() {
+  const searchParams = useSearchParams();
+  const [sessionId, setSessionId] = useState<string | null>(searchParams.get('session_id'));
+  const initFirstQ = searchParams.get('first_q');
+  const [msgs,      setMsgs]      = useState<Msg[]>(
+    sessionId && initFirstQ ? [{ role: 'ai', text: initFirstQ }] : []
+  );
   const [input,     setInput]     = useState('');
   const [streaming, setStreaming] = useState(false);
   const [emotion,   setEmotion]   = useState<string | null>(null);
   const [outcome,   setOutcome]   = useState<SocraticOutcome>(null);
   const [escape,    setEscape]    = useState<string | null>(null);
   const [loading,   setLoading]   = useState(false);
-  const [started,   setStarted]   = useState(false);
+  const [started,   setStarted]   = useState(!!(sessionId && initFirstQ));
   const bottomRef = useRef<HTMLDivElement>(null);
   const taRef     = useRef<HTMLTextAreaElement>(null);
 
@@ -171,5 +176,13 @@ export default function SocraticPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function SocraticPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '48px', textAlign: 'center', color: 'var(--mn-ink-3)' }}>加载中…</div>}>
+      <SocraticPageInner />
+    </Suspense>
   );
 }
