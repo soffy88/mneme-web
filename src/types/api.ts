@@ -224,6 +224,7 @@ export interface KnowledgeUnitItem {
   p_mastery: number | null;
   mastery_color: MasteryColor;
   prereq_mastery?: { ku_id: string; p_mastery: number | null; mastery_color: MasteryColor }[];
+  rich_content?: Record<string, string | string[]> | null;
 }
 
 // ── 题库 ─────────────────────────────────────────────────────────

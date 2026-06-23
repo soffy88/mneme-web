@@ -9,8 +9,9 @@ import {
   type TextbookFile, type HighlightItem, type ReadingNoteItem,
 } from '@/lib/reader-api';
 import {
-  getTextbookFileMeta, listKnowledgePoints, startSocraticForKu,
+  getTextbookFileMeta, listKnowledgePoints, startSocraticForKu, getKnowledgePoint,
 } from '@/lib/api-client';
+import { RichContentView } from '@/components/student/RichContentView';
 import { getUserId } from '@/lib/auth-store';
 import type { KnowledgeUnitItem } from '@/types/api';
 
@@ -28,8 +29,15 @@ const ML: Record<string, string> = {
 function KuDetail({ ku, onBack }: { ku: KnowledgeUnitItem; onBack: () => void }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [richContent, setRichContent] = useState<Record<string, string | string[]> | null>(null);
   const studentId = getUserId();
   const pct = ku.p_mastery !== null ? Math.round((ku.p_mastery ?? 0) * 100) : null;
+
+  useEffect(() => {
+    getKnowledgePoint(ku.id, studentId ?? undefined)
+      .then(d => { if (d.ok && d.data.rich_content) setRichContent(d.data.rich_content as Record<string, string | string[]>); })
+      .catch(() => {});
+  }, [ku.id, studentId]);
 
   const handleSocratic = async () => {
     if (!studentId) { router.push('/login'); return; }
@@ -89,6 +97,12 @@ function KuDetail({ ku, onBack }: { ku: KnowledgeUnitItem; onBack: () => void })
             </div>
           ))}
         </div>
+
+        {richContent && (
+          <div style={{ marginTop: 2 }}>
+            <RichContentView kuType={ku.ku_type} richContent={richContent} />
+          </div>
+        )}
 
         {/* 操作 */}
         <button

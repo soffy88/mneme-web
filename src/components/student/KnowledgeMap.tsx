@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import * as api from '@/lib/api-client';
 import { getUserId } from '@/lib/auth-store';
 import type { KnowledgeUnitItem, MasteryColor } from '@/types/api';
+import { RichContentView } from '@/components/student/RichContentView';
 
 // ── 类型 ─────────────────────────────────────────────────────────────
 
@@ -431,6 +432,14 @@ function KuDetailPanel({ ku, onClose, onJumpPractice, onJumpReader, onStartSocra
 }) {
   const dot = MASTERY_DOT[ku.mastery_color];
   const masteryPct = ku.p_mastery !== null ? Math.round((ku.p_mastery ?? 0) * 100) : null;
+  const [richContent, setRichContent] = useState<Record<string, string | string[]> | null>(null);
+
+  useEffect(() => {
+    const uid = getUserId() ?? undefined;
+    api.getKnowledgePoint(ku.id, uid)
+      .then(d => { if (d.ok && d.data.rich_content) setRichContent(d.data.rich_content as Record<string, string | string[]>); })
+      .catch(() => {});
+  }, [ku.id]);
 
   return (
     <div style={{ height: '100%', overflowY: 'auto', display: 'flex', flexDirection: 'column', background: 'var(--mn-paper)' }}>
@@ -509,6 +518,12 @@ function KuDetailPanel({ ku, onClose, onJumpPractice, onJumpReader, onStartSocra
                 </span>
               ))}
             </div>
+          </section>
+        )}
+
+        {richContent && (
+          <section>
+            <RichContentView kuType={ku.ku_type} richContent={richContent} />
           </section>
         )}
 
