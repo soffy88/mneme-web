@@ -112,11 +112,10 @@ export async function socraticStream(
   if (USE_MOCK) {
     return mock.mockSocraticStream(onDelta, onDone);
   }
-  const res = await fetch(`${MNEME_API_BASE}/v1/socratic/${sessionId}/message`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...authHeader() },
-    body: JSON.stringify({ text }),
-  });
+  const res = await fetch(
+    `${MNEME_API_BASE}/v1/socratic/${encodeURIComponent(sessionId)}/message?student_message=${encodeURIComponent(text)}`,
+    { method: 'POST', headers: { ...authHeader() } },
+  );
   if (!res.ok || !res.body) throw new Error(`SSE error: ${res.status}`);
   const reader  = res.body.getReader();
   const decoder = new TextDecoder();
