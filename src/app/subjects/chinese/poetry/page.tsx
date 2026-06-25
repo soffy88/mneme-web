@@ -74,7 +74,7 @@ export default function PoetryPage() {
           <h1 style={{ fontSize: 22, fontWeight: 700, color: '#14532d', margin: 0 }}>古诗文诵读</h1>
           <p style={{ fontSize: 13, color: '#78716c', margin: '4px 0 0' }}>共 {kus.length} 句名篇名句 · {grouped.length} 篇</p>
         </div>
-        <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 20, background: '#dcfce7', color: '#16a34a', fontWeight: 500, marginTop: 4 }}>建设中</span>
+        <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 20, background: '#dcfce7', color: '#16a34a', fontWeight: 500, marginTop: 4 }}>{kus.length} 条</span>
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>

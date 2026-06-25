@@ -13,6 +13,7 @@ export interface ModuleCard {
   title: string;
   desc: string;
   href: string;
+  disabled?: boolean;
 }
 
 export interface SubjectSection {
@@ -121,6 +122,31 @@ function DailyPlanWidget({ subject }: { subject: string }) {
 
 function CardBtn({ card }: { card: ModuleCard }) {
   const router = useRouter();
+  if (card.disabled) {
+    return (
+      <div
+        className="mn-card"
+        style={{
+          width: '100%', padding: '14px 12px', opacity: 0.45,
+          display: 'flex', flexDirection: 'column', gap: '5px',
+          cursor: 'not-allowed', position: 'relative',
+        }}
+      >
+        <span style={{ fontSize: '20px', lineHeight: 1, filter: 'grayscale(1)' }}>{card.icon}</span>
+        <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--mn-ink)', lineHeight: 1.3 }}>
+          {card.title}
+        </div>
+        <div style={{ fontSize: '11px', color: 'var(--mn-ink-3)', lineHeight: 1.4 }}>
+          {card.desc}
+        </div>
+        <span style={{
+          position: 'absolute', top: 8, right: 8,
+          fontSize: '10px', padding: '2px 6px', borderRadius: 10,
+          background: '#f3f4f6', color: '#6b7280', fontWeight: 500,
+        }}>即将上线</span>
+      </div>
+    );
+  }
   return (
     <button
       type="button"

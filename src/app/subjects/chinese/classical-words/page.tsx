@@ -180,7 +180,7 @@ export default function ClassicalWordsPage() {
             共 {kus.length} 条实词 · {multiCount} 条多义词
           </p>
         </div>
-        <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 20, background: '#fef3c7', color: '#d97706', fontWeight: 500, marginTop: 4 }}>建设中</span>
+        <span style={{ fontSize: 11, padding: '3px 8px', borderRadius: 20, background: '#fef3c7', color: '#d97706', fontWeight: 500, marginTop: 4 }}>{multiCount} 多义</span>
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
