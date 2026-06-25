@@ -12,6 +12,7 @@ const CONFIG: SubjectConfig = {
       color: '#16a34a',
       bg: '#f0fdf4',
       cards: [
+        { icon: '✐', title: '知识体系', desc: '8040 个知识点，初中+高中全11册', href: '/subjects/chinese/lesson' },
         { icon: '古', title: '文言实词本', desc: '文言实词系统记忆', href: '/subjects/chinese/classical-words' },
         { icon: '诗', title: '古诗文诵读', desc: '必背古诗文精讲', href: '/subjects/chinese/poetry' },
         { icon: '字', title: '字词典', desc: '字音字形词义查询', href: '/subjects/chinese/dictionary' },

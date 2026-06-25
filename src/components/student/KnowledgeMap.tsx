@@ -19,6 +19,65 @@ const SORT_OPTS: { key: SortMode; label: string }[] = [
   { key: 'prereq',     label: '路径' },
 ];
 
+// ── 语文 22 种 ku_type 元数据 ─────────────────────────────────────────
+
+type CnTrack = '积累' | '鉴赏' | '表达';
+
+const CN_KU_TYPES: Record<string, { label: string; color: string; track: CnTrack }> = {
+  // 积累轨
+  wenyan_word:       { label: '文言词语', color: '#92400e', track: '积累' },
+  wenyan_syntax:     { label: '文言句式', color: '#78350f', track: '积累' },
+  mingpian:          { label: '名篇名句', color: '#3f6212', track: '积累' },
+  mingju:            { label: '名句',     color: '#365314', track: '积累' },
+  chengyu:           { label: '成语典故', color: '#14532d', track: '积累' },
+  zixing_ziyin:      { label: '字音字形', color: '#134e4a', track: '积累' },
+  cizu_yunyong:      { label: '词语运用', color: '#1e3a5f', track: '积累' },
+  wenhua_changshi:   { label: '文化常识', color: '#0c4a6e', track: '积累' },
+  bingju:            { label: '病句辨析', color: '#4a1942', track: '积累' },
+  biaodian:          { label: '标点符号', color: '#3b1a1a', track: '积累' },
+  // 鉴赏轨
+  xinxi_yuedu:       { label: '信息类阅读', color: '#4c1d95', track: '鉴赏' },
+  xiaoshuo_yuedu:    { label: '小说阅读',   color: '#5b21b6', track: '鉴赏' },
+  sanwen_yuedu:      { label: '散文阅读',   color: '#3730a3', track: '鉴赏' },
+  jixuwen_yuedu:     { label: '记叙文阅读', color: '#1e40af', track: '鉴赏' },
+  shuomingwen_yuedu: { label: '说明文阅读', color: '#1e3a8a', track: '鉴赏' },
+  yilunwen_yuedu:    { label: '议论文阅读', color: '#0f172a', track: '鉴赏' },
+  wenyan_yuedu:      { label: '文言文阅读', color: '#0c4a6e', track: '鉴赏' },
+  shici_jianshang:   { label: '诗词鉴赏',   color: '#0e7490', track: '鉴赏' },
+  mingzhu_yuedu:     { label: '名著阅读',   color: '#155e75', track: '鉴赏' },
+  // 表达轨
+  xiezuo:            { label: '书面表达', color: '#9f1239', track: '表达' },
+  kouyu_jiaoji:      { label: '口语交际', color: '#7f1d1d', track: '表达' },
+  goutong_chushi:    { label: '沟通处世', color: '#6b1e1e', track: '表达' },
+};
+
+const CN_TRACKS: { key: CnTrack | 'all'; label: string; bg: string; activeBg: string; activeColor: string }[] = [
+  { key: 'all',  label: '全部',    bg: '#f5f4f2', activeBg: '#1c1c1e',  activeColor: '#fff'    },
+  { key: '积累', label: '积累轨',  bg: '#fef9c3', activeBg: '#92400e',  activeColor: '#fff'    },
+  { key: '鉴赏', label: '鉴赏轨',  bg: '#ede9fe', activeBg: '#4c1d95',  activeColor: '#fff'    },
+  { key: '表达', label: '表达轨',  bg: '#ffe4e6', activeBg: '#9f1239',  activeColor: '#fff'    },
+];
+
+// ── 002 描述解析 ──────────────────────────────────────────────────────
+
+interface Desc002 { know_what: string; know_how: string; know_why: string; example: string }
+
+function parse002(raw: string | null): Desc002 | null {
+  const out: Desc002 = { know_what: '', know_how: '', know_why: '', example: '' };
+  if (!raw) return null;
+  const isFormat = raw.includes('know-what:') || raw.includes('know-how:') || raw.includes('know-why:');
+  if (!isFormat) return null;
+  const clean = (s: string) => s.trim() === 'null' || s.trim() === 'None' || s.trim() === '' ? '' : s.trim();
+  for (const line of raw.split('\n')) {
+    const l = line.trim();
+    if (l.startsWith('know-what:')) out.know_what = clean(l.slice(10));
+    else if (l.startsWith('know-how:'))  out.know_how  = clean(l.slice(9));
+    else if (l.startsWith('know-why:'))  out.know_why  = clean(l.slice(9));
+    else if (l.startsWith('实例:'))       out.example   = clean(l.slice(3));
+  }
+  return out;
+}
+
 export interface KnowledgeMapProps {
   subject: string;
   title: string;
@@ -474,12 +533,47 @@ function KuDetailPanel({ ku, onClose, onJumpPractice, onJumpReader, onStartSocra
       </div>
 
       <div style={{ flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {ku.description && (
-          <section>
-            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--mn-ink-3)', letterSpacing: '0.05em', marginBottom: '6px' }}>学习目标</div>
-            <div style={{ fontSize: '13px', color: 'var(--mn-ink)', lineHeight: 1.7 }}>{ku.description}</div>
-          </section>
-        )}
+        {ku.description && (() => {
+          const d = parse002(ku.description);
+          if (d && (d.know_what || d.know_how || d.know_why)) {
+            return (
+              <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {d.know_what && (
+                  <div style={{ padding: '10px 12px', borderRadius: 10, background: 'var(--mn-surface)', border: '1px solid var(--mn-border)' }}>
+                    <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--mn-ink-3)', letterSpacing: '0.06em', marginBottom: 4 }}>是什么</div>
+                    <div style={{ fontSize: '13px', color: 'var(--mn-ink)', lineHeight: 1.7 }}>{d.know_what}</div>
+                  </div>
+                )}
+                {d.know_how && (
+                  <div style={{ padding: '10px 12px', borderRadius: 10, background: '#eef6ff', border: '1px solid #bfdbfe' }}>
+                    <div style={{ fontSize: '10px', fontWeight: 700, color: '#1d4ed8', letterSpacing: '0.06em', marginBottom: 4 }}>怎么用</div>
+                    <div style={{ fontSize: '13px', color: '#1e3a8a', lineHeight: 1.7 }}>{d.know_how}</div>
+                  </div>
+                )}
+                {d.know_why && (
+                  <div style={{ padding: '12px 14px', borderRadius: 10, background: '#faf5ff', border: '2px solid #a855f7' }}>
+                    <div style={{ fontSize: '10px', fontWeight: 700, color: '#7e22ce', letterSpacing: '0.06em', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span style={{ fontSize: 12 }}>★</span> 为什么（深层机制）
+                    </div>
+                    <div style={{ fontSize: '14px', color: '#4a044e', lineHeight: 1.8, fontWeight: 500 }}>{d.know_why}</div>
+                  </div>
+                )}
+                {d.example && (
+                  <div style={{ padding: '8px 12px', borderRadius: 8, background: '#f7f7f5', border: '1px solid var(--mn-border)' }}>
+                    <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--mn-ink-3)', letterSpacing: '0.06em', marginBottom: 3 }}>实例</div>
+                    <div style={{ fontSize: '12px', color: 'var(--mn-ink-2)', lineHeight: 1.6 }}>{d.example}</div>
+                  </div>
+                )}
+              </section>
+            );
+          }
+          return (
+            <section>
+              <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--mn-ink-3)', letterSpacing: '0.05em', marginBottom: '6px' }}>学习目标</div>
+              <div style={{ fontSize: '13px', color: 'var(--mn-ink)', lineHeight: 1.7 }}>{ku.description}</div>
+            </section>
+          );
+        })()}
 
         <section>
           <div style={{ display: 'flex', gap: '10px' }}>
@@ -575,13 +669,32 @@ function KuDetailPanel({ ku, onClose, onJumpPractice, onJumpReader, onStartSocra
 export default function KnowledgeMap({
   subject, title, textbookId, onBack, onJumpPractice, onJumpReader, onStartSocratic,
 }: KnowledgeMapProps) {
-  const [kus,        setKus]      = useState<KnowledgeUnitItem[]>([]);
-  const [loading,    setLoading]  = useState(true);
-  const [selected,   setSelected] = useState<KnowledgeUnitItem | null>(null);
-  const [sort,       setSort]     = useState<SortMode>('textbook');
-  const [socLoading, setSocLoading] = useState(false);
+  const [kus,         setKus]       = useState<KnowledgeUnitItem[]>([]);
+  const [loading,     setLoading]   = useState(true);
+  const [selected,    setSelected]  = useState<KnowledgeUnitItem | null>(null);
+  const [sort,        setSort]      = useState<SortMode>('textbook');
+  const [socLoading,  setSocLoading] = useState(false);
+  const [filterTrack, setFilterTrack] = useState<CnTrack | 'all'>('all');
+  const [filterType,  setFilterType]  = useState<string>('');
 
   const studentId = getUserId();
+
+  const isChinese = subject === 'chinese';
+
+  const visibleKus = isChinese
+    ? kus.filter(k => {
+        if (filterType && k.ku_type !== filterType) return false;
+        if (filterTrack !== 'all' && !filterType) {
+          const meta = CN_KU_TYPES[k.ku_type];
+          if (!meta || meta.track !== filterTrack) return false;
+        }
+        return true;
+      })
+    : kus;
+
+  const typesForTrack = isChinese
+    ? Object.entries(CN_KU_TYPES).filter(([, m]) => filterTrack === 'all' || m.track === filterTrack)
+    : [];
 
   useEffect(() => {
     setLoading(true);
@@ -600,8 +713,8 @@ export default function KnowledgeMap({
     finally { setSocLoading(false); }
   }, [onStartSocratic]);
 
-  const textbookTree = sort === 'textbook' ? buildTextbookTree(kus) : null;
-  const flatGroups   = sort !== 'textbook' ? buildFlatGroups(kus, sort) : null;
+  const textbookTree = sort === 'textbook' ? buildTextbookTree(visibleKus) : null;
+  const flatGroups   = sort !== 'textbook' ? buildFlatGroups(visibleKus, sort) : null;
 
   if (loading) {
     return (
@@ -628,13 +741,15 @@ export default function KnowledgeMap({
           )}
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--mn-ink)' }}>{title}</div>
-            <div style={{ fontSize: '11px', color: 'var(--mn-ink-3)' }}>{kus.length} 个知识单元</div>
+            <div style={{ fontSize: '11px', color: 'var(--mn-ink-3)' }}>
+              {visibleKus.length !== kus.length ? `${visibleKus.length} / ${kus.length} 个知识单元` : `${kus.length} 个知识单元`}
+            </div>
           </div>
         </div>
 
         {/* Sort tabs */}
         <div style={{
-          display: 'flex', gap: '4px', padding: '0 16px 10px',
+          display: 'flex', gap: '4px', padding: '0 16px 8px',
           overflowX: 'auto', WebkitOverflowScrolling: 'touch' as React.CSSProperties['WebkitOverflowScrolling'],
         }}>
           {SORT_OPTS.map(opt => (
@@ -653,6 +768,59 @@ export default function KnowledgeMap({
             </button>
           ))}
         </div>
+
+        {/* 语文类型筛选 */}
+        {isChinese && (
+          <div style={{ borderTop: '1px solid var(--mn-border)', padding: '8px 16px 10px' }}>
+            {/* 三轨选择 */}
+            <div style={{ display: 'flex', gap: 4, marginBottom: 8 }}>
+              {CN_TRACKS.map(tr => {
+                const active = filterTrack === tr.key;
+                return (
+                  <button
+                    key={tr.key}
+                    onClick={() => { setFilterTrack(tr.key); setFilterType(''); setSelected(null); }}
+                    style={{
+                      padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 600,
+                      border: 'none', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+                      background: active ? tr.activeBg : tr.bg,
+                      color: active ? tr.activeColor : '#374151',
+                      transition: 'background 0.15s',
+                    }}
+                  >{tr.label}</button>
+                );
+              })}
+            </div>
+            {/* 具体类型 pills */}
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+              {typesForTrack.map(([type, meta]) => {
+                const active = filterType === type;
+                const cnt = kus.filter(k => k.ku_type === type).length;
+                if (cnt === 0) return null;
+                return (
+                  <button
+                    key={type}
+                    onClick={() => { setFilterType(active ? '' : type); setSelected(null); }}
+                    style={{
+                      padding: '2px 9px', borderRadius: 99, fontSize: 11, fontWeight: 500,
+                      border: `1px solid ${active ? meta.color : '#e5e7eb'}`,
+                      cursor: 'pointer', whiteSpace: 'nowrap',
+                      background: active ? `${meta.color}18` : '#fff',
+                      color: active ? meta.color : '#6b7280',
+                      transition: 'all 0.15s',
+                    }}
+                  >{meta.label} {cnt}</button>
+                );
+              })}
+              {filterType && (
+                <button
+                  onClick={() => setFilterType('')}
+                  style={{ padding: '2px 8px', borderRadius: 99, fontSize: 11, border: 'none', cursor: 'pointer', background: 'transparent', color: '#9ca3af' }}
+                >清除 ×</button>
+              )}
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Body */}
