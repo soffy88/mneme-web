@@ -61,6 +61,7 @@ const CN_TRACKS: { key: CnTrack | 'all'; label: string; bg: string; activeBg: st
 // ── 002 描述解析 ──────────────────────────────────────────────────────
 
 interface Desc002 { know_what: string; know_how: string; know_why: string; example: string }
+interface WenyanYi { pos: string; yi: string; liju: string; extra?: string }
 
 function parse002(raw: string | null): Desc002 | null {
   const out: Desc002 = { know_what: '', know_how: '', know_why: '', example: '' };
@@ -76,6 +77,76 @@ function parse002(raw: string | null): Desc002 | null {
     else if (l.startsWith('实例:'))       out.example   = clean(l.slice(3));
   }
   return out;
+}
+
+function parseWenyanYixiangs(desc: string): WenyanYi[] {
+  if (!desc) return [];
+  const idx = desc.indexOf('[多义项]:');
+  if (idx !== -1) {
+    const block = desc.slice(idx + 7);
+    const lines = block.split('\n').filter(l => /^义项\d+:/.test(l.trim()));
+    const items = lines.map(line => {
+      const body = line.replace(/^义项\d+:\s*/, '').trim();
+      const segs = body.split('；').map(s => s.trim());
+      const get = (p: string) => segs.find(s => s.startsWith(p))?.slice(p.length).trim() ?? '';
+      return { pos: get('词性:'), yi: get('义项:'), liju: get('例句:'), extra: get('通假') };
+    }).filter(x => x.yi || x.pos);
+    if (items.length) return items;
+  }
+  // fallback: [文言]: single line
+  const m = desc.match(/\[文言\]:\s*(.+)/);
+  if (m) {
+    const segs = m[1].split('；').map(s => s.trim());
+    const get = (p: string) => segs.find(s => s.startsWith(p))?.slice(p.length).trim() ?? '';
+    const pos = get('词性:'); const yi = get('义项:'); const liju = get('例句:');
+    if (yi || pos) return [{ pos, yi, liju }];
+  }
+  // old format 【文言】
+  const om = desc.match(/【文言】(.+)/);
+  if (om) {
+    const segs = om[1].split('；').map(s => s.trim());
+    const get = (p: string) => segs.find(s => s.startsWith(p))?.slice(p.length).trim() ?? '';
+    const pos = get('词性：'); const yi = get('义项：'); const liju = get('例句：');
+    if (yi || pos) return [{ pos, yi, liju }];
+  }
+  return [];
+}
+
+function WenyanYixiangPanel({ yis, source }: { yis: WenyanYi[]; source?: string }) {
+  const nums = '①②③④⑤⑥⑦⑧';
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {yis.map((yi, i) => (
+        <div key={i} style={{
+          display: 'flex', gap: 8, alignItems: 'flex-start',
+          padding: '8px 10px', borderRadius: 8,
+          background: i === 0 ? '#fffbeb' : 'var(--mn-surface)',
+          border: `1px solid ${i === 0 ? '#fde68a' : 'var(--mn-border)'}`,
+        }}>
+          {yis.length > 1 && (
+            <span style={{ fontSize: 13, color: '#d97706', fontWeight: 700, minWidth: 18, marginTop: 1 }}>
+              {nums[i] ?? `${i + 1}.`}
+            </span>
+          )}
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 13, color: 'var(--mn-ink)', lineHeight: 1.6 }}>
+              {yi.pos && <span style={{ fontSize: 11, color: '#d97706', fontWeight: 600, marginRight: 6 }}>[{yi.pos}]</span>}
+              {yi.yi}
+              {yi.extra && <span style={{ fontSize: 11, color: 'var(--mn-ink-3)', marginLeft: 6 }}>（{yi.extra}）</span>}
+            </div>
+            {yi.liju && (
+              <div style={{ fontSize: 12, color: 'var(--mn-ink-2)', marginTop: 3, fontStyle: 'italic' }}>
+                例：{yi.liju}
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
+      {source && (
+        <div style={{ fontSize: 11, color: 'var(--mn-ink-3)', paddingLeft: 4, marginTop: 2 }}>出处：{source}</div>
+      )}
+    </div>
+  );
 }
 
 export interface KnowledgeMapProps {
@@ -534,6 +605,33 @@ function KuDetailPanel({ ku, onClose, onJumpPractice, onJumpReader, onStartSocra
 
       <div style={{ flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {ku.description && (() => {
+          // wenyan_word: 优先渲染义项表格
+          if (ku.ku_type === 'wenyan_word') {
+            const yis = parseWenyanYixiangs(ku.description);
+            const source = ku.description.match(/来源:\s*(.+)/)?.[1]?.trim() ?? '';
+            if (yis.length > 0) {
+              const d = parse002(ku.description);
+              return (
+                <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div>
+                    <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--mn-ink-3)', letterSpacing: '0.06em', marginBottom: 6 }}>
+                      义项{yis.length > 1 ? `（${yis.length}个）` : ''}
+                    </div>
+                    <WenyanYixiangPanel yis={yis} source={source} />
+                  </div>
+                  {d?.know_why && (
+                    <div style={{ padding: '12px 14px', borderRadius: 10, background: '#faf5ff', border: '2px solid #a855f7' }}>
+                      <div style={{ fontSize: '10px', fontWeight: 700, color: '#7e22ce', letterSpacing: '0.06em', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ fontSize: 12 }}>★</span> 助记
+                      </div>
+                      <div style={{ fontSize: '13px', color: '#4a044e', lineHeight: 1.8 }}>{d.know_why}</div>
+                    </div>
+                  )}
+                </section>
+              );
+            }
+          }
+          // 通用 002 格式
           const d = parse002(ku.description);
           if (d && (d.know_what || d.know_how || d.know_why)) {
             return (
