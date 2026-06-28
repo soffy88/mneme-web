@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getUserId } from '@/lib/auth-store';
 import * as api from '@/lib/api-client';
+import { ChildBar } from '@/components/parent/ChildBar';
 import type { ParentAlert, AlertLevel } from '@/types/api';
 
 
@@ -15,20 +16,22 @@ const LEVEL: Record<AlertLevel, { icon: string; color: string; bg: string; borde
 
 export default function AlertsPage() {
   const router = useRouter();
+  const [childId, setChildId] = useState<string | null>(null);
   const [alerts,  setAlerts]  = useState<ParentAlert[]>([]);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState('');
 
-  const load = async () => {
-    const sid = getUserId();
-    if (!sid) { router.push('/login'); return; }
+  const load = async (sid: string) => {
+    const parentId = getUserId();          // 家长 JWT 的 sub
+    if (!parentId) { router.push('/login'); return; }
     setLoading(true); setError('');
-    const res = await api.getParentAlerts(sid);
+    const res = await api.getParentAlerts(sid, parentId);
     setLoading(false);
     if (res.ok) setAlerts(res.data.alerts);
     else setError(res.error);
   };
-  useEffect(() => { void load(); }, []);
+
+  useEffect(() => { if (childId) void load(childId); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [childId]);
 
   const unread = alerts.filter((a) => !a.is_read).length;
 
@@ -44,13 +47,19 @@ export default function AlertsPage() {
         )}
       </div>
 
-      {loading ? (
+      <ChildBar selectedId={childId} onSelect={setChildId} />
+
+      {!childId ? (
+        <div style={{ textAlign: 'center', padding: '32px 0', fontSize: '13px', color: 'var(--mn-ink-3)' }}>
+          请先在上方选择或绑定孩子。
+        </div>
+      ) : loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {[...Array(3)].map((_, i) => <div key={i} className="mn-skeleton" style={{ height: '72px', borderRadius: '14px' }} />)}
         </div>
       ) : error ? (
         <div style={{ textAlign: 'center', padding: '40px 0', fontSize: '13px', color: 'var(--mn-ink-3)' }}>
-          {error} — <button type="button" onClick={load} style={{ color: 'var(--mn-blue)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>重试</button>
+          {error} — <button type="button" onClick={() => childId && load(childId)} style={{ color: 'var(--mn-blue)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>重试</button>
         </div>
       ) : !alerts.length ? (
         <div className="mn-card" style={{ padding: '40px 24px', textAlign: 'center' }}>

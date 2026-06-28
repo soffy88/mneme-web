@@ -155,6 +155,19 @@ export interface ParentAlert {
 }
 export interface ParentAlertsRes { alerts: ParentAlert[] }
 export interface ChildInfo { student_id: string; name: string; grade: string }
+export interface BindChildRes { ok: boolean; student_id: string; student_name: string }
+export interface WeeklyDigestRes {
+  current_streak: number; active_today: boolean;
+  n_interactions_7d: number; distinct_kcs_7d: number;
+  accuracy_7d: number | null; days_active_7d: number;
+  effort_gains_7d: number; headline: string;
+}
+
+// ── JOL 校准 ──────────────────────────────────────────────────
+export interface CalibrationRes {
+  n: number; brier: number | null; mean_predicted: number | null;
+  accuracy: number | null; overconfidence: number | null;
+}
 
 // ── 错题本 ────────────────────────────────────────────────────
 export interface ErrorJournalDistribution {

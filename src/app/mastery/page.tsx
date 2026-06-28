@@ -5,8 +5,59 @@ import { useRouter } from 'next/navigation';
 import { getUserId } from '@/lib/auth-store';
 import * as api from '@/lib/api-client';
 import { MasteryRing } from '@/components/shared/MasteryRing';
-import type { KnowledgePoint } from '@/types/api';
+import type { KnowledgePoint, CalibrationRes } from '@/types/api';
 
+
+/** JOL 自测校准卡：预测把握度 vs 实际正确率（努力错觉检测）。 */
+function CalibrationCard() {
+  const [cal, setCal] = useState<CalibrationRes | null>(null);
+
+  useEffect(() => {
+    const sid = getUserId();
+    if (!sid) return;
+    api.getCalibration(sid).then((res) => { if (res.ok) setCal(res.data); });
+  }, []);
+
+  if (!cal || cal.n === 0 || cal.mean_predicted === null || cal.accuracy === null) return null;
+
+  const predicted = Math.round(cal.mean_predicted * 100);
+  const actual    = Math.round(cal.accuracy * 100);
+  const over      = cal.overconfidence ?? 0;
+  const gap       = Math.round(Math.abs(over) * 100);
+  const overconfident = over > 0.05;
+  const underconfident = over < -0.05;
+
+  const verdict = overconfident
+    ? { label: `高估自己 ${gap}%`, color: 'var(--mn-orange)', tip: '感觉会的不一定真会 — 多做检索式自测，别被"努力错觉"骗了。' }
+    : underconfident
+    ? { label: `低估自己 ${gap}%`, color: 'var(--mn-blue)', tip: '你比自己想的更扎实，放心一点。' }
+    : { label: '判断很准', color: 'var(--mn-green)', tip: '你对自己掌握程度的判断很准，继续保持。' };
+
+  return (
+    <div className="mn-card" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--mn-ink)' }}>自测校准</span>
+        <span style={{ fontSize: '11px', fontWeight: 700, color: verdict.color, padding: '2px 8px', borderRadius: '99px', background: 'var(--mn-surface)', border: `1px solid ${verdict.color}` }}>
+          {verdict.label}
+        </span>
+      </div>
+      <div style={{ display: 'flex', gap: '20px' }}>
+        <div>
+          <div style={{ fontSize: '24px', fontWeight: 900, color: 'var(--mn-ink-2)', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{predicted}%</div>
+          <div style={{ fontSize: '11px', color: 'var(--mn-ink-3)', marginTop: '3px' }}>你预测的把握度</div>
+        </div>
+        <div style={{ fontSize: '20px', color: 'var(--mn-ink-3)', alignSelf: 'center' }}>vs</div>
+        <div>
+          <div style={{ fontSize: '24px', fontWeight: 900, color: 'var(--mn-ink)', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{actual}%</div>
+          <div style={{ fontSize: '11px', color: 'var(--mn-ink-3)', marginTop: '3px' }}>实际正确率</div>
+        </div>
+      </div>
+      <div style={{ fontSize: '12px', color: 'var(--mn-ink-3)', lineHeight: 1.5 }}>
+        {verdict.tip} <span style={{ color: 'var(--mn-ink-4, var(--mn-ink-3))' }}>（基于 {cal.n} 次自评，Brier {cal.brier}）</span>
+      </div>
+    </div>
+  );
+}
 
 function SkeletonCard() {
   return (
@@ -125,6 +176,9 @@ export default function MasteryPage() {
           </p>
         )}
       </div>
+
+      {/* JOL 自测校准 */}
+      <CalibrationCard />
 
       {/* Content */}
       {loading ? (

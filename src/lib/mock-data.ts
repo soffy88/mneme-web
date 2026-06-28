@@ -12,7 +12,7 @@ import type {
   SocraticStartRes, EscapeRes,
   MissionRes, CompleteMissionRes,
   PracticeRes, LessonRes, PlotTrace,
-  ParentOverviewRes, ParentAlertsRes, ChildInfo,
+  ParentOverviewRes, ParentAlertsRes, ChildInfo, BindChildRes, WeeklyDigestRes, CalibrationRes,
   ErrorJournalRes, ReviewDueItem, EssayGuideRes, SpeakingPracticeRes, SpeakingHistoryItem,
   DailyPlanRes,
 } from '@/types/api';
@@ -213,6 +213,9 @@ export const mockLesson = async (): Promise<ApiResult<LessonRes>> => {
 export const mockChildren      = async (): Promise<ApiResult<ChildInfo[]>>         => ok([{ student_id: 'stu-001', name: '小明', grade: '高三' }]);
 export const mockParentOverview = async (): Promise<ApiResult<ParentOverviewRes>>  => ok({ weak_kc_count: 4, weak_kc_trend: -2, streak: 12, emotion: 'stable', top_improved_kc: '等差数列与等比数列', study_minutes_today: 40 });
 export const mockParentAlerts   = async (): Promise<ApiResult<ParentAlertsRes>>    => ok({ alerts: [{ id: 'a-001', alert_type: 'task_missing', alert_level: 'notice', content: '小明本周有 3 天未完成今日目标', is_read: false, created_at: new Date().toISOString() }] });
+export const mockBindChild     = async (): Promise<ApiResult<BindChildRes>>       => { await delay(400); return ok({ ok: true, student_id: 'stu-001', student_name: '小明' }); };
+export const mockWeeklyDigest  = async (): Promise<ApiResult<WeeklyDigestRes>>    => ok({ current_streak: 12, active_today: true, n_interactions_7d: 48, distinct_kcs_7d: 9, accuracy_7d: 0.72, days_active_7d: 6, effort_gains_7d: 5, headline: '本周练了 48 道、9 个知识点，活跃 6 天，已连续 12 天 🔥' });
+export const mockCalibration   = async (): Promise<ApiResult<CalibrationRes>>     => ok({ n: 32, brier: 0.18, mean_predicted: 0.71, accuracy: 0.63, overconfidence: 0.08 });
 
 export const mockErrorJournal = async (): Promise<ApiResult<ErrorJournalRes>> => {
   await delay(400);

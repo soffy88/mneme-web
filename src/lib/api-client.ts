@@ -15,7 +15,8 @@ import type {
   SocraticStartRes, EscapeRes,
   MissionRes, CompleteMissionRes,
   PracticeRes, LessonRes,
-  ParentOverviewRes, ParentAlertsRes, ChildInfo,
+  ParentOverviewRes, ParentAlertsRes, ParentAlert, ChildInfo, BindChildRes, WeeklyDigestRes,
+  CalibrationRes,
   ErrorJournalRes, ReviewDueItem,
   EssayGuideReq, EssayGuideRes,
   SpeakingPracticeReq, SpeakingPracticeRes, SpeakingHistoryItem,
@@ -158,7 +159,31 @@ export const getLesson = (qid: string) =>
 // ── 家长端 ───────────────────────────────────────────────────
 export const getChildren      = ()          => USE_MOCK ? mock.mockChildren()  : req<ChildInfo[]>('/v1/parent/children');
 export const getParentOverview = (sid: string) => USE_MOCK ? mock.mockParentOverview() : req<ParentOverviewRes>(`/v1/parent/overview/${sid}`);
-export const getParentAlerts   = (sid: string) => USE_MOCK ? mock.mockParentAlerts()   : req<ParentAlertsRes>(`/v1/parent/alerts/${sid}`);
+export const getWeeklyDigest   = (sid: string) => USE_MOCK ? mock.mockWeeklyDigest()    : req<WeeklyDigestRes>(`/v1/weekly-digest/${sid}`);
+
+// 家长绑定孩子（用孩子注册时生成的 invite_code）
+export const bindChild = (inviteCode: string) =>
+  USE_MOCK ? mock.mockBindChild()
+           : req<BindChildRes>(`/v1/auth/bind-child?invite_code=${encodeURIComponent(inviteCode)}`, { method: 'POST' });
+
+// 后端 /v1/parent/alerts/{student_id}?parent_id=... 返回裸数组，字段名为 type/level；此处归一化为 ParentAlertsRes。
+export const getParentAlerts = async (sid: string, parentId: string): Promise<ApiResult<ParentAlertsRes>> => {
+  if (USE_MOCK) return mock.mockParentAlerts();
+  const res = await req<Array<{ id: string; type: ParentAlert['alert_type']; level: ParentAlert['alert_level'];
+    content: string; is_read: boolean; created_at: string }>>(
+    `/v1/parent/alerts/${sid}?parent_id=${encodeURIComponent(parentId)}`,
+  );
+  if (!res.ok) return res;
+  const alerts: ParentAlert[] = res.data.map((a) => ({
+    id: a.id, alert_type: a.type, alert_level: a.level,
+    content: a.content, is_read: a.is_read, created_at: a.created_at,
+  }));
+  return { ok: true, data: { alerts } };
+};
+
+// ── JOL 自测校准 ──────────────────────────────────────────────
+export const getCalibration = (sid: string) =>
+  USE_MOCK ? mock.mockCalibration() : req<CalibrationRes>(`/v1/calibration/${sid}`);
 
 // ── 错题本 ───────────────────────────────────────────────────
 export const getErrorJournal = (
