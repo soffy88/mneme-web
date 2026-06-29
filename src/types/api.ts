@@ -175,8 +175,8 @@ export interface ErrorJournalDistribution {
 }
 export interface ErrorJournalItem {
   question_id: string; kc_id: string; kc_name?: string;
-  question_text?: string; correct_answer?: string; error_tag: string;
-  wrong_at: string; can_practice_variant: boolean;
+  question_text?: string; student_answer?: string; correct_answer?: string;
+  error_tag: string; wrong_at: string; wrong_count?: number; can_practice_variant: boolean;
 }
 export interface ErrorJournalRes {
   distribution: ErrorJournalDistribution[]; items: ErrorJournalItem[];

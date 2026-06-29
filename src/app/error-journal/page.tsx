@@ -95,6 +95,7 @@ export default function ErrorJournalPage() {
   const [error,     setError]     = useState('');
   const [filterTag, setFilterTag] = useState('');
   const [askingId,  setAskingId]  = useState<string | null>(null);
+  const [openId,    setOpenId]    = useState<string | null>(null);
 
   const load = async (tag?: string) => {
     const sid = getUserId();
@@ -190,66 +191,96 @@ export default function ErrorJournalPage() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {filtered.map((item) => (
-            <div
-              key={item.question_id}
-              className="mn-card"
-              style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}
-            >
-              {/* 头：考点标签 + 日期 */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{
-                  padding: '2px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
-                  background: 'var(--mn-blue-dim)', color: 'var(--mn-blue)', flexShrink: 0,
-                  maxWidth: '60%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                }}>
-                  {item.kc_name ?? item.kc_id}
-                </span>
-                <span style={{ fontSize: '12px', color: 'var(--mn-ink-3)', marginLeft: 'auto', flexShrink: 0 }}>
-                  {fmtDate(item.wrong_at)}
-                </span>
-              </div>
-
-              {/* 真实错题题干（渲染公式，最多 3 行） */}
-              {item.question_text ? (
+            <div key={item.question_id} className="mn-card" style={{ padding: 0, overflow: 'hidden' }}>
+              {/* 头部：点击展开/收起 */}
+              <button
+                type="button"
+                onClick={() => setOpenId(openId === item.question_id ? null : item.question_id)}
+                style={{
+                  width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer',
+                  padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '8px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{
+                    padding: '2px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
+                    background: 'var(--mn-blue-dim)', color: 'var(--mn-blue)', flexShrink: 0,
+                    maxWidth: '45%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {item.kc_name ?? item.kc_id}
+                  </span>
+                  {(item.wrong_count ?? 1) > 1 && (
+                    <span style={{
+                      padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 600,
+                      background: 'var(--mn-orange-dim)', color: 'var(--mn-orange)', flexShrink: 0,
+                    }}>错过{item.wrong_count}次</span>
+                  )}
+                  <span style={{ fontSize: '12px', color: 'var(--mn-ink-3)', marginLeft: 'auto', flexShrink: 0 }}>
+                    {fmtDate(item.wrong_at)}
+                  </span>
+                  <span style={{
+                    color: 'var(--mn-ink-3)', fontSize: '14px', flexShrink: 0,
+                    transform: openId === item.question_id ? 'rotate(90deg)' : 'none', transition: 'transform .15s',
+                  }}>›</span>
+                </div>
                 <div style={{
                   fontSize: '14px', color: 'var(--mn-ink)', lineHeight: 1.6,
-                  display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                  ...(openId === item.question_id
+                    ? {}
+                    : { display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }),
                 }}>
-                  <RichText>{item.question_text}</RichText>
+                  {item.question_text ? <RichText>{item.question_text}</RichText> : '（暂无题干）'}
                 </div>
-              ) : (
-                <div style={{ fontSize: '13px', color: 'var(--mn-ink-3)' }}>（暂无题干）</div>
-              )}
+              </button>
 
-              {/* 操作：问问AI(苏格拉底) + 举一反三 */}
-              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                <button
-                  type="button"
-                  className="mn-btn-secondary"
-                  disabled={askingId === item.question_id}
-                  onClick={async () => {
-                    const sid = getUserId();
-                    if (!sid) { router.push('/login'); return; }
-                    setAskingId(item.question_id);
-                    const res = await api.startSocratic(item.question_id, sid);
-                    setAskingId(null);
-                    if (res.ok) router.push(`/socratic?session_id=${res.data.session_id}&first_q=${encodeURIComponent(res.data.first_question)}`);
-                  }}
-                  style={{ fontSize: '12px', padding: '6px 12px', opacity: askingId === item.question_id ? 0.6 : 1 }}
-                >
-                  {askingId === item.question_id ? '连接中…' : '问问AI'}
-                </button>
-                {item.can_practice_variant && (
-                  <button
-                    type="button"
-                    className="mn-btn-secondary"
-                    onClick={() => router.push(`/subjects/math/practice?ku_id=${encodeURIComponent(item.kc_id)}`)}
-                    style={{ fontSize: '12px', padding: '6px 12px' }}
-                  >
-                    举一反三
-                  </button>
-                )}
-              </div>
+              {/* 展开：你的答案 + 正确答案 + 操作 */}
+              {openId === item.question_id && (
+                <div style={{
+                  padding: '12px 16px 14px', display: 'flex', flexDirection: 'column', gap: '12px',
+                  borderTop: '1px solid var(--mn-border)',
+                }}>
+                  {item.student_answer && (
+                    <div>
+                      <div style={{ fontSize: '11px', color: 'var(--mn-ink-3)', marginBottom: '3px', fontWeight: 600 }}>你的答案</div>
+                      <div style={{ fontSize: '14px', color: 'var(--mn-red)' }}><RichText>{item.student_answer}</RichText></div>
+                    </div>
+                  )}
+                  {item.correct_answer && (
+                    <div>
+                      <div style={{ fontSize: '11px', color: 'var(--mn-ink-3)', marginBottom: '3px', fontWeight: 600 }}>正确答案</div>
+                      <div style={{ fontSize: '14px', color: 'var(--mn-green)' }}><RichText>{item.correct_answer}</RichText></div>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                    <button
+                      type="button"
+                      className="mn-btn-secondary"
+                      disabled={askingId === item.question_id}
+                      onClick={async () => {
+                        const sid = getUserId();
+                        if (!sid) { router.push('/login'); return; }
+                        setAskingId(item.question_id);
+                        const res = await api.startSocratic(item.question_id, sid);
+                        setAskingId(null);
+                        if (res.ok) router.push(`/socratic?session_id=${res.data.session_id}&first_q=${encodeURIComponent(res.data.first_question)}`);
+                      }}
+                      style={{ fontSize: '12px', padding: '6px 12px', opacity: askingId === item.question_id ? 0.6 : 1 }}
+                    >
+                      {askingId === item.question_id ? '连接中…' : '问问AI'}
+                    </button>
+                    {item.can_practice_variant && (
+                      <button
+                        type="button"
+                        className="mn-btn-secondary"
+                        onClick={() => router.push(`/subjects/math/practice?ku_id=${encodeURIComponent(item.kc_id)}`)}
+                        style={{ fontSize: '12px', padding: '6px 12px' }}
+                      >
+                        举一反三
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
