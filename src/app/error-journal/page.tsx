@@ -177,9 +177,13 @@ export default function ErrorJournalPage() {
       {/* 列表 */}
       {filtered.length === 0 ? (
         <div style={{ padding: '48px 24px', textAlign: 'center', color: 'var(--mn-ink-3)', fontSize: '14px' }}>
-          {items.length === 0
-            ? '还没有错题记录，继续加油！'
-            : '这个类型暂时没有错题 ✨'}
+          {items.length === 0 ? (
+            <>
+              <div style={{ fontSize: '32px', marginBottom: '12px', opacity: 0.4 }}>📭</div>
+              <div style={{ marginBottom: '16px' }}>还没有错题——去做几道题，做错的会自动收进来</div>
+              <button type="button" className="mn-btn-primary" onClick={() => router.push('/practice')}>去练习</button>
+            </>
+          ) : '这个类型暂时没有错题 ✨'}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

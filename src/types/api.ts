@@ -96,7 +96,7 @@ export type SocraticChunk = SocraticDelta | SocraticDone;
 export interface EscapeRes { answer_outline: string; used_escape_hatch: boolean }
 
 // ── 今日目标 ─────────────────────────────────────────────────
-export type MissionType = 'review' | 'socratic' | 'upload' | 'knowledge_focus' | 'rest';
+export type MissionType = 'review' | 'socratic' | 'upload' | 'knowledge_focus' | 'rest' | 'cold_start';
 export interface Mission {
   id: string; mission_type: MissionType;
   content: { description: string; kc_id?: string; kc_name?: string };

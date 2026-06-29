@@ -15,6 +15,7 @@ const TYPE_META: Record<string, { icon: string; color: string; bg: string; actio
   upload:          { icon: '⊕',  color: 'var(--mn-blue)',   bg: 'var(--mn-blue-dim)',   action: '上传试卷', href: '/upload' },
   knowledge_focus: { icon: '✐',  color: 'var(--mn-orange)', bg: 'var(--mn-orange-dim)', action: '开始练习', href: '/practice' },
   rest:            { icon: '◐',  color: 'var(--mn-ink-3)',  bg: 'var(--mn-border)',     action: '',        href: '' },
+  cold_start:      { icon: '👋', color: 'var(--mn-blue)',   bg: 'var(--mn-blue-dim)',   action: '做第一道题', href: '/practice' },
 };
 
 function Skeleton() {
@@ -133,13 +134,15 @@ export default function HomePage() {
               fontSize: '12px', fontWeight: 600, marginBottom: '14px' }}>
               <span>{meta.icon}</span>
               <span>
-                {{ review:'复习', socratic:'苏格拉底对话', upload:'上传试卷', knowledge_focus:'专项练习', rest:'' }[mission.mission_type]}
+                {{ review:'复习', socratic:'苏格拉底对话', upload:'上传试卷', knowledge_focus:'专项练习', rest:'', cold_start:'新手上路' }[mission.mission_type]}
               </span>
             </div>
 
             {/* 考点名 */}
             <div style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--mn-ink)', lineHeight: 1.3, marginBottom: '6px' }}>
-              {mission.content.kc_name ?? mission.content.description ?? '今天先做一组专项练习'}
+              {mission.mission_type === 'cold_start'
+                ? '欢迎来到善学记 👋 先做一道题，看看它怎么帮你'
+                : (mission.content.kc_name ?? mission.content.description ?? '今天先做一组专项练习')}
             </div>
             {mission.content.kc_name && (
               <div style={{ fontSize: '14px', color: 'var(--mn-ink-2)', marginBottom: '6px' }}>

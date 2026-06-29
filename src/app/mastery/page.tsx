@@ -195,11 +195,16 @@ export default function MasteryPage() {
           <div style={{ fontSize: '32px', marginBottom: '12px' }}>📚</div>
           <div style={{ fontWeight: 600, color: 'var(--mn-ink)', marginBottom: '6px' }}>暂无掌握度数据</div>
           <div style={{ fontSize: '13px', color: 'var(--mn-ink-3)', marginBottom: '20px' }}>
-            上传试卷或完成练习后，这里会出现你的学习地图。
+            做几道题后，这里会出现你的学习地图。
           </div>
-          <button type="button" className="mn-btn-primary" onClick={() => router.push('/upload')}>
-            上传第一份试卷
-          </button>
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button type="button" className="mn-btn-primary" onClick={() => router.push('/practice')}>
+              去做几道题
+            </button>
+            <button type="button" className="mn-btn-secondary" onClick={() => router.push('/upload')}>
+              上传试卷
+            </button>
+          </div>
         </div>
       ) : (
         /* 两列 grid(平板以上) */
