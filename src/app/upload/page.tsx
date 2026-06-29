@@ -24,7 +24,11 @@ export default function UploadPage() {
     if (!up.ok) { setPhase('failed'); setError(up.error); return; }
     const paperId = up.data.paper_id;
     setPhase('polling');
+    const deadline = Date.now() + 3 * 60 * 1000; // 最长轮询 3 分钟
     pollRef.current = setInterval(async () => {
+      if (Date.now() > deadline) {
+        stopPoll(); setPhase('failed'); setError('分析超时，请稍后重试'); return;
+      }
       const r = await api.getPaper(paperId);
       if (!r.ok) { stopPoll(); setPhase('failed'); setError(r.error); return; }
       if (r.data.status === 'done' || r.data.status === 'failed') {

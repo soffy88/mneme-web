@@ -119,10 +119,10 @@ function KCCard({ kc, onClick }: { kc: KnowledgePoint; onClick: () => void }) {
           flexShrink: 0,
           fontSize: '11px', fontWeight: 600,
           padding: '3px 7px', borderRadius: '99px',
-          background: kc.peer_percentile > 0.7 ? 'var(--mn-green-dim)' : 'var(--mn-border)',
-          color: kc.peer_percentile > 0.7 ? 'var(--mn-green)' : 'var(--mn-ink-3)',
+          background: kc.peer_percentile > 70 ? 'var(--mn-green-dim)' : 'var(--mn-border)',
+          color: kc.peer_percentile > 70 ? 'var(--mn-green)' : 'var(--mn-ink-3)',
         }}>
-          超{Math.round(kc.peer_percentile * 100)}%
+          超{Math.round(kc.peer_percentile)}%
         </div>
       )}
 

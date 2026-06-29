@@ -26,7 +26,7 @@ const CONFIG: SubjectConfig = {
       bg: 'var(--mn-orange-dim)',
       cards: [
         { icon: '◈', title: '错题本', desc: '整理错误举一反三', href: '/error-journal?subject=english' },
-        { icon: '↺', title: '变式复习', desc: '到期知识点变式巩固', href: '/practice?subject=english' },
+        { icon: '↺', title: '变式复习', desc: '到期知识点变式巩固', href: '/practice?subject=english', disabled: true },
         { icon: '◧', title: '真题模考', desc: '高考真题专项训练', href: '/subjects/english/exam', disabled: true },
       ],
     },

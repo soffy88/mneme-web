@@ -95,6 +95,9 @@ export const getMastery      = (sid: string)               => USE_MOCK ? mock.mo
 export const getMasteryCurve = (sid: string, kcId: string) => USE_MOCK ? mock.mockCurve()        : req<MasteryCurveRes>(`/v1/mastery/curve/${sid}/${kcId}`);
 export const getReviewQueue  = (sid: string)               => USE_MOCK ? mock.mockReviewQueue()  : req(`/v1/review-queue/${sid}`);
 
+// SSE 整体兜底超时：N 毫秒内无新数据则中止流，防止永久卡死。
+const SSE_IDLE_TIMEOUT_MS = 120_000;
+
 // ── 苏格拉底 ─────────────────────────────────────────────────
 export const startSocratic = (questionId: string, studentId: string) =>
   USE_MOCK ? mock.mockStartSocratic()
@@ -115,26 +118,39 @@ export async function socraticStream(
   if (USE_MOCK) {
     return mock.mockSocraticStream(onDelta, onDone);
   }
-  const res = await fetch(
-    `${MNEME_API_BASE}/v1/socratic/${encodeURIComponent(sessionId)}/message?student_message=${encodeURIComponent(text)}`,
-    { method: 'POST', headers: { ...authHeader() } },
-  );
-  if (!res.ok || !res.body) throw new Error(`SSE error: ${res.status}`);
-  const reader  = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buf = '';
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buf += decoder.decode(value, { stream: true });
-    const parts = buf.split('\n');
-    buf = parts.pop() ?? '';
-    for (const line of parts) {
-      if (!line.startsWith('data: ')) continue;
-      const json = JSON.parse(line.slice(6));
-      if ('delta'  in json) onDelta(json.delta as string);
-      if ('done'   in json) onDone(json.emotion, json.outcome);
+  // 整体兜底：120s 无新数据则中止，避免永久卡死。
+  const ctrl = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const resetTimer = () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => ctrl.abort(), SSE_IDLE_TIMEOUT_MS);
+  };
+  resetTimer();
+  try {
+    const res = await fetch(
+      `${MNEME_API_BASE}/v1/socratic/${encodeURIComponent(sessionId)}/message?student_message=${encodeURIComponent(text)}`,
+      { method: 'POST', headers: { ...authHeader() }, signal: ctrl.signal },
+    );
+    if (!res.ok || !res.body) throw new Error(`SSE error: ${res.status}`);
+    const reader  = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      resetTimer();
+      buf += decoder.decode(value, { stream: true });
+      const parts = buf.split('\n');
+      buf = parts.pop() ?? '';
+      for (const line of parts) {
+        if (!line.startsWith('data: ')) continue;
+        const json = JSON.parse(line.slice(6));
+        if ('delta'  in json) onDelta(json.delta as string);
+        if ('done'   in json) onDone(json.emotion, json.outcome);
+      }
     }
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -220,11 +236,13 @@ export const getReviewDue = (sid: string) =>
 
 // ── 作文引导 ──────────────────────────────────────────────────
 export const postEssayGuide = (r: EssayGuideReq) =>
-  USE_MOCK ? mock.mockEssayGuide() : post<EssayGuideRes>('/v1/essay/guide', r);
+  USE_MOCK ? mock.mockEssayGuide()
+           : req<EssayGuideRes>('/v1/essay/guide', { method: 'POST', body: JSON.stringify(r) }, true, 90_000);
 
 // ── 英语口语 ──────────────────────────────────────────────────
 export const postSpeakingPractice = (r: SpeakingPracticeReq) =>
-  USE_MOCK ? mock.mockSpeakingPractice() : post<SpeakingPracticeRes>('/v1/speaking/practice', r);
+  USE_MOCK ? mock.mockSpeakingPractice()
+           : req<SpeakingPracticeRes>('/v1/speaking/practice', { method: 'POST', body: JSON.stringify(r) }, true, 90_000);
 export const getSpeakingHistory = (sid: string) =>
   USE_MOCK ? mock.mockSpeakingHistory() : req<SpeakingHistoryItem[]>(`/v1/speaking/history/${sid}`);
 
@@ -235,6 +253,8 @@ export const startForceAnalysis = (questionText: string) =>
     : req<{ session_id: string; first_question: string }>(
         `/v1/physics/force-analysis/start?question_text=${encodeURIComponent(questionText)}`,
         { method: 'POST' },
+        true,
+        90_000,
       );
 
 export async function forceAnalysisStream(
@@ -247,25 +267,37 @@ export async function forceAnalysisStream(
     onDelta('这个物体受哪些力的作用？你能一一列举吗？', false);
     return;
   }
-  const res = await fetch(
-    `${MNEME_API_BASE}/v1/physics/force-analysis/message?session_id=${encodeURIComponent(sessionId)}&message=${encodeURIComponent(message)}`,
-    { method: 'POST', headers: { ...authHeader() } },
-  );
-  if (!res.ok || !res.body) throw new Error(`SSE error: ${res.status}`);
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buf = '';
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buf += decoder.decode(value, { stream: true });
-    const parts = buf.split('\n');
-    buf = parts.pop() ?? '';
-    for (const line of parts) {
-      if (!line.startsWith('data: ') || line === 'data: [DONE]') continue;
-      const json = JSON.parse(line.slice(6));
-      if ('reply' in json) onDelta(json.reply as string, json.equation_ready as boolean ?? false);
+  const ctrl = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const resetTimer = () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => ctrl.abort(), SSE_IDLE_TIMEOUT_MS);
+  };
+  resetTimer();
+  try {
+    const res = await fetch(
+      `${MNEME_API_BASE}/v1/physics/force-analysis/message?session_id=${encodeURIComponent(sessionId)}&message=${encodeURIComponent(message)}`,
+      { method: 'POST', headers: { ...authHeader() }, signal: ctrl.signal },
+    );
+    if (!res.ok || !res.body) throw new Error(`SSE error: ${res.status}`);
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      resetTimer();
+      buf += decoder.decode(value, { stream: true });
+      const parts = buf.split('\n');
+      buf = parts.pop() ?? '';
+      for (const line of parts) {
+        if (!line.startsWith('data: ') || line === 'data: [DONE]') continue;
+        const json = JSON.parse(line.slice(6));
+        if ('reply' in json) onDelta(json.reply as string, json.equation_ready as boolean ?? false);
+      }
     }
+  } finally {
+    clearTimeout(timer);
   }
 }
 
@@ -274,8 +306,10 @@ export const startReadingGuide = (params: { article_text: string; question: stri
   USE_MOCK
     ? Promise.resolve({ ok: true as const, data: { session_id: 'mock-rg', first_question: '先找找哪个段落和题目最相关？', subject: params.subject } })
     : req<{ session_id: string; first_question: string; subject: string }>(
-        `/v1/reading/guide/start?article_text=${encodeURIComponent(params.article_text)}&question=${encodeURIComponent(params.question)}&subject=${encodeURIComponent(params.subject)}`,
-        { method: 'POST' },
+        '/v1/reading/guide/start',
+        { method: 'POST', body: JSON.stringify(params) },
+        true,
+        90_000,
       );
 
 export async function readingGuideStream(
@@ -288,25 +322,37 @@ export async function readingGuideStream(
     onDelta('你觉得答案在文章的哪个部分？', false);
     return;
   }
-  const res = await fetch(
-    `${MNEME_API_BASE}/v1/reading/guide/message?session_id=${encodeURIComponent(sessionId)}&message=${encodeURIComponent(message)}`,
-    { method: 'POST', headers: { ...authHeader() } },
-  );
-  if (!res.ok || !res.body) throw new Error(`SSE error: ${res.status}`);
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buf = '';
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buf += decoder.decode(value, { stream: true });
-    const parts = buf.split('\n');
-    buf = parts.pop() ?? '';
-    for (const line of parts) {
-      if (!line.startsWith('data: ') || line === 'data: [DONE]') continue;
-      const json = JSON.parse(line.slice(6));
-      if ('reply' in json) onDelta(json.reply as string, json.located_passage as boolean ?? false);
+  const ctrl = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const resetTimer = () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => ctrl.abort(), SSE_IDLE_TIMEOUT_MS);
+  };
+  resetTimer();
+  try {
+    const res = await fetch(
+      `${MNEME_API_BASE}/v1/reading/guide/message?session_id=${encodeURIComponent(sessionId)}&message=${encodeURIComponent(message)}`,
+      { method: 'POST', headers: { ...authHeader() }, signal: ctrl.signal },
+    );
+    if (!res.ok || !res.body) throw new Error(`SSE error: ${res.status}`);
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = '';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      resetTimer();
+      buf += decoder.decode(value, { stream: true });
+      const parts = buf.split('\n');
+      buf = parts.pop() ?? '';
+      for (const line of parts) {
+        if (!line.startsWith('data: ') || line === 'data: [DONE]') continue;
+        const json = JSON.parse(line.slice(6));
+        if ('reply' in json) onDelta(json.reply as string, json.located_passage as boolean ?? false);
+      }
     }
+  } finally {
+    clearTimeout(timer);
   }
 }
 

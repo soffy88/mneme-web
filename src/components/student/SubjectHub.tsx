@@ -82,13 +82,16 @@ function DailyPlanWidget({ subject }: { subject: string }) {
           {plan.tasks.map((task, i) => {
             const m = TASK_META[task.type] ?? TASK_META.review;
             const goTask = () => {
-              if (task.ku_ids && task.ku_ids.length) {
-                router.push(`/subjects/${subject}/practice?ku_id=${encodeURIComponent(task.ku_ids[0])}`);
-              } else if (task.type === 'error_review') {
-                router.push(`/error-journal?subject=${subject}`);
-              } else {
-                router.push('/practice');
+              // 仅数学有真题练习闭环；其它科目导到该科已存在的页面，避免 404/占位死链
+              if (subject === 'math') {
+                if (task.ku_ids && task.ku_ids.length) router.push(`/subjects/math/practice?ku_id=${encodeURIComponent(task.ku_ids[0])}`);
+                else if (task.type === 'error_review') router.push('/error-journal?subject=math');
+                else router.push('/practice');
+                return;
               }
+              if (task.type === 'error_review') { router.push(`/error-journal?subject=${subject}`); return; }
+              if (subject === 'physics' || subject === 'chinese') router.push(`/subjects/${subject}/lesson`);
+              else router.push(`/subjects/${subject}`);
             };
             return (
               <button key={i} type="button" onClick={goTask} style={{

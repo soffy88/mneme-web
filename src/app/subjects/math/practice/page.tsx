@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import * as api from '@/lib/api-client';
 import { getUserId } from '@/lib/auth-store';
+import { RichText } from '@/components/shared/RichText';
 import type { QuestionBankItem, PracticeSubmitRes, MasteryColor } from '@/types/api';
 
 // ── 掌握度颜色 ─────────────────────────────────────────────────
@@ -21,8 +22,8 @@ function QuestionCard({ q, index, total }: { q: QuestionBankItem; index: number;
       <div style={{ fontSize: '11px', color: 'var(--mn-ink-3)', marginBottom: '12px', fontWeight: 600 }}>
         第 {index + 1} 题 / 共 {total} 题
       </div>
-      <div style={{ fontSize: '15px', color: 'var(--mn-ink)', lineHeight: 1.8, whiteSpace: 'pre-wrap' }}>
-        {q.question_text}
+      <div style={{ fontSize: '15px', color: 'var(--mn-ink)', lineHeight: 1.8 }}>
+        <RichText>{q.question_text}</RichText>
       </div>
     </div>
   );
@@ -37,8 +38,8 @@ function AnswerCard({ answer }: { answer: string | null }) {
     }}>
       <div style={{ fontSize: '11px', fontWeight: 700, color: '#34c759', marginBottom: '8px',
         letterSpacing: '0.05em', textTransform: 'uppercase' }}>参考答案</div>
-      <div style={{ fontSize: '14px', color: 'var(--mn-ink)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
-        {answer ?? '（暂无答案）'}
+      <div style={{ fontSize: '14px', color: 'var(--mn-ink)', lineHeight: 1.7 }}>
+        {answer ? <RichText>{answer}</RichText> : '（暂无答案）'}
       </div>
     </div>
   );

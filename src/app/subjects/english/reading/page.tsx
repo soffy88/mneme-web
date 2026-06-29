@@ -18,6 +18,8 @@ const LABELS = {
   locatedBadge:'Key passage located',
   back:        '← Back',
   snippet:     (q: string) => `Q: ${q.length > 50 ? q.slice(0, 50) + '…' : q}`,
+  startErr:    'Failed to start. Please try again.',
+  streamErr:   '⚠️ Connection lost. Please try again.',
 };
 
 export default function EnglishReadingPage() {
@@ -31,6 +33,7 @@ export default function EnglishReadingPage() {
   const [streaming,       setStreaming]       = useState(false);
   const [loading,         setLoading]        = useState(false);
   const [locatedPassage,  setLocatedPassage] = useState(false);
+  const [err,             setErr]            = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
   const taRef     = useRef<HTMLTextAreaElement>(null);
 
@@ -39,9 +42,10 @@ export default function EnglishReadingPage() {
   const startSession = async () => {
     if (!articleText.trim() || !question.trim()) return;
     setLoading(true);
+    setErr('');
     const res = await api.startReadingGuide({ article_text: articleText.trim(), question: question.trim(), subject: 'english' });
     setLoading(false);
-    if (!res.ok) return;
+    if (!res.ok) { setErr(LABELS.startErr); return; }
     setSessionId(res.data.session_id);
     setMsgs([{ role: 'ai', text: res.data.first_question }]);
     scroll();
@@ -54,14 +58,19 @@ export default function EnglishReadingPage() {
     setMsgs((m) => [...m, { role: 'user', text }, { role: 'ai', text: '', streaming: true }]);
     setStreaming(true);
     scroll();
-    await api.readingGuideStream(sessionId, text, (reply, located) => {
-      setMsgs((m) => m.map((it, i) => i === m.length - 1 ? { ...it, text: reply } : it));
-      if (located) setLocatedPassage(true);
-      scroll();
-    });
-    setMsgs((m) => m.map((it, i) => i === m.length - 1 ? { ...it, streaming: false } : it));
-    setStreaming(false);
-    taRef.current?.focus();
+    try {
+      await api.readingGuideStream(sessionId, text, (reply, located) => {
+        setMsgs((m) => m.map((it, i) => i === m.length - 1 ? { ...it, text: reply } : it));
+        if (located) setLocatedPassage(true);
+        scroll();
+      });
+      setMsgs((m) => m.map((it, i) => i === m.length - 1 ? { ...it, streaming: false } : it));
+    } catch {
+      setMsgs((m) => m.map((it, i) => i === m.length - 1 ? { ...it, text: LABELS.streamErr, streaming: false } : it));
+    } finally {
+      setStreaming(false);
+      taRef.current?.focus();
+    }
   }, [input, streaming, sessionId]);
 
   const handleKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -87,6 +96,11 @@ export default function EnglishReadingPage() {
             style={{ marginTop: '12px', width: '100%', padding: '12px', border: 'none', borderRadius: '10px', background: loading || !articleText.trim() || !question.trim() ? 'var(--mn-border)' : 'var(--mn-blue)', color: '#fff', fontSize: '15px', fontWeight: 600, cursor: loading ? 'wait' : 'pointer' }}>
             {loading ? LABELS.startLoading : LABELS.startBtn}
           </button>
+          {err && (
+            <div style={{ marginTop: '12px', padding: '10px 14px', borderRadius: '10px', background: '#fff1f0', border: '1px solid #fca5a5', fontSize: '13px', color: 'var(--mn-red)' }}>
+              {err}
+            </div>
+          )}
         </div>
       </div>
     );

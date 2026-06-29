@@ -261,12 +261,16 @@ export default function HomePage() {
               };
               const color = colors[t.type] ?? 'var(--mn-ink-3)';
               const goTask = () => {
-                if (t.type === 'error_review') { router.push('/error-journal'); return; }
-                if (t.ku_ids && t.ku_ids.length) {
-                  router.push(`/subjects/${t.subject}/practice?ku_id=${encodeURIComponent(t.ku_ids[0])}`);
-                } else {
-                  router.push('/practice');
+                // 仅数学有真题练习闭环；其它科目导到已存在的页面，避免 404/占位死链
+                if (t.subject === 'math') {
+                  if (t.ku_ids && t.ku_ids.length) router.push(`/subjects/math/practice?ku_id=${encodeURIComponent(t.ku_ids[0])}`);
+                  else if (t.type === 'error_review') router.push('/error-journal');
+                  else router.push('/practice');
+                  return;
                 }
+                if (t.type === 'error_review') { router.push('/error-journal'); return; }
+                if (t.subject === 'physics' || t.subject === 'chinese') router.push(`/subjects/${t.subject}/lesson`);
+                else router.push(`/subjects/${t.subject}`);
               };
               return (
                 <button key={i} type="button" onClick={goTask} style={{

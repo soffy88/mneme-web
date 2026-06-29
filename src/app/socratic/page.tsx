@@ -40,17 +40,22 @@ function SocraticPageInner() {
     setStreaming(true);
     scrollBottom();
     let ai = '';
-    await api.socraticStream(sessionId, text,
-      (delta) => {
-        ai += delta;
-        setMsgs((m) => m.map((it, i) => i === m.length - 1 ? { ...it, text: ai } : it));
-        scrollBottom();
-      },
-      (emo, out) => { setEmotion(emo); setOutcome(out as SocraticOutcome); }
-    );
-    setMsgs((m) => m.map((it, i) => i === m.length - 1 ? { ...it, streaming: false } : it));
-    setStreaming(false);
-    taRef.current?.focus();
+    try {
+      await api.socraticStream(sessionId, text,
+        (delta) => {
+          ai += delta;
+          setMsgs((m) => m.map((it, i) => i === m.length - 1 ? { ...it, text: ai } : it));
+          scrollBottom();
+        },
+        (emo, out) => { setEmotion(emo); setOutcome(out as SocraticOutcome); }
+      );
+      setMsgs((m) => m.map((it, i) => i === m.length - 1 ? { ...it, streaming: false } : it));
+    } catch {
+      setMsgs((m) => m.map((it, i) => i === m.length - 1 ? { ...it, text: ai ? ai + '\n\n⚠️ 连接中断，请重试' : '⚠️ 连接中断，请重试', streaming: false } : it));
+    } finally {
+      setStreaming(false);
+      taRef.current?.focus();
+    }
   }, [input, streaming, sessionId]);
 
   const onEscape = async () => {
