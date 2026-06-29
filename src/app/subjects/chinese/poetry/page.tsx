@@ -56,9 +56,9 @@ export default function PoetryPage() {
   );
 
   const grouped = useMemo(() => {
-    const map = new Map<string, { name: string; order: number; kus: KnowledgeUnitItem[] }>();
+    const map = new Map<string, { id: string; name: string; order: number; kus: KnowledgeUnitItem[] }>();
     for (const ku of filtered) {
-      if (!map.has(ku.cluster_id)) map.set(ku.cluster_id, { name: ku.cluster_name, order: ku.cluster_order, kus: [] });
+      if (!map.has(ku.cluster_id)) map.set(ku.cluster_id, { id: ku.cluster_id, name: ku.cluster_name, order: ku.cluster_order, kus: [] });
       map.get(ku.cluster_id)!.kus.push(ku);
     }
     return [...map.values()].sort((a, b) => a.order - b.order);
@@ -91,10 +91,10 @@ export default function PoetryPage() {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         {grouped.map(g => (
-          <div key={g.name}>
+          <div key={g.id}>
             <p style={{ fontSize: 12, fontWeight: 600, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 8px 4px' }}>{g.name}</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {g.kus.map(ku => <PoemCard key={ku.id} ku={ku} />)}
+              {g.kus.map((ku, i) => <PoemCard key={`${g.id}-${ku.id}-${i}`} ku={ku} />)}
             </div>
           </div>
         ))}

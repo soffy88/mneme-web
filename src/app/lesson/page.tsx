@@ -8,13 +8,14 @@ import type { LessonRes } from '@/types/api';
 
 function LessonPageContent() {
   const params = useSearchParams();
-  const qid = params?.get('q') ?? 'q-mock-001';
+  const qid = params?.get('q') ?? '';
   const [lesson,  setLesson]  = useState<LessonRes | null>(null);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState('');
   const [expanded, setExpanded] = useState<number | null>(null);
 
   const load = async () => {
+    if (!qid) { setLoading(false); return; }
     setLoading(true); setError('');
     const res = await api.getLesson(qid);
     setLoading(false);
@@ -22,6 +23,12 @@ function LessonPageContent() {
     else setError(res.error);
   };
   useEffect(() => { void load(); }, [qid]);
+
+  if (!qid) return (
+    <div style={{ textAlign: 'center', padding: '40px 0', fontSize: '13px', color: 'var(--mn-ink-3)' }}>
+      请从题目或知识点进入讲解页
+    </div>
+  );
 
   if (loading) return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
