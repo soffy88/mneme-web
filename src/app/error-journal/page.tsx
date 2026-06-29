@@ -215,7 +215,7 @@ export default function ErrorJournalPage() {
                 <button
                   type="button"
                   className="mn-btn-secondary"
-                  onClick={() => router.push(`/practice?kc=${encodeURIComponent(item.kc_id)}`)}
+                  onClick={() => router.push(`/subjects/math/practice?ku_id=${encodeURIComponent(item.kc_id)}`)}
                   style={{ fontSize: '12px', padding: '6px 12px', flexShrink: 0 }}
                 >
                   举一反三

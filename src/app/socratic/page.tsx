@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import * as api from '@/lib/api-client';
 import type { SocraticOutcome } from '@/types/api';
 
@@ -15,7 +16,7 @@ const EMOTION_HINT: Record<string, { text: string; color: string }> = {
 
 function SocraticPageInner() {
   const searchParams = useSearchParams();
-  const [sessionId, setSessionId] = useState<string | null>(searchParams.get('session_id'));
+  const [sessionId] = useState<string | null>(searchParams.get('session_id'));
   const initFirstQ = searchParams.get('first_q');
   const [msgs,      setMsgs]      = useState<Msg[]>(
     sessionId && initFirstQ ? [{ role: 'ai', text: initFirstQ }] : []
@@ -25,23 +26,11 @@ function SocraticPageInner() {
   const [emotion,   setEmotion]   = useState<string | null>(null);
   const [outcome,   setOutcome]   = useState<SocraticOutcome>(null);
   const [escape,    setEscape]    = useState<string | null>(null);
-  const [loading,   setLoading]   = useState(false);
-  const [started,   setStarted]   = useState(!!(sessionId && initFirstQ));
+  const [started]                 = useState(!!(sessionId && initFirstQ));
   const bottomRef = useRef<HTMLDivElement>(null);
   const taRef     = useRef<HTMLTextAreaElement>(null);
 
   const scrollBottom = () => setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
-
-  const startSession = async () => {
-    setLoading(true);
-    const res = await api.startSocratic('mock-question-001');
-    setLoading(false);
-    if (!res.ok) return;
-    setSessionId(res.data.session_id);
-    setMsgs([{ role: 'ai', text: res.data.first_question }]);
-    setStarted(true);
-    scrollBottom();
-  };
 
   const send = useCallback(async () => {
     if (!input.trim() || streaming || !sessionId) return;
@@ -86,14 +75,15 @@ function SocraticPageInner() {
           AI 不直接给答案，而是通过提问帮你自己想通。每次对话都是真正的理解。
         </p>
       </div>
-      {loading ? (
-        <div style={{ width: '32px', height: '32px', borderRadius: '50%', border: '3px solid var(--mn-blue-dim)', borderTopColor: 'var(--mn-blue)', animation: 'spin 0.8s linear infinite' }} />
-      ) : (
-        <button type="button" className="mn-btn-primary" style={{ minWidth: '160px' }} onClick={startSession}>
-          开始对话
-        </button>
-      )}
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <p style={{ fontSize: '13px', color: 'var(--mn-ink-3)' }}>从一道具体的题开始 ——</p>
+      <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
+        <Link href="/error-journal" className="mn-btn-primary" style={{ minWidth: '140px', textDecoration: 'none' }}>
+          找一道错题讨论
+        </Link>
+        <Link href="/practice" className="mn-btn-secondary" style={{ minWidth: '140px', textDecoration: 'none' }}>
+          去做练习
+        </Link>
+      </div>
     </div>
   );
 

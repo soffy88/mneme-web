@@ -224,7 +224,7 @@ export default function MasteryPage() {
           type="button"
           className="mn-btn-primary"
           style={{ width: '100%' }}
-          onClick={() => router.push(`/practice?kc=${safeKcs[0].kc_id}&name=${encodeURIComponent(safeKcs[0].kc_name)}`)}
+          onClick={() => router.push(`/subjects/math/practice?ku_id=${encodeURIComponent(safeKcs[0].kc_id)}`)}
         >
           练习最薄弱的考点
         </button>

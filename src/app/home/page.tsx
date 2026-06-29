@@ -43,16 +43,17 @@ export default function HomePage() {
     const sid = getUserId();
     if (!sid) { router.push('/login'); return; }
     setLoading(true);
-    const [missionRes, reviewRes, planRes] = await Promise.all([
+    // 首屏只等快接口（mission+plan），复习卡异步加载，绝不阻塞首屏
+    const [missionRes, planRes] = await Promise.all([
       api.getMission(sid),
-      api.getReviewDue(sid),
       api.getDailyPlan(sid),   // 无 subject → 多科汇总
     ]);
     setLoading(false);
     if (missionRes.ok) setData(missionRes.data);
     else setError(missionRes.error);
-    if (reviewRes.ok) setReviewDue(reviewRes.data);
     if (planRes.ok)   setDailyPlan(planRes.data);
+    // review/due 慢（变式生成），不挡首屏，回来再补
+    void api.getReviewDue(sid).then((r) => { if (r.ok) setReviewDue(r.data); });
   };
 
   useEffect(() => { void load(); }, []);
@@ -137,7 +138,7 @@ export default function HomePage() {
 
             {/* 考点名 */}
             <div style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--mn-ink)', lineHeight: 1.3, marginBottom: '6px' }}>
-              {mission.content.kc_name ?? mission.content.description}
+              {mission.content.kc_name ?? mission.content.description ?? '今天先做一组专项练习'}
             </div>
             {mission.content.kc_name && (
               <div style={{ fontSize: '14px', color: 'var(--mn-ink-2)', marginBottom: '6px' }}>
@@ -191,7 +192,7 @@ export default function HomePage() {
         <button
           type="button"
           className="mn-card-interactive"
-          onClick={() => router.push(`/practice?kc=${reviewDue[0].kc_id}&name=复习`)}
+          onClick={() => router.push(`/subjects/math/practice?ku_id=${encodeURIComponent(reviewDue[0].kc_id)}`)}
           style={{
             width: '100%', textAlign: 'left', background: 'none',
             border: '1.5px solid var(--mn-blue)', borderRadius: '16px',

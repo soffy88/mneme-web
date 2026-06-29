@@ -6,15 +6,13 @@ import { USE_MOCK } from '@/lib/env';
 
 interface Tab { id: string; label: string; icon: string; href: string }
 
+// 底栏精简到 5 个核心 tab（移动优先）。作文/口语收进「学科」，对话从错题/练习内进入。
 const STUDENT_TABS: Tab[] = [
   { id: 'home',          label: '今日',  icon: '◎', href: '/home' },
-  { id: 'subjects',      label: '学科',  icon: '⊞', href: '/subjects' },
-  { id: 'mastery',       label: '掌握',  icon: '◑', href: '/mastery' },
   { id: 'practice',      label: '练习',  icon: '✐', href: '/practice' },
   { id: 'error-journal', label: '错题',  icon: '◈', href: '/error-journal' },
-  { id: 'essay',         label: '作文',  icon: '✎', href: '/essay' },
-  { id: 'speaking',      label: '口语',  icon: '◉', href: '/speaking' },
-  { id: 'socratic',      label: '对话',  icon: '◌', href: '/socratic' },
+  { id: 'mastery',       label: '掌握',  icon: '◑', href: '/mastery' },
+  { id: 'subjects',      label: '学科',  icon: '⊞', href: '/subjects' },
 ];
 
 const PARENT_TABS: Tab[] = [

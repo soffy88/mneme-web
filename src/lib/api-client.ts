@@ -152,6 +152,12 @@ export const generatePractice = (kcId: string, count = 3, difficulty = 0.5) => {
   return req<PracticeRes>(`/v1/practice/generate?${qs}`, { method: 'POST' });
 };
 
+// 列出"有真实题库题"的练习主题（避免选题落空）
+export const listPracticeTopics = (subject = 'math') =>
+  USE_MOCK
+    ? Promise.resolve({ ok: true as const, data: { topics: [] as { ku_id: string; count: number }[] } })
+    : req<{ topics: { ku_id: string; count: number }[] }>(`/v1/practice/topics?subject=${subject}`);
+
 // ── 讲解页 ───────────────────────────────────────────────────
 export const getLesson = (qid: string) =>
   USE_MOCK ? mock.mockLesson() : req<LessonRes>(`/v1/lesson/${qid}`);
