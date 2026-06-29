@@ -81,11 +81,21 @@ function DailyPlanWidget({ subject }: { subject: string }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {plan.tasks.map((task, i) => {
             const m = TASK_META[task.type] ?? TASK_META.review;
+            const goTask = () => {
+              if (task.ku_ids && task.ku_ids.length) {
+                router.push(`/subjects/${subject}/practice?ku_id=${encodeURIComponent(task.ku_ids[0])}`);
+              } else if (task.type === 'error_review') {
+                router.push(`/error-journal?subject=${subject}`);
+              } else {
+                router.push('/practice');
+              }
+            };
             return (
-              <div key={i} style={{
+              <button key={i} type="button" onClick={goTask} style={{
                 display: 'flex', alignItems: 'center', gap: '10px',
                 padding: '10px 12px', borderRadius: '10px',
                 background: 'var(--mn-surface)', border: '1px solid var(--mn-border)',
+                cursor: 'pointer', width: '100%', textAlign: 'left',
               }}>
                 <div style={{
                   width: '28px', height: '28px', borderRadius: '7px', flexShrink: 0,
@@ -109,7 +119,8 @@ function DailyPlanWidget({ subject }: { subject: string }) {
                 <span style={{ fontSize: '11px', color: 'var(--mn-ink-3)', flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}>
                   ⏱{task.estimated_minutes}分
                 </span>
-              </div>
+                <span style={{ color: 'var(--mn-ink-3)', fontSize: '14px', flexShrink: 0 }}>›</span>
+              </button>
             );
           })}
         </div>

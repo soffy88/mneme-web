@@ -208,7 +208,7 @@ export default function ErrorJournalPage() {
               {/* KC 名 */}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--mn-ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {item.kc_id}
+                  {item.kc_name ?? item.kc_id}
                 </div>
                 <div style={{ fontSize: '12px', color: 'var(--mn-ink-3)', marginTop: '2px' }}>
                   {fmtDate(item.wrong_at)}

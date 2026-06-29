@@ -380,11 +380,11 @@ function PracticePageInner() {
       <div style={{ height: '100svh', display: 'flex', flexDirection: 'column', background: 'var(--mn-paper)' }}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
           justifyContent: 'center', gap: '12px', padding: '40px' }}>
-          <div style={{ fontSize: '14px', color: 'var(--mn-ink-3)' }}>未指定知识点</div>
-          <button onClick={() => router.push('/subjects/math/lesson')} style={{
+          <div style={{ fontSize: '14px', color: 'var(--mn-ink-3)' }}>先选一个练习主题</div>
+          <button onClick={() => router.push('/practice')} style={{
             padding: '10px 24px', borderRadius: '99px', background: 'var(--mn-blue)',
             color: '#fff', border: 'none', fontSize: '14px', cursor: 'pointer',
-          }}>选择知识点</button>
+          }}>去选题</button>
         </div>
       </div>
     );
