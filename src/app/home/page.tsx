@@ -260,11 +260,20 @@ export default function HomePage() {
                 math: '数学', physics: '物理', english: '英语', chinese: '语文',
               };
               const color = colors[t.type] ?? 'var(--mn-ink-3)';
+              const goTask = () => {
+                if (t.type === 'error_review') { router.push('/error-journal'); return; }
+                if (t.ku_ids && t.ku_ids.length) {
+                  router.push(`/subjects/${t.subject}/practice?ku_id=${encodeURIComponent(t.ku_ids[0])}`);
+                } else {
+                  router.push('/practice');
+                }
+              };
               return (
-                <div key={i} style={{
+                <button key={i} type="button" onClick={goTask} style={{
                   display: 'flex', alignItems: 'center', gap: '8px',
                   padding: '8px 10px', borderRadius: '8px',
                   background: 'var(--mn-surface)', border: '1px solid var(--mn-border)',
+                  cursor: 'pointer', width: '100%', textAlign: 'left',
                 }}>
                   <div style={{
                     width: '6px', height: '6px', borderRadius: '50%',
@@ -280,7 +289,8 @@ export default function HomePage() {
                   <span style={{ fontSize: '11px', color: 'var(--mn-ink-3)', flexShrink: 0 }}>
                     ⏱{t.estimated_minutes}分
                   </span>
-                </div>
+                  <span style={{ color: 'var(--mn-ink-3)', fontSize: '14px', flexShrink: 0 }}>›</span>
+                </button>
               );
             })}
             {dailyPlan.tasks.length > 5 && (
