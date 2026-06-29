@@ -256,15 +256,23 @@ export interface QuestionBankRes {
   items: QuestionBankItem[];
 }
 
+export interface Achievement {
+  id: string; icon: string; name: string; unit: string;
+  value: number; level: number; max_level: number; next_target: number | null;
+}
+
 export interface PracticeSubmitReq {
   question_id: string;
   student_id: string;
   student_answer: string;
-  is_correct: boolean;
+  is_correct?: boolean | null;   // 省略=让后端自动判；判不了时二次提交带自评
   ku_id: string;
 }
 export interface PracticeSubmitRes {
-  is_correct: boolean;
+  is_correct: boolean | null;
+  auto_judged?: boolean;
+  needs_self_grade?: boolean;
+  correct_answer?: string | null;
   wrong_question_id: string | null;
   p_mastery: number | null;
   mastery_color: MasteryColor;

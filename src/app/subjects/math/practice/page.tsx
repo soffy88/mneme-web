@@ -102,7 +102,29 @@ function PracticeBody({ kuId }: { kuId: string }) {
 
   const currentQ = questions[idx] ?? null;
 
-  const handleReveal = useCallback(() => setPhase('reveal'), []);
+  // 提交答案 → 后端自动判分；判不了(自由作答)才进自评
+  const handleSubmit = useCallback(async () => {
+    if (!currentQ) return;
+    const studentId = getStudentId();
+    if (!studentId) { router.push('/login'); return; }
+    setSubmitting(true);
+    const res = await api.submitPracticeAnswer({
+      question_id: currentQ.id,
+      student_id: studentId,
+      student_answer: answer,
+      ku_id: kuId,
+    });
+    setSubmitting(false);
+    if (res.ok) {
+      if (res.data.needs_self_grade) {
+        setPhase('reveal');            // 自由作答 → 对照参考答案自评
+      } else {
+        setFeedback(res.data);
+        setResults(prev => [...prev, res.data]);
+        setPhase('submitted');
+      }
+    }
+  }, [currentQ, answer, kuId, getStudentId, router]);
 
   const handleSelfGrade = useCallback(async (isCorrect: boolean) => {
     if (!currentQ) return;
@@ -236,11 +258,12 @@ function PracticeBody({ kuId }: { kuId: string }) {
               fontFamily: 'inherit',
             }}
           />
-          <button onClick={handleReveal} style={{
+          <button onClick={handleSubmit} disabled={submitting || !answer.trim()} style={{
             width: '100%', padding: '14px', borderRadius: '12px',
             background: 'var(--mn-blue)', color: '#fff', border: 'none',
             fontSize: '15px', fontWeight: 700, cursor: 'pointer',
-          }}>查看答案</button>
+            opacity: (submitting || !answer.trim()) ? 0.5 : 1,
+          }}>{submitting ? '判分中…' : '提交答案'}</button>
         </>
       )}
 

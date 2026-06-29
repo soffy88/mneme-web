@@ -152,6 +152,12 @@ export const generatePractice = (kcId: string, count = 3, difficulty = 0.5) => {
   return req<PracticeRes>(`/v1/practice/generate?${qs}`, { method: 'POST' });
 };
 
+// 成就/徽章（动机钩子）
+export const getAchievements = (sid: string) =>
+  USE_MOCK
+    ? Promise.resolve({ ok: true as const, data: { achievements: [] as import('@/types/api').Achievement[] } })
+    : req<{ achievements: import('@/types/api').Achievement[] }>(`/v1/achievements/${sid}`);
+
 // 列出"有真实题库题"的练习主题（避免选题落空）
 export const listPracticeTopics = (subject = 'math') =>
   USE_MOCK

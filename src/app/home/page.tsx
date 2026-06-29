@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { getUserId } from '@/lib/auth-store';
 import * as api from '@/lib/api-client';
 import { StreakBadge } from '@/components/shared/StreakBadge';
+import { Achievements } from '@/components/shared/Achievements';
 import type { MissionRes, CompleteMissionRes, ReviewDueItem, DailyPlanRes } from '@/types/api';
 
 
@@ -318,6 +319,9 @@ export default function HomePage() {
           ))}
         </div>
       </div>
+
+      {/* 成就（动机钩子） */}
+      <Achievements />
 
       {/* 我的错题本入口 */}
       <button
