@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import * as api from '@/lib/api-client';
 
-type Topic = { ku_id: string; count: number };
+type Topic = { ku_id: string; count: number; ku_name?: string };
 
 function parseTopic(kuId: string) {
   const gm = kuId.match(/[gG](\d+)/);
@@ -37,7 +37,10 @@ export default function PracticePage() {
     });
   }, []);
 
-  const enriched = topics.map((t) => ({ ...t, ...parseTopic(t.ku_id) }));
+  const enriched = topics.map((t) => {
+    const p = parseTopic(t.ku_id);
+    return { ...t, gradeNum: p.gradeNum, label: (t.ku_name && t.ku_name !== t.ku_id) ? t.ku_name : p.label };
+  });
   const inBand = enriched.filter((t) => band(t.gradeNum) === bandSel);
   const byGrade = new Map<number, typeof enriched>();
   inBand.forEach((t) => { const a = byGrade.get(t.gradeNum) ?? []; a.push(t); byGrade.set(t.gradeNum, a); });
