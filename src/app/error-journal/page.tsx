@@ -155,7 +155,7 @@ export default function ErrorJournalPage() {
 
       {/* 筛选 tab */}
       <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '2px' }}>
-        {ALL_TYPES.map((tag) => (
+        {ALL_TYPES.filter((tag) => tag === '' || items.some((i) => i.error_tag === tag)).map((tag) => (
           <button
             key={tag}
             type="button"
