@@ -43,7 +43,7 @@ export default function DictionaryPage() {
       <div style={{ marginTop: 32, padding: 16, background: '#f9fafb', borderRadius: 12, border: '1px solid #f3f4f6', fontSize: 12, color: '#9ca3af', textAlign: 'center', lineHeight: 1.8 }}>
         字词典模块正在建设中，数据接入完成后上线。
         <br />
-        现有 3287 个知识点可在{' '}
+        现有约 7700 个知识点可在{' '}
         <a href="/subjects/chinese/lesson" style={{ color: '#d97706', textDecoration: 'underline' }}>知识体系</a>
         {' '}中查阅。
       </div>

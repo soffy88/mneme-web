@@ -51,7 +51,7 @@ export interface PaperResult {
 // ── 认知状态 ─────────────────────────────────────────────────
 export type InteractionSource = 'paper' | 'quick' | 'review' | 'socratic';
 export interface InteractionReq {
-  kc_id: string; is_correct: boolean;
+  student_id: string; kc_id: string; is_correct: boolean;
   used_answer?: boolean; struggled?: boolean; effortless?: boolean;
   source: InteractionSource; question_id?: string; is_interleaved?: boolean;
 }

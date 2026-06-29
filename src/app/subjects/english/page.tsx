@@ -35,7 +35,7 @@ const CONFIG: SubjectConfig = {
       color: '#0891b2',
       bg: '#e0f2fe',
       cards: [
-        { icon: '◉', title: '口语陪练', desc: 'AI真人对话练习', href: '/speaking' },
+        { icon: '◉', title: '口语陪练', desc: 'AI真人对话练习', href: '/speaking', disabled: true },
       ],
     },
   ],

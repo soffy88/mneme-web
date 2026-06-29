@@ -106,7 +106,9 @@ function KuDetail({ ku, onBack }: { ku: KnowledgeUnitItem; onBack: () => void })
 
         {/* 操作 */}
         <button
-          onClick={() => router.push(`/subjects/${ku.subject}/practice?ku_id=${encodeURIComponent(ku.id)}`)}
+          onClick={() => router.push(ku.subject === 'math'
+            ? `/subjects/math/practice?ku_id=${encodeURIComponent(ku.id)}`
+            : `/practice?subject=${ku.subject}`)}
           style={{
             width: '100%', padding: '9px 10px', borderRadius: '8px',
             background: 'var(--mn-green)', border: 'none',

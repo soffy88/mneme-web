@@ -698,15 +698,18 @@ function KuDetailPanel({ ku, onClose, onJumpPractice, onJumpReader, onStartSocra
           <section>
             <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--mn-ink-3)', letterSpacing: '0.05em', marginBottom: '6px' }}>前置知识</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-              {ku.prereq_mastery?.map(p => (
-                <span key={p.ku_id} style={{
+              {((ku.prereq_mastery && ku.prereq_mastery.length > 0)
+                ? ku.prereq_mastery.map((p) => ({ key: p.ku_id, label: p.ku_id, color: p.mastery_color }))
+                : ku.prerequisites.map((n) => ({ key: n, label: n, color: 'unknown' as MasteryColor }))
+              ).map((p) => (
+                <span key={p.key} style={{
                   padding: '4px 10px', borderRadius: '99px', fontSize: '12px',
-                  background: `${MASTERY_DOT[p.mastery_color].bg}22`,
-                  color: MASTERY_DOT[p.mastery_color].bg,
-                  border: `1px solid ${MASTERY_DOT[p.mastery_color].bg}44`,
+                  background: `${MASTERY_DOT[p.color].bg}22`,
+                  color: MASTERY_DOT[p.color].bg,
+                  border: `1px solid ${MASTERY_DOT[p.color].bg}44`,
                 }}>
-                  {p.ku_id}
-                  <span style={{ fontSize: '10px', marginLeft: 4, opacity: 0.7 }}>{MASTERY_DOT[p.mastery_color].label}</span>
+                  {p.label}
+                  <span style={{ fontSize: '10px', marginLeft: 4, opacity: 0.7 }}>{MASTERY_DOT[p.color].label}</span>
                 </span>
               ))}
             </div>

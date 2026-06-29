@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import * as api from '@/lib/api-client';
 import { getUserId } from '@/lib/auth-store';
 import type { KnowledgeUnitItem } from '@/types/api';
@@ -349,6 +350,7 @@ type Mode = 'browse' | 'review';
 type SourceFilter = 'all' | 'course' | 'gaokao';
 
 export default function IdiomsPage() {
+  const router = useRouter();
   const [kus, setKus] = useState<KnowledgeUnitItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
@@ -419,10 +421,12 @@ export default function IdiomsPage() {
     const ku = reviewQueue[reviewIdx];
     if (!ku || submitting) return;
     const sid = getUserId();
-    if (!sid) return;
+    if (!sid) { router.push('/login'); return; }
     setSubmitting(true);
+    let res: Awaited<ReturnType<typeof api.postInteraction>>;
     try {
-      await api.postInteraction({
+      res = await api.postInteraction({
+        student_id: sid,
         kc_id: ku.id,
         is_correct: rating === 'good' || rating === 'easy',
         struggled: rating === 'hard',
@@ -430,15 +434,32 @@ export default function IdiomsPage() {
         used_answer: rating === 'again',
         source: 'review',
       });
-    } catch (_) { /* non-blocking */ }
+    } catch (e) {
+      res = { ok: false, error: e instanceof Error ? e.message : String(e) };
+    }
     setSubmitting(false);
+    if (!res.ok) {
+      setErr(`记忆曲线保存失败：${res.error}。请稍后重试。`);
+      return;
+    }
     setTodayCount(c => c + 1);
     if (reviewIdx + 1 >= reviewQueue.length) setReviewDone(true);
     else setReviewIdx(i => i + 1);
-  }, [reviewQueue, reviewIdx, submitting]);
+  }, [reviewQueue, reviewIdx, submitting, router]);
 
   if (loading) return <div style={{ padding: 40, textAlign: 'center', color: '#6b7280' }}>加载成语中…</div>;
-  if (err) return <div style={{ padding: 24, color: '#dc2626' }}>{err}</div>;
+  if (err) return (
+    <div style={{ maxWidth: 480, margin: '0 auto', padding: '48px 24px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'center' }}>
+      <div style={{ fontSize: 32 }}>⚠️</div>
+      <div style={{ fontSize: 14, color: '#dc2626', lineHeight: 1.6 }}>{err}</div>
+      <button
+        onClick={() => router.push('/subjects/chinese')}
+        style={{ marginTop: 8, padding: '10px 28px', borderRadius: 10, background: '#6366f1', color: '#fff', fontSize: 14, fontWeight: 600, border: 'none', cursor: 'pointer' }}
+      >
+        返回语文
+      </button>
+    </div>
+  );
 
   // ── 背诵模式 ─────────────────────────────────────────────
   if (mode === 'review') {

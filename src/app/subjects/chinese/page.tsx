@@ -12,9 +12,9 @@ const CONFIG: SubjectConfig = {
       color: '#16a34a',
       bg: '#f0fdf4',
       cards: [
-        { icon: '✐', title: '知识体系', desc: '8040 个知识点，初中+高中全11册', href: '/subjects/chinese/lesson' },
+        { icon: '✐', title: '知识体系', desc: '约7700 个知识点，初中+高中全11册', href: '/subjects/chinese/lesson' },
         { icon: '古', title: '文言实词本', desc: '1616条实词 · 多义项结构', href: '/subjects/chinese/classical-words' },
-        { icon: '成', title: '成语本', desc: '1136条成语 · 浏览+FSRS背诵', href: '/subjects/chinese/idioms' },
+        { icon: '成', title: '成语本', desc: '996条成语 · 浏览+FSRS背诵', href: '/subjects/chinese/idioms' },
         { icon: '诗', title: '古诗文诵读', desc: '必背古诗文精讲', href: '/subjects/chinese/poetry' },
         { icon: '📖', title: '阅读理解引导', desc: '引导式文本分析', href: '/subjects/chinese/reading' },
         { icon: '◌', title: '苏格拉底答疑', desc: '引导而非直接告知', href: '/socratic' },

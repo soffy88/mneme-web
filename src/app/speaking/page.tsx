@@ -143,6 +143,15 @@ export default function SpeakingPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
+      {/* 诚信提示：发音评测尚未接入真实音频，分数仅为示例 */}
+      <div style={{
+        padding: '12px 16px', borderRadius: '10px',
+        background: 'var(--mn-orange-dim)', border: '1px solid var(--mn-orange)',
+        fontSize: '13px', color: 'var(--mn-orange)', lineHeight: 1.6, fontWeight: 600,
+      }}>
+        ⚠️ 发音评测功能建设中，当前评分仅为示例，不代表真实发音水平。
+      </div>
+
       <div>
         <h1 style={{ fontSize: '22px', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--mn-ink)', lineHeight: 1.2 }}>
           英语口语陪练
