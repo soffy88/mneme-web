@@ -93,6 +93,7 @@ export default function ErrorJournalPage() {
   const [loading,   setLoading]   = useState(true);
   const [error,     setError]     = useState('');
   const [filterTag, setFilterTag] = useState('');
+  const [askingId,  setAskingId]  = useState<string | null>(null);
 
   const load = async (tag?: string) => {
     const sid = getUserId();
@@ -214,17 +215,35 @@ export default function ErrorJournalPage() {
                 </div>
               </div>
 
-              {/* 举一反三按钮 */}
-              {item.can_practice_variant && (
+              {/* 操作：问问AI(苏格拉底) + 举一反三 */}
+              <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
                 <button
                   type="button"
                   className="mn-btn-secondary"
-                  onClick={() => router.push(`/subjects/math/practice?ku_id=${encodeURIComponent(item.kc_id)}`)}
-                  style={{ fontSize: '12px', padding: '6px 12px', flexShrink: 0 }}
+                  disabled={askingId === item.question_id}
+                  onClick={async () => {
+                    const sid = getUserId();
+                    if (!sid) { router.push('/login'); return; }
+                    setAskingId(item.question_id);
+                    const res = await api.startSocratic(item.question_id, sid);
+                    setAskingId(null);
+                    if (res.ok) router.push(`/socratic?session_id=${res.data.session_id}&first_q=${encodeURIComponent(res.data.first_question)}`);
+                  }}
+                  style={{ fontSize: '12px', padding: '6px 10px', opacity: askingId === item.question_id ? 0.6 : 1 }}
                 >
-                  举一反三
+                  {askingId === item.question_id ? '连接中…' : '问问AI'}
                 </button>
-              )}
+                {item.can_practice_variant && (
+                  <button
+                    type="button"
+                    className="mn-btn-secondary"
+                    onClick={() => router.push(`/subjects/math/practice?ku_id=${encodeURIComponent(item.kc_id)}`)}
+                    style={{ fontSize: '12px', padding: '6px 10px' }}
+                  >
+                    举一反三
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>

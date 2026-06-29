@@ -30,9 +30,10 @@ async function req<T>(
   path: string,
   options: RequestInit = {},
   auth = true,
+  timeoutMs = 15_000,
 ): Promise<ApiResult<T>> {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 15_000);
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
     const res = await fetch(`${MNEME_API_BASE}${path}`, {
       signal: ctrl.signal,
@@ -95,8 +96,9 @@ export const getMasteryCurve = (sid: string, kcId: string) => USE_MOCK ? mock.mo
 export const getReviewQueue  = (sid: string)               => USE_MOCK ? mock.mockReviewQueue()  : req(`/v1/review-queue/${sid}`);
 
 // ── 苏格拉底 ─────────────────────────────────────────────────
-export const startSocratic = (questionId: string) =>
-  USE_MOCK ? mock.mockStartSocratic() : post<SocraticStartRes>('/v1/socratic/start', { question_id: questionId });
+export const startSocratic = (questionId: string, studentId: string) =>
+  USE_MOCK ? mock.mockStartSocratic()
+  : req<SocraticStartRes>(`/v1/socratic/start?question_id=${encodeURIComponent(questionId)}&student_id=${encodeURIComponent(studentId)}`, { method: 'POST' }, true, 90_000);
 
 /**
  * socraticStream — SSE 流式消息。

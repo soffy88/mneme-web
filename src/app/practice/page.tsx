@@ -30,6 +30,11 @@ export default function PracticePage() {
       if (res.ok) setTopics(res.data.topics);
       setLoading(false);
     });
+    // 按学生年级默认学段
+    api.getMe().then((r) => {
+      const g = r.ok ? r.data.grade : undefined;
+      if (g) setBandSel(g.startsWith('高') ? '高中' : g.startsWith('初') ? '初中' : '小学');
+    });
   }, []);
 
   const enriched = topics.map((t) => ({ ...t, ...parseTopic(t.ku_id) }));
