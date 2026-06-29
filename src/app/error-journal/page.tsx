@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getUserId } from '@/lib/auth-store';
 import * as api from '@/lib/api-client';
+import { RichText } from '@/components/shared/RichText';
 import type { ErrorJournalRes, ErrorJournalDistribution } from '@/types/api';
 
 const ERROR_TAG_LABEL: Record<string, string> = {
@@ -192,31 +193,36 @@ export default function ErrorJournalPage() {
             <div
               key={item.question_id}
               className="mn-card"
-              style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}
+              style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}
             >
-              {/* 错误类型标签 */}
-              <span style={{
-                padding: '3px 9px', borderRadius: '99px', fontSize: '12px', fontWeight: 600,
-                background: ERROR_TAG_BG[item.error_tag] ?? 'var(--mn-surface)',
-                color: ERROR_TAG_COLOR[item.error_tag] ?? 'var(--mn-ink-2)',
-                border: '1px solid var(--mn-border)',
-                flexShrink: 0,
-              }}>
-                {ERROR_TAG_LABEL[item.error_tag] ?? item.error_tag}
-              </span>
-
-              {/* KC 名 */}
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--mn-ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {/* 头：考点标签 + 日期 */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{
+                  padding: '2px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 600,
+                  background: 'var(--mn-blue-dim)', color: 'var(--mn-blue)', flexShrink: 0,
+                  maxWidth: '60%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>
                   {item.kc_name ?? item.kc_id}
-                </div>
-                <div style={{ fontSize: '12px', color: 'var(--mn-ink-3)', marginTop: '2px' }}>
+                </span>
+                <span style={{ fontSize: '12px', color: 'var(--mn-ink-3)', marginLeft: 'auto', flexShrink: 0 }}>
                   {fmtDate(item.wrong_at)}
-                </div>
+                </span>
               </div>
 
+              {/* 真实错题题干（渲染公式，最多 3 行） */}
+              {item.question_text ? (
+                <div style={{
+                  fontSize: '14px', color: 'var(--mn-ink)', lineHeight: 1.6,
+                  display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                }}>
+                  <RichText>{item.question_text}</RichText>
+                </div>
+              ) : (
+                <div style={{ fontSize: '13px', color: 'var(--mn-ink-3)' }}>（暂无题干）</div>
+              )}
+
               {/* 操作：问问AI(苏格拉底) + 举一反三 */}
-              <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                 <button
                   type="button"
                   className="mn-btn-secondary"
@@ -229,7 +235,7 @@ export default function ErrorJournalPage() {
                     setAskingId(null);
                     if (res.ok) router.push(`/socratic?session_id=${res.data.session_id}&first_q=${encodeURIComponent(res.data.first_question)}`);
                   }}
-                  style={{ fontSize: '12px', padding: '6px 10px', opacity: askingId === item.question_id ? 0.6 : 1 }}
+                  style={{ fontSize: '12px', padding: '6px 12px', opacity: askingId === item.question_id ? 0.6 : 1 }}
                 >
                   {askingId === item.question_id ? '连接中…' : '问问AI'}
                 </button>
@@ -238,7 +244,7 @@ export default function ErrorJournalPage() {
                     type="button"
                     className="mn-btn-secondary"
                     onClick={() => router.push(`/subjects/math/practice?ku_id=${encodeURIComponent(item.kc_id)}`)}
-                    style={{ fontSize: '12px', padding: '6px 10px' }}
+                    style={{ fontSize: '12px', padding: '6px 12px' }}
                   >
                     举一反三
                   </button>
