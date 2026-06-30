@@ -12,6 +12,18 @@ const MASTERY_COLOR_MAP: Record<MasteryColor, string> = {
   green: '#34c759', yellow: '#ff9500', red: '#ff3b30', unknown: '#c7c7cc',
 };
 
+// 选择题：参考答案是单个字母 A-D（含全角）→ 给选项按钮，可自动判分
+const MC_LETTERS = ['A', 'B', 'C', 'D'];
+function mcAnswer(ans: string | null): string | null {
+  const t = (ans ?? '').trim().toUpperCase().replace(/[ＡＢＣＤ]/g, c => MC_LETTERS[c.charCodeAt(0) - 0xff21]);
+  return /^[A-D]$/.test(t) ? t : null;
+}
+// 题干引用图但无图片 → 无法作答，过滤掉
+function missingImage(q: QuestionBankItem): boolean {
+  if (q.needs_image) return false; // 需图但已知；此处只排"引用图却没图"
+  return /下图|上图|如图|图中|右图|左图|看图|读图|<ImageHere>|根据.{0,4}图|图\(/.test(q.question_text);
+}
+
 // ── 题目展示 ──────────────────────────────────────────────────
 function QuestionCard({ q, index, total }: { q: QuestionBankItem; index: number; total: number }) {
   return (
@@ -94,9 +106,9 @@ function PracticeBody({ kuId }: { kuId: string }) {
   const getStudentId = useCallback(() => getUserId(), []);
 
   useEffect(() => {
-    api.listQuestionBank({ subject: 'math', ku_id: kuId, needs_image: false, limit: 10 })
+    api.listQuestionBank({ subject: 'math', ku_id: kuId, needs_image: false, limit: 16 })
       .then(res => {
-        if (res.ok) setQuestions(res.data.items);
+        if (res.ok) setQuestions(res.data.items.filter(q => !missingImage(q)).slice(0, 10));
       })
       .finally(() => setLoading(false));
   }, [kuId]);
@@ -246,19 +258,33 @@ function PracticeBody({ kuId }: { kuId: string }) {
       {/* 答题区 */}
       {phase === 'answering' && (
         <>
-          <textarea
-            value={answer}
-            onChange={e => setAnswer(e.target.value)}
-            placeholder="在此写下你的解题过程或答案…"
-            rows={4}
-            style={{
-              width: '100%', padding: '12px', borderRadius: '10px',
-              border: '1.5px solid var(--mn-border)', background: 'var(--mn-surface)',
-              fontSize: '14px', color: 'var(--mn-ink)', lineHeight: 1.6,
-              resize: 'vertical', boxSizing: 'border-box',
-              fontFamily: 'inherit',
-            }}
-          />
+          {currentQ && mcAnswer(currentQ.correct_answer) ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+              {MC_LETTERS.map(L => (
+                <button key={L} type="button" onClick={() => setAnswer(L)}
+                  style={{
+                    padding: '14px 0', borderRadius: '10px', fontSize: '16px', fontWeight: 700, cursor: 'pointer',
+                    border: answer === L ? '2px solid var(--mn-blue)' : '1px solid var(--mn-border)',
+                    background: answer === L ? 'var(--mn-blue-dim, #eff6ff)' : 'var(--mn-surface)',
+                    color: answer === L ? 'var(--mn-blue)' : 'var(--mn-ink-2)',
+                  }}>{L}</button>
+              ))}
+            </div>
+          ) : (
+            <textarea
+              value={answer}
+              onChange={e => setAnswer(e.target.value)}
+              placeholder="在此写下你的解题过程或答案…"
+              rows={4}
+              style={{
+                width: '100%', padding: '12px', borderRadius: '10px',
+                border: '1.5px solid var(--mn-border)', background: 'var(--mn-surface)',
+                fontSize: '14px', color: 'var(--mn-ink)', lineHeight: 1.6,
+                resize: 'vertical', boxSizing: 'border-box',
+                fontFamily: 'inherit',
+              }}
+            />
+          )}
           <button onClick={handleSubmit} disabled={submitting || !answer.trim()} style={{
             width: '100%', padding: '14px', borderRadius: '12px',
             background: 'var(--mn-blue)', color: '#fff', border: 'none',

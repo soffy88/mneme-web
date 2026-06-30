@@ -15,6 +15,16 @@ function kuIdOf(q: QuestionBankItem): string {
   return Object.keys(q.knowledge_points ?? {})[0] ?? '';
 }
 
+const MC_LETTERS = ['A', 'B', 'C', 'D'];
+function mcAnswer(ans: string | null): string | null {
+  const t = (ans ?? '').trim().toUpperCase().replace(/[ＡＢＣＤ]/g, c => MC_LETTERS[c.charCodeAt(0) - 0xff21]);
+  return /^[A-D]$/.test(t) ? t : null;
+}
+function missingImage(q: QuestionBankItem): boolean {
+  if (q.needs_image) return false;
+  return /下图|上图|如图|图中|右图|左图|看图|读图|<ImageHere>|根据.{0,4}图|图\(/.test(q.question_text);
+}
+
 function fmtTime(sec: number): string {
   const m = Math.floor(sec / 60), s = sec % 60;
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
@@ -61,12 +71,14 @@ export default function MathExamPage() {
     const totRes = await api.listQuestionBank({ subject: 'math', needs_image: false, limit: 1 });
     if (!totRes.ok) { setErr(totRes.error); setPhase('setup'); return; }
     const tot = totRes.data.total;
-    const maxOffset = Math.max(0, tot - size);
+    const fetchN = size * 2 + 6; // 多取些，过滤掉"引用图却无图"的题后再截取
+    const maxOffset = Math.max(0, tot - fetchN);
     const offset = Math.floor(Math.random() * (maxOffset + 1));
-    const res = await api.listQuestionBank({ subject: 'math', needs_image: false, limit: size, offset });
+    const res = await api.listQuestionBank({ subject: 'math', needs_image: false, limit: fetchN, offset });
     if (!res.ok) { setErr(res.error); setPhase('setup'); return; }
-    if (res.data.items.length === 0) { setErr('未取到题目，请重试'); setPhase('setup'); return; }
-    setQuestions(res.data.items);
+    const usable = res.data.items.filter(q => !missingImage(q)).slice(0, size);
+    if (usable.length === 0) { setErr('未取到题目，请重试'); setPhase('setup'); return; }
+    setQuestions(usable);
     setAnswers({});
     setIdx(0);
     setSeconds(0);
@@ -184,13 +196,30 @@ export default function MathExamPage() {
           </div>
         </div>
 
-        <textarea
-          value={answers[q.id] ?? ''}
-          onChange={e => setAnswers(a => ({ ...a, [q.id]: e.target.value }))}
-          placeholder="在此写下你的答案…"
-          rows={3}
-          style={{ width: '100%', padding: 12, borderRadius: 10, border: '1.5px solid var(--mn-border)', background: 'var(--mn-surface)', fontSize: 14, color: 'var(--mn-ink)', lineHeight: 1.6, resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit' }}
-        />
+        {mcAnswer(q.correct_answer) ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+            {MC_LETTERS.map(L => {
+              const sel = answers[q.id] === L;
+              return (
+                <button key={L} type="button" onClick={() => setAnswers(a => ({ ...a, [q.id]: L }))}
+                  style={{
+                    padding: '14px 0', borderRadius: 10, fontSize: 16, fontWeight: 700, cursor: 'pointer',
+                    border: sel ? '2px solid var(--mn-blue)' : '1px solid var(--mn-border)',
+                    background: sel ? 'var(--mn-blue-dim, #eff6ff)' : 'var(--mn-surface)',
+                    color: sel ? 'var(--mn-blue)' : 'var(--mn-ink-2)',
+                  }}>{L}</button>
+              );
+            })}
+          </div>
+        ) : (
+          <textarea
+            value={answers[q.id] ?? ''}
+            onChange={e => setAnswers(a => ({ ...a, [q.id]: e.target.value }))}
+            placeholder="在此写下你的答案…"
+            rows={3}
+            style={{ width: '100%', padding: 12, borderRadius: 10, border: '1.5px solid var(--mn-border)', background: 'var(--mn-surface)', fontSize: 14, color: 'var(--mn-ink)', lineHeight: 1.6, resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit' }}
+          />
+        )}
 
         {/* 翻页 */}
         <div style={{ display: 'flex', gap: 10 }}>
