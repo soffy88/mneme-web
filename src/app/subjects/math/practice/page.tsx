@@ -92,7 +92,7 @@ function FeedbackCard({ result }: { result: PracticeSubmitRes }) {
 // ── 练习主体 ──────────────────────────────────────────────────
 type Phase = 'answering' | 'reveal' | 'submitted' | 'done';
 
-function PracticeBody({ kuId }: { kuId: string }) {
+function PracticeBody({ kuId, subject = 'math' }: { kuId: string; subject?: string }) {
   const router = useRouter();
   const [questions, setQuestions] = useState<QuestionBankItem[]>([]);
   const [loading,   setLoading]   = useState(true);
@@ -106,12 +106,12 @@ function PracticeBody({ kuId }: { kuId: string }) {
   const getStudentId = useCallback(() => getUserId(), []);
 
   useEffect(() => {
-    api.listQuestionBank({ subject: 'math', ku_id: kuId, needs_image: false, limit: 16 })
+    api.listQuestionBank({ subject, ku_id: kuId, needs_image: false, limit: 16 })
       .then(res => {
         if (res.ok) setQuestions(res.data.items.filter(q => !missingImage(q)).slice(0, 10));
       })
       .finally(() => setLoading(false));
-  }, [kuId]);
+  }, [kuId, subject]);
 
   const currentQ = questions[idx] ?? null;
 
@@ -408,6 +408,7 @@ function PracticePageInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const kuId = searchParams.get('ku_id');
+  const subject = searchParams.get('subject') ?? 'math';
 
   if (!kuId) {
     return (
@@ -427,7 +428,7 @@ function PracticePageInner() {
   return (
     <div style={{ height: '100svh', display: 'flex', flexDirection: 'column', background: 'var(--mn-paper)', overflow: 'hidden' }}>
       <PracticeHeader kuId={kuId} />
-      <PracticeBody kuId={kuId} />
+      <PracticeBody kuId={kuId} subject={subject} />
     </div>
   );
 }

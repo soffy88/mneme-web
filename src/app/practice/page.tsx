@@ -30,28 +30,48 @@ function PracticeInner() {
   const [bandSel, setBandSel] = useState('初中');
 
   useEffect(() => {
-    if (subject !== 'math') { setLoading(false); return; }
-    api.listPracticeTopics('math').then((res) => {
+    api.listPracticeTopics(subject).then((res) => {
       if (res.ok) setTopics(res.data.topics);
       setLoading(false);
     });
-    // 按学生年级默认学段
+    // 按学生年级默认学段（仅数学按学段分组用）
     api.getMe().then((r) => {
       const g = r.ok ? r.data.grade : undefined;
       if (g) setBandSel(g.startsWith('高') ? '高中' : g.startsWith('初') ? '初中' : '小学');
     });
   }, [subject]);
 
+  const names: Record<string, string> = { physics: '物理', chinese: '语文', english: '英语', math: '数学' };
+
+  // 非数学：键不是 cmm-math-* 格式，无年级学段——直接列主题（题量降序）。
   if (subject !== 'math') {
-    const names: Record<string, string> = { physics: '物理', chinese: '语文', english: '英语' };
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        <h1 style={{ fontSize: '22px', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--mn-ink)' }}>专项练习</h1>
+    if (loading) return <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--mn-ink-3)' }}>加载题库…</div>;
+    if (topics.length === 0) return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--mn-ink)' }}>{names[subject] ?? subject}·专项练习</h1>
         <div className="mn-card" style={{ padding: '40px 24px', textAlign: 'center' }}>
-          <div style={{ fontSize: '32px', marginBottom: '12px' }}>🚧</div>
-          <div style={{ fontWeight: 600, color: 'var(--mn-ink)', marginBottom: '6px' }}>{names[subject] ?? subject}题库建设中</div>
-          <div style={{ fontSize: '13px', color: 'var(--mn-ink-3)', marginBottom: '20px' }}>目前数学题库最完整，先去数学练练？</div>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>🚧</div>
+          <div style={{ fontWeight: 600, color: 'var(--mn-ink)', marginBottom: 6 }}>该科题库建设中</div>
           <button type="button" className="mn-btn-primary" onClick={() => router.push('/practice')}>去数学练习</button>
+        </div>
+      </div>
+    );
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div>
+          <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--mn-ink)' }}>{names[subject] ?? subject}·专项练习</h1>
+          <p style={{ fontSize: 13, color: 'var(--mn-ink-3)', marginTop: 2 }}>挑一个主题，做真题 · 即时判分 · 错题自动入本</p>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {[...topics].sort((a, b) => b.count - a.count).map((t) => (
+            <button key={t.ku_id} type="button" className="mn-card-interactive"
+              onClick={() => router.push(`/subjects/math/practice?subject=${subject}&ku_id=${encodeURIComponent(t.ku_id)}`)}
+              style={{ width: '100%', textAlign: 'left', background: 'var(--mn-surface)', border: '1px solid var(--mn-border)',
+                borderRadius: 14, padding: '14px 16px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--mn-ink)' }}>{t.ku_name ?? t.ku_id}</span>
+              <span style={{ fontSize: 12, color: 'var(--mn-ink-3)' }}>{t.count} 题 ›</span>
+            </button>
+          ))}
         </div>
       </div>
     );
