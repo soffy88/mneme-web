@@ -72,7 +72,7 @@ export interface MasteryRes {
   student_id: string; knowledge_points: KnowledgePoint[]; count: number;
 }
 
-export interface CurvePoint { month: string; mastery: number }
+export interface CurvePoint { month: string; mastery: number; dominant_error_type?: string | null }
 export interface MasteryCurveRes {
   kc_id: string; kc_name: string; points: CurvePoint[];
 }
@@ -301,12 +301,6 @@ export interface DailyPlanRes {
   exam_countdown_days: number | null;
   subjects_summary: DailyPlanSubjectSummary[];
   tasks: DailyPlanTask[];
-}
-
-// ── 交错复习队列（M-B）──
-export interface ReviewQueueItem {
-  kc_id: string;
-  due: string;
 }
 
 // ── 努力收益看板（M-F 对抗努力错觉）──

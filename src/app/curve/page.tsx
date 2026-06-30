@@ -9,6 +9,11 @@ import type { CurvePoint } from '@/types/api';
 
 const W = 300, H = 140, PX = 16, PY = 16;
 
+const ERROR_LABEL: Record<string, string> = {
+  conceptual: '概念不清', transfer: '迁移弱', careless: '粗心',
+  logic_break: '逻辑断裂', dontknow: '不会',
+};
+
 function ringColor(pct: number) {
   if (pct >= 75) return 'var(--mn-mastery-high)';
   if (pct >= 50) return 'var(--mn-mastery-mid)';
@@ -116,6 +121,9 @@ function CurveContent() {
               {' '} · {points.length} 个月
             </p>
           )}
+          <p style={{ fontSize: '11px', color: 'var(--mn-ink-3)', marginTop: '3px' }}>
+            永久学习档案 · 每月留存掌握度与错因，随时间增值
+          </p>
         </div>
       </div>
 
@@ -155,6 +163,11 @@ function CurveContent() {
                   <span style={{ fontSize: '13px', fontWeight: 700, color: ringColor(pct), fontVariantNumeric: 'tabular-nums', minWidth: '36px', textAlign: 'right' }}>
                     {pct}%
                   </span>
+                  {p.dominant_error_type && ERROR_LABEL[p.dominant_error_type] && (
+                    <span style={{ fontSize: '10px', padding: '1px 6px', borderRadius: '4px', background: 'var(--mn-red-dim)', color: 'var(--mn-red)', fontWeight: 600, flexShrink: 0 }}>
+                      {ERROR_LABEL[p.dominant_error_type]}
+                    </span>
+                  )}
                 </div>
               );
             })}
