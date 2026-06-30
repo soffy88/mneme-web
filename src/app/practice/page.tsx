@@ -24,12 +24,20 @@ const BANDS = ['初中', '高中', '小学'];
 function PracticeInner() {
   const params = useSearchParams();
   const router = useRouter();
-  const subject = params?.get('subject') ?? 'math';
+  const paramSubject = params?.get('subject') ?? undefined;
+  // 底栏「练习」不带 subject 时，记住上次练的学科（默认数学）。
+  const [subject, setSubject] = useState(
+    () => paramSubject ?? (typeof window !== 'undefined' ? localStorage.getItem('mn:lastPracticeSubject') : null) ?? 'math',
+  );
   const [topics, setTopics] = useState<Topic[]>([]);
   const [loading, setLoading] = useState(true);
   const [bandSel, setBandSel] = useState('初中');
 
+  useEffect(() => { if (paramSubject) setSubject(paramSubject); }, [paramSubject]);
+  useEffect(() => { try { localStorage.setItem('mn:lastPracticeSubject', subject); } catch { /* ignore */ } }, [subject]);
+
   useEffect(() => {
+    setLoading(true);
     api.listPracticeTopics(subject).then((res) => {
       if (res.ok) setTopics(res.data.topics);
       setLoading(false);
