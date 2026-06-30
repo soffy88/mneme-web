@@ -57,6 +57,19 @@ function AnswerCard({ answer }: { answer: string | null }) {
   );
 }
 
+function ExplanationCard({ text }: { text: string }) {
+  if (!text || !text.trim()) return null;
+  return (
+    <div style={{ background: 'var(--mn-blue-dim)', border: '1px solid rgba(30,58,95,.12)', borderRadius: 12, padding: 16 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--mn-blue)', marginBottom: 8,
+        letterSpacing: '0.05em', textTransform: 'uppercase' }}>解析</div>
+      <div style={{ fontSize: 13, color: 'var(--mn-ink-2)', lineHeight: 1.75 }}>
+        <RichText>{text}</RichText>
+      </div>
+    </div>
+  );
+}
+
 // ── 反馈卡 ───────────────────────────────────────────────────
 function FeedbackCard({ result }: { result: PracticeSubmitRes }) {
   const color = MASTERY_COLOR_MAP[result.mastery_color];
@@ -313,6 +326,7 @@ function PracticeBody({ kuId, subject = 'math' }: { kuId: string; subject?: stri
             </div>
           )}
           <AnswerCard answer={currentQ.correct_answer} />
+          {currentQ.explanation && <ExplanationCard text={currentQ.explanation} />}
           <div style={{ fontSize: '13px', color: 'var(--mn-ink-3)', textAlign: 'center', fontWeight: 600 }}>
             对比参考答案，你的答题情况如何？
           </div>
@@ -357,6 +371,7 @@ function PracticeBody({ kuId, subject = 'math' }: { kuId: string; subject?: stri
             </div>
           )}
           {currentQ && <AnswerCard answer={currentQ.correct_answer} />}
+          {currentQ?.explanation && <ExplanationCard text={currentQ.explanation} />}
           <FeedbackCard result={feedback} />
           <button onClick={handleNext} style={{
             width: '100%', padding: '14px', borderRadius: '12px',

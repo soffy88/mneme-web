@@ -266,6 +266,7 @@ export interface QuestionBankItem {
   correct_answer: string | null;
   knowledge_points: Record<string, string>;
   needs_image: boolean;
+  explanation?: string;
 }
 export interface QuestionBankRes {
   total: number;
