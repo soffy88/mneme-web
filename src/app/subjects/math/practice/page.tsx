@@ -115,6 +115,7 @@ function PracticeBody({ kuId, subject = 'math' }: { kuId: string; subject?: stri
   const [feedback,  setFeedback]  = useState<PracticeSubmitRes | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [results,   setResults]   = useState<PracticeSubmitRes[]>([]);
+  const [asking,    setAsking]    = useState(false);
 
   const getStudentId = useCallback(() => getUserId(), []);
 
@@ -127,6 +128,17 @@ function PracticeBody({ kuId, subject = 'math' }: { kuId: string; subject?: stri
   }, [kuId, subject]);
 
   const currentQ = questions[idx] ?? null;
+
+  // 答错→直接问理解引擎（苏格拉底引导，不直接给答案），把练习和理解在最该衔接处接上。
+  const askAI = useCallback(async () => {
+    if (!currentQ) return;
+    const sid = getStudentId();
+    if (!sid) { router.push('/login'); return; }
+    setAsking(true);
+    const res = await api.startSocratic(currentQ.id, sid);
+    setAsking(false);
+    if (res.ok) router.push(`/socratic?session_id=${res.data.session_id}&first_q=${encodeURIComponent(res.data.first_question)}`);
+  }, [currentQ, getStudentId, router]);
 
   // 提交答案 → 后端自动判分；判不了(自由作答)才进自评
   const handleSubmit = useCallback(async () => {
@@ -373,6 +385,15 @@ function PracticeBody({ kuId, subject = 'math' }: { kuId: string; subject?: stri
           {currentQ && <AnswerCard answer={currentQ.correct_answer} />}
           {currentQ?.explanation && <ExplanationCard text={currentQ.explanation} />}
           <FeedbackCard result={feedback} />
+          {feedback.is_correct === false && (
+            <button onClick={askAI} disabled={asking} style={{
+              width: '100%', padding: '13px', borderRadius: '12px',
+              background: '#ede9fe', color: '#6d28d9', border: '1px solid #ddd6fe',
+              fontSize: '14px', fontWeight: 700, cursor: 'pointer', opacity: asking ? 0.6 : 1,
+            }}>
+              {asking ? '连接中…' : '🤔 没搞懂？让 AI 一步步引导你（不直接给答案）'}
+            </button>
+          )}
           <button onClick={handleNext} style={{
             width: '100%', padding: '14px', borderRadius: '12px',
             background: 'var(--mn-blue)', color: '#fff', border: 'none',
