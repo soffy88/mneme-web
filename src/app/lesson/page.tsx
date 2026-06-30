@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import * as api from '@/lib/api-client';
 import { MathRender } from '@/components/shared/MathRender';
+import { KernelPlot } from '@/components/shared/KernelPlot';
 import type { LessonRes } from '@/types/api';
 
 function LessonPageContent() {
@@ -57,23 +58,16 @@ function LessonPageContent() {
         </div>
       </div>
 
-      {/* 图示占位 — Mafs 装好后替换 */}
-      {lesson.plot_data && (
-        <div style={{
-          borderRadius: '16px', overflow: 'hidden',
-          background: 'var(--mn-blue-dim)',
-          border: '1px solid rgba(30,58,95,.1)',
-          padding: '28px 20px',
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
-        }}>
-          <div style={{ fontSize: '28px' }}>📐</div>
-          <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--mn-blue)' }}>图示（{lesson.plot_data.kc_type}）</div>
-          <div style={{ fontSize: '12px', color: 'var(--mn-blue)', opacity: 0.7 }}>
-            安装 mafs 后自动渲染 · {lesson.plot_data.traces.length} 个图形元素
+      {/* 内核图示（item 14）：确定性内核产出，Mafs 渲染 */}
+      {lesson.plot_data && lesson.plot_data.traces.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <KernelPlot data={lesson.plot_data} />
+          <div style={{ fontSize: '11px', color: 'var(--mn-ink-3)', textAlign: 'center' }}>
+            图示（{lesson.plot_data.kc_type}）· 数值由确定性内核产出
+            {!lesson.self_check_passed && (
+              <span style={{ color: 'var(--mn-orange)' }}> · ⚠ 仅供参考</span>
+            )}
           </div>
-          {!lesson.self_check_passed && (
-            <div style={{ fontSize: '11px', color: 'var(--mn-orange)', marginTop: '4px' }}>⚠ 图示仅供参考</div>
-          )}
         </div>
       )}
 
