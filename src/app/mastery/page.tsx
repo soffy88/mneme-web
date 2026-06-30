@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { getUserId } from '@/lib/auth-store';
 import * as api from '@/lib/api-client';
 import { MasteryRing } from '@/components/shared/MasteryRing';
+import { WeakRoots } from '@/components/shared/WeakRoots';
 import type { KnowledgePoint, CalibrationRes } from '@/types/api';
 
 
@@ -73,6 +74,8 @@ function SkeletonCard() {
 
 function KCCard({ kc, onClick }: { kc: KnowledgePoint; onClick: () => void }) {
   const pct = Math.round(kc.effective_mastery * 100);
+  // 惰性知识：会做(掌握度高)但混合情境认不出该用(识别度明显低)→ 需多交错
+  const inertGap = kc.p_recognition != null && kc.effective_mastery - kc.p_recognition > 0.2;
 
   return (
     <button
@@ -111,6 +114,11 @@ function KCCard({ kc, onClick }: { kc: KnowledgePoint; onClick: () => void }) {
             {kc.n_attempts} 次
           </span>
         </div>
+        {inertGap && (
+          <div style={{ fontSize: '10px', color: 'var(--mn-orange, #c2550d)', marginTop: '4px', fontWeight: 600 }}>
+            惰性知识 · 会做但识别{Math.round((kc.p_recognition ?? 0) * 100)}% — 多交错练习
+          </div>
+        )}
       </div>
 
       {/* peer percentile badge */}
@@ -137,10 +145,12 @@ export default function MasteryPage() {
   const [kcs,     setKcs]     = useState<KnowledgePoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState('');
+  const [studentId, setStudentId] = useState<string | null>(null);
 
   const load = async () => {
     const sid = getUserId();
     if (!sid) { router.push('/login'); return; }
+    setStudentId(sid);
     setLoading(true); setError('');
     const res = await api.getMastery(sid);
     setLoading(false);
@@ -179,6 +189,9 @@ export default function MasteryPage() {
 
       {/* JOL 自测校准 */}
       <CalibrationCard />
+
+      {/* 前置断点 / 薄弱根因（M-G 下钻） */}
+      {studentId && <WeakRoots studentId={studentId} />}
 
       {/* Content */}
       {loading ? (

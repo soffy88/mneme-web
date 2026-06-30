@@ -67,7 +67,17 @@ export interface KnowledgePoint {
   kc_id: string; kc_name: string;
   long_term_mastery: number; effective_mastery: number;
   n_attempts: number; peer_percentile: number | null;
+  p_recognition?: number | null;
 }
+
+// ── 前置断点 / 薄弱根因（M-G 下钻）──
+export interface WeakPrereq {
+  ku_id: string; name: string; p_mastery: number | null; status: 'weak' | 'unpracticed';
+}
+export interface WeakRoot {
+  ku_id: string; name: string; p_mastery: number; weak_prerequisites: WeakPrereq[];
+}
+export interface WeakRootsRes { roots: WeakRoot[] }
 export interface MasteryRes {
   student_id: string; knowledge_points: KnowledgePoint[]; count: number;
 }

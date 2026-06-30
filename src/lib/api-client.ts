@@ -22,7 +22,7 @@ import type {
   SpeakingPracticeReq, SpeakingPracticeRes, SpeakingHistoryItem,
   DailyPlanRes,
   KnowledgeUnitItem, QuestionBankRes, PracticeSubmitReq, PracticeSubmitRes,
-  EffortfulGainsRes, ReviewQueueItem,
+  EffortfulGainsRes, ReviewQueueItem, WeakRootsRes,
 } from '@/types/api';
 import * as mock from './mock-data';
 
@@ -367,6 +367,10 @@ export const getDailyPlan = (sid: string, subject?: string) => {
 // ── 努力收益看板（M-F）──────────────────────────────────────────
 export const getEffortfulGains = (sid: string, limit = 8) =>
   req<EffortfulGainsRes>(`/v1/effortful-gains/${sid}?limit=${limit}`);
+
+// ── 前置断点 / 薄弱根因（M-G）────────────────────────────────────
+export const getWeakRoots = (sid: string) =>
+  req<WeakRootsRes>(`/v1/weak-roots/${sid}`);
 
 // ── 知识单元 ──────────────────────────────────────────────────
 export const listKnowledgePoints = (params: {
