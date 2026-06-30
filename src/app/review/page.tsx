@@ -48,6 +48,15 @@ export default function ReviewPage() {
 
   const next = () => { setIdx((i) => i + 1); setAnswer(''); setResult(null); };
 
+  // 复习答错/看了答案→一键问理解引擎（与练习页一致）
+  const askAI = async () => {
+    const s = sid(); if (!s || !cur?.question_id) return;
+    setBusy(true);
+    const r = await api.startSocratic(cur.question_id, s);
+    setBusy(false);
+    if (r.ok) router.push(`/socratic?session_id=${r.data.session_id}&first_q=${encodeURIComponent(r.data.first_question)}`);
+  };
+
   if (loading) return <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--mn-ink-3)' }}>加载到期复习…</div>;
 
   if (items.length === 0) return (
@@ -135,6 +144,12 @@ export default function ReviewPage() {
             <div style={{ fontSize: 11, color: 'var(--mn-ink-3)', marginBottom: 4 }}>参考答案</div>
             {result.answer || '（参考原题思路自行验证）'}
           </div>
+          {(result.verdict === 'wrong' || result.recordedAgain) && cur.question_id && (
+            <button onClick={askAI} disabled={busy}
+              style={{ ...btn('#ede9fe'), color: '#6d28d9', border: '1px solid #ddd6fe', opacity: busy ? 0.6 : 1 }}>
+              {busy ? '连接中…' : '🤔 让 AI 一步步引导你（不直接给答案）'}
+            </button>
+          )}
           <button onClick={next} style={btn('var(--mn-blue)')}>
             {idx + 1 >= items.length ? '完成复习' : '下一个'}
           </button>

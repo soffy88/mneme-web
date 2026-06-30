@@ -200,6 +200,7 @@ export interface ErrorJournalRes {
 export interface ReviewDueItem {
   kc_id: string; variant_question: string;
   requires_retrieval?: boolean;
+  question_id?: string | null;
   due_since: string | null; fsrs_interval: number;
 }
 export interface ReviewRevealRes { kc_id: string; answer: string; recorded_again: boolean }
