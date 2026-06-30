@@ -58,12 +58,21 @@ function LessonPageContent() {
         </div>
       </div>
 
-      {/* 内核图示（item 14）：确定性内核产出，Mafs 渲染 */}
-      {lesson.plot_data && lesson.plot_data.traces.length > 0 && (
+      {/* 内核图示（item 14）：确定性内核产出。后端给现成 SVG 则直接渲染，
+          否则若有结构化 traces 则用 Mafs 画。 */}
+      {lesson.plot_data && (lesson.plot_data.svg || (lesson.plot_data.traces?.length ?? 0) > 0) && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <KernelPlot data={lesson.plot_data} />
+          {lesson.plot_data.svg ? (
+            <div
+              style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(30,58,95,.1)', background: '#fff' }}
+              // 内核自产 SVG（可信来源），直接渲染
+              dangerouslySetInnerHTML={{ __html: lesson.plot_data.svg }}
+            />
+          ) : (
+            <KernelPlot data={lesson.plot_data} />
+          )}
           <div style={{ fontSize: '11px', color: 'var(--mn-ink-3)', textAlign: 'center' }}>
-            图示（{lesson.plot_data.kc_type}）· 数值由确定性内核产出
+            数值由确定性内核产出
             {!lesson.self_check_passed && (
               <span style={{ color: 'var(--mn-orange)' }}> · ⚠ 仅供参考</span>
             )}

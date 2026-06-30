@@ -139,10 +139,14 @@ export interface PlotTrace {
 }
 export interface PlotAnnotation { type: string; x: number; y: number; text: string }
 export interface PlotData {
-  kc_type: string;
-  traces: PlotTrace[];
-  annotations: PlotAnnotation[];
-  x_range: [number, number]; y_range: [number, number];
+  // 后端 lesson 实际返回 {svg, steps}（内核已渲染好的 SVG）；
+  // traces/kc_type 等为可选的结构化图示数据（部分内核才产出）。
+  svg?: string;
+  steps?: unknown[];
+  kc_type?: string;
+  traces?: PlotTrace[];
+  annotations?: PlotAnnotation[];
+  x_range?: [number, number]; y_range?: [number, number];
 }
 export interface LessonRes {
   question_id: string; question_text: string; answer: string;

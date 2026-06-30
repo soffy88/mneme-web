@@ -81,7 +81,7 @@ export function KernelPlot({ data }: { data: PlotData }) {
     <div style={{ borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(30,58,95,.1)' }}>
       <Mafs height={260} viewBox={{ x: [xMin, xMax], y: [yMin, yMax] }} preserveAspectRatio={false}>
         <Coordinates.Cartesian />
-        {data.traces.map((t, i) => renderTrace(t, i))}
+        {(data.traces ?? []).map((t, i) => renderTrace(t, i))}
         {data.annotations?.map((a, i) =>
           Number.isFinite(a.x) && Number.isFinite(a.y) ? (
             <Point key={`a${i}`} x={a.x} y={a.y} color="var(--mn-orange, #e8833a)" />
