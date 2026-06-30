@@ -258,6 +258,10 @@ function PracticeBody({ kuId }: { kuId: string }) {
       {/* 答题区 */}
       {phase === 'answering' && (
         <>
+          {/* 检索练习约束（M-C）：先凭记忆作答，不翻答案 */}
+          <div style={{ fontSize: '12px', color: 'var(--mn-blue)', background: 'var(--mn-blue-dim, #eff6ff)', borderRadius: '10px', padding: '10px 12px', lineHeight: 1.6 }}>
+            🧠 先凭记忆自己作答——主动回忆（检索练习）比翻看答案记得牢约 50%。想不出来也先写下思路，再对照。
+          </div>
           {currentQ && mcAnswer(currentQ.correct_answer) ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
               {MC_LETTERS.map(L => (
@@ -311,6 +315,9 @@ function PracticeBody({ kuId }: { kuId: string }) {
           <AnswerCard answer={currentQ.correct_answer} />
           <div style={{ fontSize: '13px', color: 'var(--mn-ink-3)', textAlign: 'center', fontWeight: 600 }}>
             对比参考答案，你的答题情况如何？
+          </div>
+          <div style={{ fontSize: '11px', color: 'var(--mn-ink-3)', textAlign: 'center', lineHeight: 1.6 }}>
+            如实评——没真正回忆出来就选「答错了」，会按「重来」更早安排复习；蒙对/看了答案不算掌握。
           </div>
           <div style={{ display: 'flex', gap: '10px' }}>
             <button
