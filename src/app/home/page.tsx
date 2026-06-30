@@ -104,11 +104,12 @@ export default function HomePage() {
         <StreakBadge days={streak.current_streak} />
       </div>
 
-      {/* 新手引导：零活动（无计划/无复习/无连续）时给清晰第一步，降低冷启动茫然 */}
-      {(!dailyPlan || dailyPlan.tasks.length === 0) && reviewDue.length === 0 && streak.current_streak === 0 && (
+      {/* 引导第一步：无学习历史（无连续天、无到期复习）时给清晰入口，降低冷启动茫然。
+          新生计划里多是 new_learn(去讲解)，这里补一个"先做题/传卷"建档的快入口。 */}
+      {streak.current_streak === 0 && reviewDue.length === 0 && (
         <div className="mn-card" style={{ padding: '20px', border: '1.5px solid var(--mn-blue)' }}>
           <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--mn-ink)', marginBottom: '4px' }}>
-            👋 欢迎！从一道题开始
+            👋 从一道题开始
           </div>
           <div style={{ fontSize: '13px', color: 'var(--mn-ink-3)', marginBottom: '14px', lineHeight: 1.6 }}>
             做几道题或上传一张试卷，系统就会算出你的薄弱点、自动排复习、建立学习档案。
