@@ -208,7 +208,7 @@ export default function HomePage() {
         <button
           type="button"
           className="mn-card-interactive"
-          onClick={() => router.push(`/subjects/math/practice?ku_id=${encodeURIComponent(reviewDue[0].kc_id)}`)}
+          onClick={() => router.push('/review')}
           style={{
             width: '100%', textAlign: 'left', background: 'none',
             border: '1.5px solid var(--mn-blue)', borderRadius: '16px',
