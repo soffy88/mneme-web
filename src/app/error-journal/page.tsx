@@ -96,6 +96,8 @@ export default function ErrorJournalPage() {
   const [filterTag, setFilterTag] = useState('');
   const [askingId,  setAskingId]  = useState<string | null>(null);
   const [openId,    setOpenId]    = useState<string | null>(null);
+  const [dueCount,  setDueCount]  = useState(0);
+  const [dueKc,     setDueKc]     = useState<string | null>(null);
 
   const load = async (tag?: string) => {
     const sid = getUserId();
@@ -108,6 +110,15 @@ export default function ErrorJournalPage() {
   };
 
   useEffect(() => { void load(); }, []);
+
+  // 到期重练：拉交错复习队列（间隔重复到期的知识点，快接口，不触发变式生成）
+  useEffect(() => {
+    const sid = getUserId();
+    if (!sid) return;
+    void api.getReviewQueue(sid).then((r) => {
+      if (r.ok) { setDueCount(r.data.length); setDueKc(r.data[0]?.kc_id ?? null); }
+    });
+  }, []);
 
   const onTagChange = (tag: string) => {
     setFilterTag(tag);
@@ -151,6 +162,24 @@ export default function ErrorJournalPage() {
           整理错误，举一反三
         </p>
       </div>
+
+      {/* 到期重练（间隔重复）：错题到记忆临界点时安排重练 */}
+      {dueCount > 0 && (
+        <button type="button"
+          onClick={() => router.push(dueKc ? `/subjects/math/practice?ku_id=${encodeURIComponent(dueKc)}` : '/mastery')}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '12px', width: '100%', textAlign: 'left',
+            padding: '14px 16px', borderRadius: '14px', cursor: 'pointer',
+            background: 'var(--mn-blue-dim, #eff6ff)', border: '1px solid var(--mn-blue)',
+          }}>
+          <span style={{ fontSize: '22px' }}>📅</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--mn-blue)' }}>{dueCount} 个知识点到期重练</div>
+            <div style={{ fontSize: '12px', color: 'var(--mn-ink-3)', marginTop: '2px' }}>到了记忆临界点——现在重练记得最牢（间隔重复）</div>
+          </div>
+          <span style={{ color: 'var(--mn-blue)', fontSize: '16px' }}>›</span>
+        </button>
+      )}
 
       {/* 分布图 */}
       {data && <DistributionBar dist={data.distribution} />}
