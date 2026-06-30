@@ -7,6 +7,7 @@ import * as api from '@/lib/api-client';
 import { StreakBadge } from '@/components/shared/StreakBadge';
 import { Achievements } from '@/components/shared/Achievements';
 import { EffortBoard } from '@/components/shared/EffortBoard';
+import { InterleaveCard } from '@/components/shared/InterleaveCard';
 import type { MissionRes, CompleteMissionRes, ReviewDueItem, DailyPlanRes } from '@/types/api';
 
 
@@ -347,6 +348,9 @@ export default function HomePage() {
           ))}
         </div>
       </div>
+
+      {/* 交错复习池（M-B · 训练识别力） */}
+      {studentId && <InterleaveCard studentId={studentId} />}
 
       {/* 努力收益（M-F · 对抗努力错觉） */}
       {studentId && <EffortBoard studentId={studentId} />}

@@ -22,7 +22,7 @@ import type {
   SpeakingPracticeReq, SpeakingPracticeRes, SpeakingHistoryItem,
   DailyPlanRes,
   KnowledgeUnitItem, QuestionBankRes, PracticeSubmitReq, PracticeSubmitRes,
-  EffortfulGainsRes,
+  EffortfulGainsRes, ReviewQueueItem,
 } from '@/types/api';
 import * as mock from './mock-data';
 
@@ -94,7 +94,7 @@ export const listPapers    = ()                  => USE_MOCK ? mock.mockListPape
 export const postInteraction = (r: InteractionReq)         => USE_MOCK ? mock.mockInteraction(r) : post<InteractionRes>('/v1/interaction', r);
 export const getMastery      = (sid: string)               => USE_MOCK ? mock.mockMastery()      : req<MasteryRes>(`/v1/mastery/${sid}`);
 export const getMasteryCurve = (sid: string, kcId: string) => USE_MOCK ? mock.mockCurve()        : req<MasteryCurveRes>(`/v1/mastery/curve/${sid}/${kcId}`);
-export const getReviewQueue  = (sid: string)               => USE_MOCK ? mock.mockReviewQueue()  : req(`/v1/review-queue/${sid}`);
+export const getReviewQueue  = (sid: string)               => USE_MOCK ? mock.mockReviewQueue()  : req<ReviewQueueItem[]>(`/v1/review-queue/${sid}`);
 
 // SSE 整体兜底超时：N 毫秒内无新数据则中止流，防止永久卡死。
 const SSE_IDLE_TIMEOUT_MS = 120_000;

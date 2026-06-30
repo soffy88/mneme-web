@@ -303,6 +303,12 @@ export interface DailyPlanRes {
   tasks: DailyPlanTask[];
 }
 
+// ── 交错复习队列（M-B）──
+export interface ReviewQueueItem {
+  kc_id: string;
+  due: string;
+}
+
 // ── 努力收益看板（M-F 对抗努力错觉）──
 export interface EffortGain {
   question_id: string | null;
