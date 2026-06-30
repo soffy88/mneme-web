@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { VOCAB_WORDS, type VocabWord } from './words.data';
+import { rate, stats, buildQueue, speak, type Rating } from './srs';
 
 type Scope = 'all' | 'zk' | 'gk';
 type Mode = 'browse' | 'recite';
@@ -14,6 +15,16 @@ const COUNTS = {
 
 function inScope(w: VocabWord, scope: Scope) {
   return scope === 'all' || (scope === 'zk' ? w.zk : w.gk);
+}
+
+function SpeakBtn({ word }: { word: string }) {
+  return (
+    <button type="button" onClick={(e) => { e.stopPropagation(); speak(word); }}
+      title="发音"
+      style={{ flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#3b82f6', padding: '2px 4px' }}>
+      🔊
+    </button>
+  );
 }
 
 function Badges({ w }: { w: VocabWord }) {
@@ -30,9 +41,10 @@ function WordRow({ w }: { w: VocabWord }) {
   return (
     <div onClick={() => setOpen(o => !o)}
       style={{ border: '1px solid #e5e7eb', borderRadius: 8, background: '#fff', cursor: 'pointer', padding: '10px 14px' }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         <span style={{ fontSize: 15, fontWeight: 700, color: '#1e293b' }}>{w.w}</span>
         {w.ph && <span style={{ fontSize: 12, color: '#94a3b8' }}>/{w.ph}/</span>}
+        <SpeakBtn word={w.w} />
         <Badges w={w} />
       </div>
       <div style={{ fontSize: 13, color: open ? '#374151' : '#64748b', marginTop: 4, lineHeight: 1.6,
@@ -43,8 +55,15 @@ function WordRow({ w }: { w: VocabWord }) {
   );
 }
 
-// ── 背诵卡（本地，不持久化）──
-function ReciteCard({ word, index, total, onNext }: { word: VocabWord; index: number; total: number; onNext: () => void }) {
+const RATINGS: { label: string; value: Rating; color: string; bg: string }[] = [
+  { label: '不认识', value: 'again', color: '#dc2626', bg: '#fef2f2' },
+  { label: '模糊', value: 'hard', color: '#d97706', bg: '#fffbeb' },
+  { label: '认识', value: 'good', color: '#16a34a', bg: '#f0fdf4' },
+  { label: '熟记', value: 'easy', color: '#2563eb', bg: '#eff6ff' },
+];
+
+// ── 背诵卡（间隔重复）──
+function ReciteCard({ word, index, total, onRate }: { word: VocabWord; index: number; total: number; onRate: (r: Rating) => void }) {
   const [flipped, setFlipped] = useState(false);
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '0 4px' }}>
@@ -57,16 +76,27 @@ function ReciteCard({ word, index, total, onNext }: { word: VocabWord; index: nu
       <div onClick={() => setFlipped(f => !f)}
         style={{ minHeight: 200, borderRadius: 16, border: '2px solid #3b82f6', background: flipped ? '#eff6ff' : '#fff',
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 28, cursor: 'pointer', textAlign: 'center', gap: 10 }}>
-        <div style={{ fontSize: 28, fontWeight: 800, color: '#1e3a5f' }}>{word.w}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ fontSize: 28, fontWeight: 800, color: '#1e3a5f' }}>{word.w}</div>
+          <SpeakBtn word={word.w} />
+        </div>
         {word.ph && <div style={{ fontSize: 13, color: '#94a3b8' }}>/{word.ph}/</div>}
         {flipped
           ? <div style={{ fontSize: 15, color: '#374151', lineHeight: 1.7 }}>{word.tr}</div>
           : <div style={{ fontSize: 13, color: '#cbd5e1', marginTop: 8 }}>点击显示释义</div>}
       </div>
-      <button onClick={onNext}
-        style={{ padding: 14, borderRadius: 12, border: 'none', background: '#3b82f6', color: '#fff', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
-        下一个 →
-      </button>
+      {flipped ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+          {RATINGS.map(r => (
+            <button key={r.value} onClick={() => onRate(r.value)}
+              style={{ padding: '12px 0', borderRadius: 10, border: `1px solid ${r.color}`, background: r.bg, color: r.color, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+              {r.label}
+            </button>
+          ))}
+        </div>
+      ) : (
+        <p style={{ fontSize: 12, color: '#94a3b8', textAlign: 'center' }}>先回忆词义，再点卡片翻面——按记得牢的程度评分，系统安排下次复习</p>
+      )}
     </div>
   );
 }
@@ -77,11 +107,19 @@ export default function VocabularyPage() {
   const [mode, setMode] = useState<Mode>('browse');
   const [reciteList, setReciteList] = useState<VocabWord[]>([]);
   const [reciteIdx, setReciteIdx] = useState(0);
+  const [statsTick, setStatsTick] = useState(0); // 触发 stats 重算
+
+  const scopeWords = useMemo(() => VOCAB_WORDS.filter(w => inScope(w, scope)), [scope]);
+
+  const srStats = useMemo(() => {
+    void statsTick;
+    return stats(scopeWords.map(w => w.w), Date.now());
+  }, [scopeWords, statsTick]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return VOCAB_WORDS.filter(w => inScope(w, scope) && (!q || w.w.toLowerCase().includes(q) || w.tr.includes(q)));
-  }, [scope, search]);
+    return scopeWords.filter(w => !q || w.w.toLowerCase().includes(q) || w.tr.includes(q));
+  }, [scopeWords, search]);
 
   const byInitial = useMemo(() => {
     const map = new Map<string, VocabWord[]>();
@@ -94,15 +132,19 @@ export default function VocabularyPage() {
   }, [filtered]);
 
   const startRecite = () => {
-    const pool = VOCAB_WORDS.filter(w => inScope(w, scope));
-    const shuffled = [...pool].sort(() => Math.random() - 0.5).slice(0, 20);
-    setReciteList(shuffled);
+    const byWord = new Map(VOCAB_WORDS.map(w => [w.w, w]));
+    const queue = buildQueue(scopeWords.map(w => w.w), Date.now(), 20)
+      .map(w => byWord.get(w)).filter((x): x is VocabWord => !!x);
+    if (queue.length === 0) return;
+    setReciteList(queue);
     setReciteIdx(0);
     setMode('recite');
   };
 
-  const nextRecite = () => {
-    if (reciteIdx + 1 >= reciteList.length) setMode('browse');
+  const onRate = (r: Rating) => {
+    const w = reciteList[reciteIdx];
+    if (w) rate(w.w, r, Date.now());
+    if (reciteIdx + 1 >= reciteList.length) { setStatsTick(t => t + 1); setMode('browse'); }
     else setReciteIdx(i => i + 1);
   };
 
@@ -110,10 +152,10 @@ export default function VocabularyPage() {
     return (
       <div style={{ maxWidth: 480, margin: '0 auto', padding: '24px 16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 24 }}>
-          <button onClick={() => setMode('browse')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: '#3b82f6', padding: 0 }}>‹</button>
+          <button onClick={() => { setStatsTick(t => t + 1); setMode('browse'); }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: '#3b82f6', padding: 0 }}>‹</button>
           <h1 style={{ fontSize: 18, fontWeight: 700, color: '#1e3a5f', margin: 0 }}>背单词 · {scope === 'zk' ? '中考' : scope === 'gk' ? '高考' : '全部'}</h1>
         </div>
-        <ReciteCard word={reciteList[reciteIdx]} index={reciteIdx} total={reciteList.length} onNext={nextRecite} />
+        <ReciteCard word={reciteList[reciteIdx]} index={reciteIdx} total={reciteList.length} onRate={onRate} />
       </div>
     );
   }
@@ -123,15 +165,19 @@ export default function VocabularyPage() {
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
         <div>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: '#1e3a5f', margin: 0 }}>单词本</h1>
-          <p style={{ fontSize: 12, color: '#64748b', margin: '4px 0 0' }}>中考 {COUNTS.zk} · 高考 {COUNTS.gk} · 共 {COUNTS.all} 词</p>
+          <p style={{ fontSize: 12, color: '#64748b', margin: '4px 0 0' }}>
+            中考 {COUNTS.zk} · 高考 {COUNTS.gk} · 共 {COUNTS.all} 词
+          </p>
+          <p style={{ fontSize: 11, color: srStats.due > 0 ? '#dc2626' : '#94a3b8', margin: '3px 0 0', fontWeight: srStats.due > 0 ? 700 : 400 }}>
+            {srStats.due > 0 ? `📅 ${srStats.due} 词到期待复习` : '今日无到期复习'} · 已学 {srStats.learned}
+          </p>
         </div>
         <button onClick={startRecite}
           style={{ padding: '7px 14px', borderRadius: 10, background: '#3b82f6', color: '#fff', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer' }}>
-          开始背诵
+          {srStats.due > 0 ? '复习到期' : '开始背诵'}
         </button>
       </div>
 
-      {/* 范围筛选 */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
         {(['zk', 'gk', 'all'] as Scope[]).map(s => {
           const active = scope === s;
@@ -172,7 +218,7 @@ export default function VocabularyPage() {
       </div>
 
       <p style={{ fontSize: 11, color: '#cbd5e1', textAlign: 'center', marginTop: 28 }}>
-        词库来源 ECDICT（MIT 许可证），仅供学习参考
+        词库来源 ECDICT（MIT 许可证）· 间隔重复进度存于本机
       </p>
     </div>
   );
