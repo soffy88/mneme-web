@@ -212,6 +212,26 @@ function SectionBlock({ section }: { section: SubjectSection }) {
 export function SubjectHub({ config }: { config: SubjectConfig }) {
   const router = useRouter();
 
+  // item 10：题库有内容则自动解禁该科练习卡（练习栈本就学科无关）。
+  const [practiceReady, setPracticeReady] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    api.listPracticeTopics(config.subject).then((r) => {
+      if (alive && r.ok && r.data.topics.length > 0) setPracticeReady(true);
+    });
+    return () => { alive = false; };
+  }, [config.subject]);
+
+  // 练习路由卡：题库就绪时去掉 disabled
+  const sections = practiceReady
+    ? config.sections.map((s) => ({
+        ...s,
+        cards: s.cards.map((c) =>
+          c.href.includes('/practice') ? { ...c, disabled: false } : c,
+        ),
+      }))
+    : config.sections;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
@@ -270,7 +290,7 @@ export function SubjectHub({ config }: { config: SubjectConfig }) {
       </div>
 
       {/* 执行 / 反思 / 独立功能 sections */}
-      {config.sections.map((section) => (
+      {sections.map((section) => (
         <SectionBlock key={section.phase} section={section} />
       ))}
 
