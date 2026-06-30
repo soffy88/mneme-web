@@ -246,15 +246,19 @@ export default function SpeakingPage() {
       {/* 评分结果 */}
       {result && (
         <div className="mn-card" style={{ padding: '18px' }}>
-          <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--mn-ink)', marginBottom: '14px' }}>
-            本次练习成绩
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+            <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--mn-ink)' }}>本次练习成绩</span>
+            <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--mn-orange, #c2550d)', background: 'var(--mn-orange-dim, #fff7ed)', padding: '1px 6px', borderRadius: '4px' }}>示例</span>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <ScoreBar label="综合" value={result.overall_progress} />
+          <p style={{ fontSize: '11px', color: 'var(--mn-ink-3)', margin: '0 0 12px', lineHeight: 1.6 }}>
+            以下分数为示例数据，未接入真实发音评测引擎，不代表实际发音水平，仅用于演示界面。
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', opacity: 0.7 }}>
+            <ScoreBar label="综合（示例）" value={result.overall_progress} />
             {result.pronunciation_scores[0] && (
               <>
-                <ScoreBar label="流利度" value={result.pronunciation_scores[0].fluency_score} />
-                <ScoreBar label="准确度" value={result.pronunciation_scores[0].accuracy_score} />
+                <ScoreBar label="流利度（示例）" value={result.pronunciation_scores[0].fluency_score} />
+                <ScoreBar label="准确度（示例）" value={result.pronunciation_scores[0].accuracy_score} />
               </>
             )}
           </div>
