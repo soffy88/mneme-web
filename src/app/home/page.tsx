@@ -6,6 +6,7 @@ import { getUserId } from '@/lib/auth-store';
 import * as api from '@/lib/api-client';
 import { StreakBadge } from '@/components/shared/StreakBadge';
 import { Achievements } from '@/components/shared/Achievements';
+import { EffortBoard } from '@/components/shared/EffortBoard';
 import type { MissionRes, CompleteMissionRes, ReviewDueItem, DailyPlanRes } from '@/types/api';
 
 
@@ -40,10 +41,12 @@ export default function HomePage() {
   const [error,      setError]      = useState('');
   const [reviewDue,  setReviewDue]  = useState<ReviewDueItem[]>([]);
   const [dailyPlan,  setDailyPlan]  = useState<DailyPlanRes | null>(null);
+  const [studentId,  setStudentId]  = useState<string | null>(null);
 
   const load = async () => {
     const sid = getUserId();
     if (!sid) { router.push('/login'); return; }
+    setStudentId(sid);
     setLoading(true);
     // 首屏只等快接口（mission+plan），复习卡异步加载，绝不阻塞首屏
     const [missionRes, planRes] = await Promise.all([
@@ -344,6 +347,9 @@ export default function HomePage() {
           ))}
         </div>
       </div>
+
+      {/* 努力收益（M-F · 对抗努力错觉） */}
+      {studentId && <EffortBoard studentId={studentId} />}
 
       {/* 成就（动机钩子） */}
       <Achievements />

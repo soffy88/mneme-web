@@ -302,3 +302,16 @@ export interface DailyPlanRes {
   subjects_summary: DailyPlanSubjectSummary[];
   tasks: DailyPlanTask[];
 }
+
+// ── 努力收益看板（M-F 对抗努力错觉）──
+export interface EffortGain {
+  question_id: string | null;
+  kc: string | null;
+  struggle_score: number;
+  retention_delta: number;
+  effortful_gain: number;
+  occurred_at: string | null;
+}
+export interface EffortfulGainsRes {
+  top_gains: EffortGain[];
+}
