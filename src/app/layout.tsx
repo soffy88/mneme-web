@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { ThemeProvider, LangProvider } from '@helios/blocks';
 import './globals.css';
+import { RegisterSW } from '@/components/shared/RegisterSW';
 
 export const metadata: Metadata = {
   title: 'Mneme 善学记',
@@ -12,6 +13,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="zh-CN">
       <body>
+        <RegisterSW />
         <ThemeProvider theme="mneme-friendly">
           <LangProvider lang="zh">
             {/* 学生端产品用纯中文(ToC 国内);家长端同理。如需双语改 zh-en */}
