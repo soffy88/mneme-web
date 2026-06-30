@@ -195,8 +195,11 @@ export interface ErrorJournalRes {
 // ── 待复习 ────────────────────────────────────────────────────
 export interface ReviewDueItem {
   kc_id: string; variant_question: string;
+  requires_retrieval?: boolean;
   due_since: string | null; fsrs_interval: number;
 }
+export interface ReviewRevealRes { kc_id: string; answer: string; recorded_again: boolean }
+export interface ReviewSubmitRes { kc_id: string; verdict: 'correct' | 'wrong' | 'unsure'; answer: string }
 
 // ── 作文引导 ──────────────────────────────────────────────────
 export interface EssayGuideReq { essay_text: string; grade: string; essay_type: string }
@@ -324,4 +327,21 @@ export interface EffortGain {
 }
 export interface EffortfulGainsRes {
   top_gains: EffortGain[];
+}
+
+// ── 个人学习模式识别（招牌洞察：模式 > 知识点）──
+export interface PatternItem {
+  kc_id: string;
+  trend: number;
+  current_accuracy: number;
+  is_forgetting: boolean;
+  is_plateau: boolean;
+}
+export interface PatternsRes {
+  student_id: string;
+  improving_kcs: string[];
+  forgetting_kcs: string[];
+  plateau_kcs: string[];
+  overall_trend: number;   // 正=整体进步
+  patterns: PatternItem[];
 }

@@ -17,12 +17,13 @@ import type {
   PracticeRes, LessonRes,
   ParentOverviewRes, ParentAlertsRes, ParentAlert, ChildInfo, BindChildRes, WeeklyDigestRes,
   CalibrationRes,
-  ErrorJournalRes, ReviewDueItem,
+  ErrorJournalRes, ReviewDueItem, ReviewRevealRes, ReviewSubmitRes,
   EssayGuideReq, EssayGuideRes,
   SpeakingPracticeReq, SpeakingPracticeRes, SpeakingHistoryItem,
   DailyPlanRes,
   KnowledgeUnitItem, QuestionBankRes, PracticeSubmitReq, PracticeSubmitRes,
   EffortfulGainsRes, ReviewQueueItem, WeakRootsRes,
+  Achievement, PatternsRes,
 } from '@/types/api';
 import * as mock from './mock-data';
 
@@ -171,11 +172,9 @@ export const generatePractice = (kcId: string, count = 3, difficulty = 0.5) => {
   return req<PracticeRes>(`/v1/practice/generate?${qs}`, { method: 'POST' });
 };
 
-// 成就/徽章（动机钩子）
+// 成就/徽章（动机钩子）— real-only（与 effortful-gains/weak-roots 一致，护城河接口不走 mock）
 export const getAchievements = (sid: string) =>
-  USE_MOCK
-    ? Promise.resolve({ ok: true as const, data: { achievements: [] as import('@/types/api').Achievement[] } })
-    : req<{ achievements: import('@/types/api').Achievement[] }>(`/v1/achievements/${sid}`);
+  req<{ achievements: Achievement[] }>(`/v1/achievements/${sid}`);
 
 // 列出"有真实题库题"的练习主题（避免选题落空）
 export const listPracticeTopics = (subject = 'math') =>
@@ -234,6 +233,14 @@ export const getErrorJournal = (
 // ── 待复习 ────────────────────────────────────────────────────
 export const getReviewDue = (sid: string) =>
   USE_MOCK ? mock.mockReviewDue() : req<ReviewDueItem[]>(`/v1/review/due/${sid}`);
+
+// 检索练习红线：看答案=放弃检索（后端记 FSRS Again），再返回答案
+export const reviewReveal = (sid: string, kc_id: string) =>
+  req<ReviewRevealRes>(`/v1/review/reveal/${sid}`, { method: 'POST', body: JSON.stringify({ kc_id }) });
+
+// 先检索后核对：提交作答 → 后端确定性判分入 BKT/FSRS，返回参考答案
+export const reviewSubmit = (sid: string, kc_id: string, answer: string) =>
+  req<ReviewSubmitRes>(`/v1/review/submit/${sid}`, { method: 'POST', body: JSON.stringify({ kc_id, answer }) });
 
 // ── 作文引导 ──────────────────────────────────────────────────
 export const postEssayGuide = (r: EssayGuideReq) =>
@@ -371,6 +378,10 @@ export const getEffortfulGains = (sid: string, limit = 8) =>
 // ── 前置断点 / 薄弱根因（M-G）────────────────────────────────────
 export const getWeakRoots = (sid: string) =>
   req<WeakRootsRes>(`/v1/weak-roots/${sid}`);
+
+// ── 个人学习模式识别（招牌洞察）─────────────────────────────────
+export const getPatterns = (sid: string) =>
+  req<PatternsRes>(`/v1/patterns/${sid}`);
 
 // ── 知识单元 ──────────────────────────────────────────────────
 export const listKnowledgePoints = (params: {
