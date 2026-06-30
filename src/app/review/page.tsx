@@ -86,12 +86,26 @@ export default function ReviewPage() {
           <div style={{ fontSize: 11, color: 'var(--mn-blue)', background: 'var(--mn-blue-dim)', padding: '8px 12px', borderRadius: 10 }}>
             🧠 主动回忆：先把答案想出来再作答，检索本身就是最有效的记忆强化
           </div>
-          <input
-            value={answer}
-            onChange={(e) => setAnswer(e.target.value)}
-            placeholder="输入你的答案（如选择题填 A/B/C/D）"
-            style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid var(--mn-border)', fontSize: 15 }}
-          />
+          {isMCQ(cur.variant_question) ? (
+            <div style={{ display: 'flex', gap: 8 }}>
+              {['A', 'B', 'C', 'D'].map((L) => (
+                <button key={L} type="button" onClick={() => setAnswer(L)}
+                  style={{
+                    flex: 1, padding: '12px 0', borderRadius: 12, cursor: 'pointer', fontSize: 16, fontWeight: 700,
+                    border: '1.5px solid ' + (answer === L ? 'var(--mn-blue)' : 'var(--mn-border)'),
+                    background: answer === L ? 'var(--mn-blue)' : 'var(--mn-surface)',
+                    color: answer === L ? '#fff' : 'var(--mn-ink)',
+                  }}>{L}</button>
+              ))}
+            </div>
+          ) : (
+            <input
+              value={answer}
+              onChange={(e) => setAnswer(e.target.value)}
+              placeholder="输入你的答案"
+              style={{ padding: '12px 14px', borderRadius: 12, border: '1px solid var(--mn-border)', fontSize: 15 }}
+            />
+          )}
           <div style={{ display: 'flex', gap: 10 }}>
             <button onClick={submit} disabled={busy || !answer.trim()}
               style={{ ...btn('var(--mn-blue)'), flex: 1, opacity: (busy || !answer.trim()) ? 0.5 : 1 }}>
@@ -128,6 +142,11 @@ export default function ReviewPage() {
       )}
     </div>
   );
+}
+
+// 选择题判定：题面含 ≥2 个形如「A.」「B、」的选项标记
+function isMCQ(q: string): boolean {
+  return (q.match(/[ABCD][.、．]/g) ?? []).length >= 2;
 }
 
 function btn(bg: string): React.CSSProperties {

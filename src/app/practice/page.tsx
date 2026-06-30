@@ -43,6 +43,21 @@ function PracticeInner() {
 
   const names: Record<string, string> = { physics: '物理', chinese: '语文', english: '英语', math: '数学' };
 
+  // 学科快切（从底栏「练习」也能一键换科）
+  const subjectChips = (
+    <div style={{ display: 'flex', gap: 8, overflowX: 'auto' }}>
+      {['math', 'physics', 'chinese', 'english'].map((s) => (
+        <button key={s} type="button" onClick={() => router.push(`/practice?subject=${s}`)}
+          style={{
+            padding: '6px 14px', borderRadius: 99, fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
+            border: '1px solid ' + (subject === s ? 'var(--mn-blue)' : 'var(--mn-border)'),
+            background: subject === s ? 'var(--mn-blue)' : 'var(--mn-surface)',
+            color: subject === s ? '#fff' : 'var(--mn-ink-2)',
+          }}>{names[s]}</button>
+      ))}
+    </div>
+  );
+
   // 非数学：键不是 cmm-math-* 格式，无年级学段——直接列主题（题量降序）。
   if (subject !== 'math') {
     if (loading) return <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--mn-ink-3)' }}>加载题库…</div>;
@@ -62,6 +77,7 @@ function PracticeInner() {
           <h1 style={{ fontSize: 22, fontWeight: 800, color: 'var(--mn-ink)' }}>{names[subject] ?? subject}·专项练习</h1>
           <p style={{ fontSize: 13, color: 'var(--mn-ink-3)', marginTop: 2 }}>挑一个主题，做真题 · 即时判分 · 错题自动入本</p>
         </div>
+        {subjectChips}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {[...topics].sort((a, b) => b.count - a.count).map((t) => (
             <button key={t.ku_id} type="button" className="mn-card-interactive"
@@ -92,6 +108,8 @@ function PracticeInner() {
         <h1 style={{ fontSize: '22px', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--mn-ink)' }}>专项练习</h1>
         <p style={{ fontSize: '13px', color: 'var(--mn-ink-3)', marginTop: '2px' }}>挑一个主题，做真题 · 即时判分 · 错题自动入本</p>
       </div>
+
+      {subjectChips}
 
       <div style={{ display: 'flex', gap: '8px' }}>
         {BANDS.map((b) => (
