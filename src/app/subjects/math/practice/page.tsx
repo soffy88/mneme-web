@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import * as api from '@/lib/api-client';
 import { getUserId } from '@/lib/auth-store';
+import { enqueuePractice, isOffline } from '@/lib/offlineQueue';
 import { RichText } from '@/components/shared/RichText';
 import type { QuestionBankItem, PracticeSubmitRes, MasteryColor } from '@/types/api';
 
@@ -116,6 +117,7 @@ function PracticeBody({ kuId, subject = 'math' }: { kuId: string; subject?: stri
   const [submitting, setSubmitting] = useState(false);
   const [results,   setResults]   = useState<PracticeSubmitRes[]>([]);
   const [asking,    setAsking]    = useState(false);
+  const [offlineSaved, setOfflineSaved] = useState(false);
 
   const getStudentId = useCallback(() => getUserId(), []);
 
@@ -161,6 +163,12 @@ function PracticeBody({ kuId, subject = 'math' }: { kuId: string; subject?: stri
         setResults(prev => [...prev, res.data]);
         setPhase('submitted');
       }
+    } else if (isOffline()) {
+      // 离线：选择题就地判，入队待联网自动回传
+      const ca = (currentQ.correct_answer || '').trim().toUpperCase();
+      const isCorrect = /^[A-D]$/.test(ca) ? answer.trim().toUpperCase() === ca : undefined;
+      enqueuePractice({ question_id: currentQ.id, student_id: studentId, student_answer: answer, ku_id: kuId, is_correct: isCorrect });
+      setOfflineSaved(true);
     }
   }, [currentQ, answer, kuId, getStudentId, router]);
 
@@ -183,10 +191,14 @@ function PracticeBody({ kuId, subject = 'math' }: { kuId: string; subject?: stri
       setFeedback(res.data);
       setResults(prev => [...prev, res.data]);
       setPhase('submitted');
+    } else if (isOffline()) {
+      enqueuePractice({ question_id: currentQ.id, student_id: studentId, student_answer: answer, is_correct: isCorrect, ku_id: kuId });
+      setOfflineSaved(true);
     }
   }, [currentQ, answer, kuId, getStudentId, router]);
 
   const handleNext = useCallback(() => {
+    setOfflineSaved(false);
     if (idx + 1 >= questions.length) {
       setPhase('done');
     } else {
@@ -281,7 +293,17 @@ function PracticeBody({ kuId, subject = 'math' }: { kuId: string; subject?: stri
       {currentQ && <QuestionCard q={currentQ} index={idx} total={questions.length} />}
 
       {/* 答题区 */}
-      {phase === 'answering' && (
+      {phase === 'answering' && offlineSaved && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '20px 0' }}>
+          <div style={{ padding: '14px 16px', borderRadius: 12, background: 'var(--mn-orange-dim)', color: 'var(--mn-orange)', fontSize: 14, fontWeight: 700 }}>
+            📡 离线已保存 · 联网后自动提交并计入错题/掌握度
+          </div>
+          <button onClick={handleNext} style={{ padding: 14, borderRadius: 12, background: 'var(--mn-blue)', color: '#fff', border: 'none', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
+            {idx + 1 >= questions.length ? '查看结果' : '下一题 →'}
+          </button>
+        </div>
+      )}
+      {phase === 'answering' && !offlineSaved && (
         <>
           {/* 检索练习约束（M-C）：先凭记忆作答，不翻答案 */}
           <div style={{ fontSize: '12px', color: 'var(--mn-blue)', background: 'var(--mn-blue-dim, #eff6ff)', borderRadius: '10px', padding: '10px 12px', lineHeight: 1.6 }}>
