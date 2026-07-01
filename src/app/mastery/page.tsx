@@ -6,8 +6,103 @@ import { getUserId } from '@/lib/auth-store';
 import * as api from '@/lib/api-client';
 import { MasteryRing } from '@/components/shared/MasteryRing';
 import { WeakRoots } from '@/components/shared/WeakRoots';
-import type { KnowledgePoint, CalibrationRes } from '@/types/api';
+import type { KnowledgePoint, CalibrationRes, PatternsRes } from '@/types/api';
 
+
+/**
+ * 个人学习模式识别（招牌洞察：模式 > 知识点）。
+ * 数据来自 GET /v1/patterns/{student_id}。展示整体趋势 + 进步/遗忘/停滞分组。
+ * nameOf：把 kc_id 映射成友好名（来自已加载掌握度数据），无则回退 kc_id。
+ */
+function LearningPatterns({ studentId, nameOf }: { studentId: string; nameOf: (id: string) => string }) {
+  const [data, setData]   = useState<PatternsRes | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    api.getPatterns(studentId).then((r) => {
+      if (!alive) return;
+      if (r.ok) setData(r.data); else setFailed(true);
+    });
+    return () => { alive = false; };
+  }, [studentId]);
+
+  if (failed) return null;        // 接口异常时静默，不打扰
+  if (!data)  return null;        // 加载中
+
+  const improving = data.improving_kcs ?? [];
+  const forgetting = data.forgetting_kcs ?? [];
+  const plateau = data.plateau_kcs ?? [];
+  const hasSignal = improving.length + forgetting.length + plateau.length > 0;
+
+  const trend = data.overall_trend ?? 0;
+  const verdict = trend > 0.02
+    ? { label: '整体进步', emoji: '📈', color: 'var(--mn-green)' }
+    : trend < -0.02
+    ? { label: '整体退步', emoji: '📉', color: 'var(--mn-red)' }
+    : { label: '整体平稳', emoji: '➡️', color: 'var(--mn-ink-3)' };
+
+  return (
+    <div className="mn-card" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--mn-ink)', letterSpacing: '-0.01em' }}>
+          学习模式
+        </span>
+        <span style={{
+          fontSize: '12px', fontWeight: 700, color: verdict.color,
+          padding: '3px 10px', borderRadius: '99px',
+          background: 'var(--mn-surface)', border: `1px solid ${verdict.color}`,
+          display: 'inline-flex', alignItems: 'center', gap: '4px',
+        }}>
+          <span>{verdict.emoji}</span>{verdict.label}
+        </span>
+      </div>
+
+      {!hasSignal ? (
+        <div style={{ fontSize: '13px', color: 'var(--mn-ink-3)', lineHeight: 1.6 }}>
+          继续积累，模式分析需要更多答题数据。
+        </div>
+      ) : (
+        <>
+          {/* 正在遗忘 — 高亮提醒，最该看 */}
+          {forgetting.length > 0 && (
+            <div style={{ padding: '12px 14px', borderRadius: '12px', background: 'var(--mn-red-dim)', border: '1px solid rgba(220,38,38,.25)' }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--mn-red)', marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>⚠️</span>{forgetting.length} 个考点正在退步 — 该安排复习了
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {forgetting.map((id) => (
+                  <span key={id} style={{
+                    fontSize: '12px', color: 'var(--mn-red)', fontWeight: 600,
+                    padding: '3px 9px', borderRadius: '99px',
+                    background: 'var(--mn-paper)', border: '1px solid rgba(220,38,38,.3)',
+                  }}>{nameOf(id)}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <div style={{ flex: 1, textAlign: 'center', padding: '10px 8px', borderRadius: '10px', background: 'var(--mn-green-dim)' }}>
+              <div style={{ fontSize: '22px', fontWeight: 900, color: 'var(--mn-green)', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{improving.length}</div>
+              <div style={{ fontSize: '11px', color: 'var(--mn-ink-3)', marginTop: '4px' }}>正在进步</div>
+            </div>
+            <div style={{ flex: 1, textAlign: 'center', padding: '10px 8px', borderRadius: '10px', background: 'var(--mn-surface)', border: '1px solid var(--mn-border)' }}>
+              <div style={{ fontSize: '22px', fontWeight: 900, color: 'var(--mn-ink-3)', fontVariantNumeric: 'tabular-nums', lineHeight: 1 }}>{plateau.length}</div>
+              <div style={{ fontSize: '11px', color: 'var(--mn-ink-3)', marginTop: '4px' }}>停滞不前</div>
+            </div>
+          </div>
+
+          {plateau.length > 0 && (
+            <div style={{ fontSize: '12px', color: 'var(--mn-ink-3)', lineHeight: 1.6 }}>
+              停滞的考点：{plateau.map(nameOf).join('、')} — 换个角度（变式/交错）也许能突破。
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
 
 /** JOL 自测校准卡：预测把握度 vs 实际正确率（努力错觉检测）。 */
 function CalibrationCard() {
@@ -171,6 +266,9 @@ export default function MasteryPage() {
   const weak   = safeKcs.filter((k) => k.effective_mastery < 0.5).length;
   const strong = safeKcs.filter((k) => k.effective_mastery >= 0.75).length;
 
+  /* kc_id → 友好名（来自掌握度数据），无则回退 kc_id */
+  const nameOf = (id: string) => safeKcs.find((k) => k.kc_id === id)?.kc_name ?? id;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
@@ -186,6 +284,9 @@ export default function MasteryPage() {
           </p>
         )}
       </div>
+
+      {/* 个人学习模式识别（招牌洞察：模式 > 知识点） */}
+      {studentId && <LearningPatterns studentId={studentId} nameOf={nameOf} />}
 
       {/* JOL 自测校准 */}
       <CalibrationCard />
