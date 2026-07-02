@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import * as api from '@/lib/api-client';
+import { getUser } from '@/lib/auth-store';
 import type { EssayGuideRes } from '@/types/api';
 
 const ESSAY_TYPES = ['议论文', '记叙文', '说明文', '散文'] as const;
@@ -14,6 +15,12 @@ export default function EssayPage() {
   const [loading,    setLoading]    = useState(false);
   const [result,     setResult]     = useState<EssayGuideRes | null>(null);
   const [error,      setError]      = useState('');
+
+  // 年级默认值取登录用户档案（useEffect 读 localStorage，避免 hydration 不一致）
+  useEffect(() => {
+    const g = getUser()?.grade;
+    if (g && (GRADES as readonly string[]).includes(g)) setGrade(g);
+  }, []);
 
   const submit = async () => {
     if (!essayText.trim()) return;

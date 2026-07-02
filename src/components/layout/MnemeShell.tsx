@@ -1,8 +1,9 @@
 'use client';
 
-import { type ReactNode } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { USE_MOCK } from '@/lib/env';
+import { getUser } from '@/lib/auth-store';
 
 interface Tab { id: string; label: string; icon: string; href: string }
 
@@ -38,6 +39,9 @@ function Shell({
   const router   = useRouter();
   const pathname = usePathname() ?? '/';
   const active   = activeId(pathname, depth);
+  // 家长身份给 /parent 入口（useEffect 读 localStorage，避免 SSR/hydration 不一致）
+  const [isParent, setIsParent] = useState(false);
+  useEffect(() => { setIsParent(getUser()?.role === 'parent'); }, []);
 
   return (
     <div style={{ background: 'var(--mn-paper)', minHeight: '100svh', display: 'flex', flexDirection: 'column' }}>
@@ -58,17 +62,33 @@ function Shell({
         <span style={{ fontWeight: 700, fontSize: '16px', letterSpacing: '-0.02em', color: 'var(--mn-ink)' }}>
           {title}
         </span>
-        {USE_MOCK && (
-          <span style={{
-            fontSize: '10px', fontWeight: 600, padding: '2px 7px',
-            borderRadius: '99px', letterSpacing: '0.04em',
-            background: 'var(--mn-amber-dim)',
-            color: 'var(--mn-amber)',
-            border: '1px solid #f5c060',
-          }}>
-            MOCK
-          </span>
-        )}
+        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {USE_MOCK && (
+            <span style={{
+              fontSize: '10px', fontWeight: 600, padding: '2px 7px',
+              borderRadius: '99px', letterSpacing: '0.04em',
+              background: 'var(--mn-amber-dim)',
+              color: 'var(--mn-amber)',
+              border: '1px solid #f5c060',
+            }}>
+              MOCK
+            </span>
+          )}
+          {isParent && !pathname.startsWith('/parent') && (
+            <button
+              type="button"
+              onClick={() => router.push('/parent/overview')}
+              style={{
+                fontSize: '12px', fontWeight: 600, padding: '4px 10px',
+                borderRadius: '99px', cursor: 'pointer',
+                background: 'var(--mn-blue-dim)', color: 'var(--mn-blue)',
+                border: '1px solid var(--mn-border)',
+              }}
+            >
+              家长端 ›
+            </button>
+          )}
+        </span>
       </header>
 
       {/* Scrollable content */}

@@ -29,6 +29,7 @@ export interface RegisterParentReq {
 export interface UserProfile {
   id: string; name: string; role: 'student' | 'parent';
   grade?: string; phone: string;
+  invite_code?: string;   // 学生邀请码（家长注册凭此绑定）；GET /v1/auth/me 返回
 }
 
 // ── 试卷 ─────────────────────────────────────────────────────
@@ -287,6 +288,7 @@ export interface PracticeSubmitReq {
   student_answer: string;
   is_correct?: boolean | null;   // 省略=让后端自动判；判不了时二次提交带自评
   ku_id: string;
+  predicted_confidence?: number; // JOL：作答前把握度自评(0~1)，不选则不发
 }
 export interface PracticeSubmitRes {
   is_correct: boolean | null;

@@ -93,7 +93,7 @@ export function ChildBar({ selectedId, onSelect }: { selectedId: string | null; 
               type="text"
               value={code}
               onChange={(e) => setCode(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') void bind(); }}
+              onKeyDown={(e) => { if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') void bind(); }}
               placeholder="孩子的邀请码（如 A1B2C3）"
               style={{
                 flex: 1, padding: '10px 12px', borderRadius: '10px', fontSize: '14px',

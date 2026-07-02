@@ -13,6 +13,13 @@ const MASTERY_COLOR_MAP: Record<MasteryColor, string> = {
   green: '#34c759', yellow: '#ff9500', red: '#ff3b30', unknown: '#c7c7cc',
 };
 
+// JOL 把握度自评（三档，映射 0.3/0.6/0.9），随提交发 predicted_confidence；不选不发
+const JOL_OPTIONS = [
+  { label: '没把握',   value: 0.3 },
+  { label: '一般',     value: 0.6 },
+  { label: '很有把握', value: 0.9 },
+] as const;
+
 // 选择题：参考答案是单个字母 A-D（含全角）→ 给选项按钮，可自动判分
 const MC_LETTERS = ['A', 'B', 'C', 'D'];
 function mcAnswer(ans: string | null): string | null {
@@ -118,6 +125,7 @@ function PracticeBody({ kuId, subject = 'math' }: { kuId: string; subject?: stri
   const [results,   setResults]   = useState<PracticeSubmitRes[]>([]);
   const [asking,    setAsking]    = useState(false);
   const [offlineSaved, setOfflineSaved] = useState(false);
+  const [jol,       setJol]       = useState<number | null>(null);
 
   const getStudentId = useCallback(() => getUserId(), []);
 
@@ -153,6 +161,7 @@ function PracticeBody({ kuId, subject = 'math' }: { kuId: string; subject?: stri
       student_id: studentId,
       student_answer: answer,
       ku_id: kuId,
+      ...(jol !== null ? { predicted_confidence: jol } : {}),
     });
     setSubmitting(false);
     if (res.ok) {
@@ -167,10 +176,10 @@ function PracticeBody({ kuId, subject = 'math' }: { kuId: string; subject?: stri
       // 离线：选择题就地判，入队待联网自动回传
       const ca = (currentQ.correct_answer || '').trim().toUpperCase();
       const isCorrect = /^[A-D]$/.test(ca) ? answer.trim().toUpperCase() === ca : undefined;
-      enqueuePractice({ question_id: currentQ.id, student_id: studentId, student_answer: answer, ku_id: kuId, is_correct: isCorrect });
+      enqueuePractice({ question_id: currentQ.id, student_id: studentId, student_answer: answer, ku_id: kuId, is_correct: isCorrect, ...(jol !== null ? { predicted_confidence: jol } : {}) });
       setOfflineSaved(true);
     }
-  }, [currentQ, answer, kuId, getStudentId, router]);
+  }, [currentQ, answer, kuId, jol, getStudentId, router]);
 
   const handleSelfGrade = useCallback(async (isCorrect: boolean) => {
     if (!currentQ) return;
@@ -184,6 +193,7 @@ function PracticeBody({ kuId, subject = 'math' }: { kuId: string; subject?: stri
       student_answer: answer,
       is_correct: isCorrect,
       ku_id: kuId,
+      ...(jol !== null ? { predicted_confidence: jol } : {}),
     });
     setSubmitting(false);
 
@@ -192,13 +202,14 @@ function PracticeBody({ kuId, subject = 'math' }: { kuId: string; subject?: stri
       setResults(prev => [...prev, res.data]);
       setPhase('submitted');
     } else if (isOffline()) {
-      enqueuePractice({ question_id: currentQ.id, student_id: studentId, student_answer: answer, is_correct: isCorrect, ku_id: kuId });
+      enqueuePractice({ question_id: currentQ.id, student_id: studentId, student_answer: answer, is_correct: isCorrect, ku_id: kuId, ...(jol !== null ? { predicted_confidence: jol } : {}) });
       setOfflineSaved(true);
     }
-  }, [currentQ, answer, kuId, getStudentId, router]);
+  }, [currentQ, answer, kuId, jol, getStudentId, router]);
 
   const handleNext = useCallback(() => {
     setOfflineSaved(false);
+    setJol(null);
     if (idx + 1 >= questions.length) {
       setPhase('done');
     } else {
@@ -270,7 +281,7 @@ function PracticeBody({ kuId, subject = 'math' }: { kuId: string; subject?: stri
             background: 'var(--mn-surface)', color: 'var(--mn-ink)',
             border: '1px solid var(--mn-border)', fontSize: '14px', cursor: 'pointer',
           }}>返回知识点</button>
-          <button onClick={() => { setIdx(0); setPhase('answering'); setAnswer(''); setFeedback(null); setResults([]); }} style={{
+          <button onClick={() => { setIdx(0); setPhase('answering'); setAnswer(''); setFeedback(null); setResults([]); setJol(null); }} style={{
             padding: '10px 20px', borderRadius: '99px',
             background: 'var(--mn-blue)', color: '#fff',
             border: 'none', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
@@ -336,6 +347,19 @@ function PracticeBody({ kuId, subject = 'math' }: { kuId: string; subject?: stri
               }}
             />
           )}
+          {/* JOL 把握度自评（可选）：作答后提交前一行 chips，不选也能提交 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '12px', color: 'var(--mn-ink-3)' }}>做对的把握？</span>
+            {JOL_OPTIONS.map(o => (
+              <button key={o.value} type="button" onClick={() => setJol(jol === o.value ? null : o.value)}
+                style={{
+                  padding: '5px 12px', borderRadius: '99px', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
+                  border: jol === o.value ? '1.5px solid var(--mn-blue)' : '1px solid var(--mn-border)',
+                  background: jol === o.value ? 'var(--mn-blue-dim, #eff6ff)' : 'var(--mn-surface)',
+                  color: jol === o.value ? 'var(--mn-blue)' : 'var(--mn-ink-3)',
+                }}>{o.label}</button>
+            ))}
+          </div>
           <button onClick={handleSubmit} disabled={submitting || !answer.trim()} style={{
             width: '100%', padding: '14px', borderRadius: '12px',
             background: 'var(--mn-blue)', color: '#fff', border: 'none',
@@ -408,13 +432,25 @@ function PracticeBody({ kuId, subject = 'math' }: { kuId: string; subject?: stri
           {currentQ?.explanation && <ExplanationCard text={currentQ.explanation} />}
           <FeedbackCard result={feedback} />
           {feedback.is_correct === false && (
-            <button onClick={askAI} disabled={asking} style={{
-              width: '100%', padding: '13px', borderRadius: '12px',
-              background: '#ede9fe', color: '#6d28d9', border: '1px solid #ddd6fe',
-              fontSize: '14px', fontWeight: 700, cursor: 'pointer', opacity: asking ? 0.6 : 1,
-            }}>
-              {asking ? '连接中…' : '🤔 没搞懂？让 AI 一步步引导你（不直接给答案）'}
-            </button>
+            <>
+              <button onClick={askAI} disabled={asking} style={{
+                width: '100%', padding: '13px', borderRadius: '12px',
+                background: '#ede9fe', color: '#6d28d9', border: '1px solid #ddd6fe',
+                fontSize: '14px', fontWeight: 700, cursor: 'pointer', opacity: asking ? 0.6 : 1,
+              }}>
+                {asking ? '连接中…' : '🤔 没搞懂？让 AI 一步步引导你（不直接给答案）'}
+              </button>
+              {/* 讲解页入口：内核产出分步解析+图示（/v1/lesson 接 WrongQuestion id） */}
+              <button
+                onClick={() => router.push(`/lesson?q=${encodeURIComponent(feedback.wrong_question_id ?? currentQ?.id ?? '')}`)}
+                style={{
+                  width: '100%', padding: '13px', borderRadius: '12px',
+                  background: 'var(--mn-blue-dim)', color: 'var(--mn-blue)', border: '1px solid var(--mn-border)',
+                  fontSize: '14px', fontWeight: 700, cursor: 'pointer',
+                }}>
+                📐 看讲解（分步解析 + 图示）
+              </button>
+            </>
           )}
           <button onClick={handleNext} style={{
             width: '100%', padding: '14px', borderRadius: '12px',
@@ -430,7 +466,7 @@ function PracticeBody({ kuId, subject = 'math' }: { kuId: string; subject?: stri
 }
 
 // ── 知识点名称头部 ──────────────────────────────────────────────
-function PracticeHeader({ kuId }: { kuId: string }) {
+function PracticeHeader({ kuId, kuName }: { kuId: string; kuName?: string | null }) {
   const router = useRouter();
   return (
     <header style={{
@@ -447,7 +483,7 @@ function PracticeHeader({ kuId }: { kuId: string }) {
         <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--mn-ink)' }}>专题练习</div>
         <div style={{ fontSize: '11px', color: 'var(--mn-ink-3)',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 220 }}>
-          {kuId}
+          {kuName || kuId}
         </div>
       </div>
       <button
@@ -466,6 +502,7 @@ function PracticePageInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const kuId = searchParams.get('ku_id');
+  const kuName = searchParams.get('name');   // 选题页透传的 KU 人名（缺省回退显示 kuId）
   const subject = searchParams.get('subject') ?? 'math';
 
   if (!kuId) {
@@ -485,7 +522,7 @@ function PracticePageInner() {
 
   return (
     <div style={{ height: '100svh', display: 'flex', flexDirection: 'column', background: 'var(--mn-paper)', overflow: 'hidden' }}>
-      <PracticeHeader kuId={kuId} />
+      <PracticeHeader kuId={kuId} kuName={kuName} />
       <PracticeBody kuId={kuId} subject={subject} />
     </div>
   );

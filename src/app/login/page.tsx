@@ -5,8 +5,10 @@ import { useRouter } from 'next/navigation';
 import * as api from '@/lib/api-client';
 import { setToken, setUser } from '@/lib/auth-store';
 
-type Mode = 'login' | 'register';
+type Mode = 'login' | 'register' | 'parent';
 type Phase = 'phone' | 'code' | 'loading';
+
+const IS_DEV = process.env.NODE_ENV === 'development';
 
 const GRADES = ['小学', '初一', '初二', '初三', '高一', '高二', '高三'];
 
@@ -59,6 +61,13 @@ export default function LoginPage() {
   const [codeSent, setCodeSent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // ── parent register state ──
+  const [pPhone,  setPPhone]  = useState('');
+  const [pCode,   setPCode]   = useState('');
+  const [pName,   setPName]   = useState('');
+  const [pInvite, setPInvite] = useState('');
+  const [pCodeSent, setPCodeSent] = useState(false);
+
   const switchMode = (m: Mode) => { setMode(m); setError(''); };
 
   // ── login handlers ──
@@ -75,8 +84,11 @@ export default function LoginPage() {
     const res = await api.login({ phone, code });
     if (!res.ok) { setError(res.error); setPhase('code'); return; }
     setToken(res.data.token);
-    setUser(res.data.user);
-    router.replace('/home');
+    // login 响应 user 不含 role/grade/invite_code，补拉 /v1/auth/me 后按身份分流
+    const me = await api.getMe();
+    const user = me.ok ? { ...res.data.user, ...me.data } : res.data.user;
+    setUser(user);
+    router.replace(user.role === 'parent' ? '/parent/overview' : '/home');
   };
 
   // ── register handlers ──
@@ -115,6 +127,34 @@ export default function LoginPage() {
     router.replace('/home');
   };
 
+  // ── parent register handlers ──
+  const sendParentCode = async () => {
+    if (!pPhone.trim()) return;
+    setError('');
+    const res = await api.sendCode({ phone: pPhone });
+    if (!res.ok) { setError(res.error); return; }
+    setPCodeSent(true);
+  };
+
+  const parentReady =
+    pPhone.trim() && pCode.length >= 4 && pName.trim() && pInvite.trim();
+
+  const registerParent = async () => {
+    setError('');
+    if (!parentReady) { setError('请完整填写注册信息'); return; }
+    setSubmitting(true);
+    const res = await api.registerParent({
+      phone: pPhone, code: pCode, name: pName.trim(),
+      invite_code: pInvite.trim().toUpperCase(),
+    });
+    setSubmitting(false);
+    if (!res.ok) { setError(res.error); return; }
+    setToken(res.data.token);
+    // 后端注册响应 user 不带 role，显式标记为家长
+    setUser({ ...res.data.user, role: 'parent' });
+    router.replace('/parent/overview');
+  };
+
   return (
     <div style={{
       minHeight: '100svh', display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -140,7 +180,7 @@ export default function LoginPage() {
 
         {/* Tab toggle */}
         <div style={{ display: 'flex', background: 'var(--mn-surface)', borderRadius: '12px', padding: '4px', border: '1px solid var(--mn-border)' }}>
-          {(['login', 'register'] as Mode[]).map((m) => (
+          {(['login', 'register', 'parent'] as Mode[]).map((m) => (
             <button
               key={m}
               type="button"
@@ -153,7 +193,7 @@ export default function LoginPage() {
                 transition: 'all var(--mn-duration-fast)',
               }}
             >
-              {m === 'login' ? '登录' : '注册'}
+              {m === 'login' ? '登录' : m === 'register' ? '学生注册' : '家长注册'}
             </button>
           ))}
         </div>
@@ -166,7 +206,7 @@ export default function LoginPage() {
                 <input
                   type="tel" value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter') void sendCode(); }}
+                  onKeyDown={(e) => { if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') void sendCode(); }}
                   placeholder="13800138000" inputMode="numeric"
                   disabled={phase === 'loading'} style={inputStyle}
                 />
@@ -184,13 +224,15 @@ export default function LoginPage() {
                 <input
                   type="text" value={code}
                   onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  onKeyDown={(e) => { if (e.key === 'Enter') void login(); }}
+                  onKeyDown={(e) => { if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') void login(); }}
                   placeholder="6 位验证码" inputMode="numeric" maxLength={6} autoFocus
                   style={{ ...inputStyle, fontSize: '22px', borderColor: 'var(--mn-blue)', letterSpacing: '0.3em', textAlign: 'center' }}
                 />
-                <p style={{ fontSize: '12px', color: 'var(--mn-ink-3)', textAlign: 'center', margin: '-8px 0 0' }}>
-                  dev 模式：验证码固定 <strong style={{ color: 'var(--mn-blue)' }}>123456</strong>
-                </p>
+                {IS_DEV && (
+                  <p style={{ fontSize: '12px', color: 'var(--mn-ink-3)', textAlign: 'center', margin: '-8px 0 0' }}>
+                    dev 模式：验证码固定 <strong style={{ color: 'var(--mn-blue)' }}>123456</strong>
+                  </p>
+                )}
               </>
             )}
 
@@ -240,7 +282,7 @@ export default function LoginPage() {
               <input
                 type="text" value={rCode}
                 onChange={(e) => setRCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder="6 位验证码（dev: 123456）" inputMode="numeric" maxLength={6}
+                placeholder={IS_DEV ? '6 位验证码（dev: 123456）' : '6 位验证码'} inputMode="numeric" maxLength={6}
                 style={inputStyle}
               />
             </Field>
@@ -287,6 +329,62 @@ export default function LoginPage() {
             <button type="button" className="mn-btn-primary" style={{ width: '100%' }}
               disabled={submitting || !registerReady} onClick={register}>
               {submitting ? '注册中…' : '注册并进入'}
+            </button>
+          </div>
+        )}
+
+        {/* ── Parent register card ── */}
+        {mode === 'parent' && (
+          <div className="mn-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <p style={{ fontSize: '13px', color: 'var(--mn-ink-3)', lineHeight: 1.6, margin: 0 }}>
+              输入孩子注册后生成的邀请码（孩子首页「家长监督」卡可查看），注册即绑定，可查看学习周报。
+            </p>
+            <Field label="手机号">
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  type="tel" value={pPhone}
+                  onChange={(e) => setPPhone(e.target.value)}
+                  placeholder="13800138000" inputMode="numeric"
+                  style={{ ...inputStyle, flex: 1 }}
+                />
+                <button type="button" className="mn-btn-secondary" style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+                  disabled={!pPhone.trim()} onClick={sendParentCode}>
+                  {pCodeSent ? '重发' : '发送验证码'}
+                </button>
+              </div>
+            </Field>
+
+            <Field label="验证码">
+              <input
+                type="text" value={pCode}
+                onChange={(e) => setPCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                placeholder={IS_DEV ? '6 位验证码（dev: 123456）' : '6 位验证码'} inputMode="numeric" maxLength={6}
+                style={inputStyle}
+              />
+            </Field>
+
+            <Field label="姓名">
+              <input type="text" value={pName} onChange={(e) => setPName(e.target.value)} placeholder="您的称呼" style={inputStyle} />
+            </Field>
+
+            <Field label="孩子的邀请码">
+              <input
+                type="text" value={pInvite}
+                onChange={(e) => setPInvite(e.target.value)}
+                placeholder="如 A1B2C3"
+                style={{ ...inputStyle, letterSpacing: '0.08em' }}
+              />
+            </Field>
+
+            {error && (
+              <div style={{ fontSize: '13px', color: 'var(--mn-red)', padding: '8px 12px', borderRadius: '8px', background: 'var(--mn-red-dim)' }}>
+                {error}
+              </div>
+            )}
+
+            <button type="button" className="mn-btn-primary" style={{ width: '100%' }}
+              disabled={submitting || !parentReady} onClick={registerParent}>
+              {submitting ? '注册中…' : '注册并绑定孩子'}
             </button>
           </div>
         )}

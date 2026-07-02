@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getUserId } from '@/lib/auth-store';
+import { getUser, getUserId } from '@/lib/auth-store';
 import * as api from '@/lib/api-client';
 import type { SpeakingPracticeRes, SpeakingHistoryItem } from '@/types/api';
 
@@ -100,6 +100,9 @@ export default function SpeakingPage() {
   useEffect(() => {
     const sid = getUserId();
     if (!sid) { router.push('/login'); return; }
+    // 年级默认值取登录用户档案
+    const g = getUser()?.grade;
+    if (g && (GRADES as readonly string[]).includes(g)) setGrade(g);
     api.getSpeakingHistory(sid).then((r) => { if (r.ok) setHistory(r.data); });
   }, []);
 

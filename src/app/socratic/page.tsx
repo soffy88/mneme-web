@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import * as api from '@/lib/api-client';
 import type { SocraticOutcome } from '@/types/api';
@@ -15,6 +15,7 @@ const EMOTION_HINT: Record<string, { text: string; color: string }> = {
 };
 
 function SocraticPageInner() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [sessionId] = useState<string | null>(searchParams.get('session_id'));
   const initFirstQ = searchParams.get('first_q');
@@ -26,6 +27,7 @@ function SocraticPageInner() {
   const [emotion,   setEmotion]   = useState<string | null>(null);
   const [outcome,   setOutcome]   = useState<SocraticOutcome>(null);
   const [escape,    setEscape]    = useState<string | null>(null);
+  const [ending,    setEnding]    = useState(false);
   const [started]                 = useState(!!(sessionId && initFirstQ));
   const bottomRef = useRef<HTMLDivElement>(null);
   const taRef     = useRef<HTMLTextAreaElement>(null);
@@ -62,6 +64,14 @@ function SocraticPageInner() {
     if (!sessionId) return;
     const r = await api.escapeSocratic(sessionId);
     if (r.ok) setEscape(r.data.answer_outline);
+  };
+
+  // 显式结束对话：outcome 不由前端指定（后端默认 partial 并自行核实是否 success，防伪报）
+  const onEnd = async () => {
+    if (!sessionId || ending) return;
+    setEnding(true);
+    await api.endSocratic(sessionId);
+    router.push('/error-journal');
   };
 
   /* ── start screen ── */
@@ -144,7 +154,7 @@ function SocraticPageInner() {
               ref={taRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(); } }}
+              onKeyDown={(e) => { if (e.nativeEvent.isComposing) return; if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(); } }}
               rows={2}
               disabled={streaming}
               placeholder="输入你的想法…（Enter 发送）"
@@ -164,10 +174,16 @@ function SocraticPageInner() {
               {streaming ? '…' : '发送'}
             </button>
           </div>
-          <button type="button" onClick={onEscape}
-            style={{ fontSize: '12px', color: 'var(--mn-ink-3)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px' }}>
-            想不出来？看答案思路
-          </button>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <button type="button" onClick={onEscape}
+              style={{ fontSize: '12px', color: 'var(--mn-ink-3)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px' }}>
+              想不出来？看答案思路
+            </button>
+            <button type="button" onClick={() => void onEnd()} disabled={ending}
+              style={{ fontSize: '12px', color: 'var(--mn-ink-3)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px', opacity: ending ? 0.6 : 1 }}>
+              {ending ? '结束中…' : '结束对话 ↩'}
+            </button>
+          </div>
         </div>
       )}
     </div>

@@ -284,6 +284,14 @@ export default function ErrorJournalPage() {
                     <button
                       type="button"
                       className="mn-btn-secondary"
+                      onClick={() => router.push(`/lesson?q=${encodeURIComponent(item.question_id)}`)}
+                      style={{ fontSize: '12px', padding: '6px 12px' }}
+                    >
+                      📐 看讲解
+                    </button>
+                    <button
+                      type="button"
+                      className="mn-btn-secondary"
                       disabled={askingId === item.question_id}
                       onClick={async () => {
                         const sid = getUserId();
@@ -301,7 +309,7 @@ export default function ErrorJournalPage() {
                       <button
                         type="button"
                         className="mn-btn-secondary"
-                        onClick={() => router.push(`/subjects/math/practice?ku_id=${encodeURIComponent(item.kc_id)}`)}
+                        onClick={() => router.push(`/subjects/math/practice?ku_id=${encodeURIComponent(item.kc_id)}${item.kc_name ? `&name=${encodeURIComponent(item.kc_name)}` : ''}`)}
                         style={{ fontSize: '12px', padding: '6px 12px' }}
                       >
                         举一反三

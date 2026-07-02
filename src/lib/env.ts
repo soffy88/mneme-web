@@ -5,4 +5,4 @@ export const MNEME_API_BASE =
   process.env.NEXT_PUBLIC_MNEME_API_BASE ??
   'http://localhost:8001';
 export const USE_MOCK =
-  (process.env.NEXT_PUBLIC_USE_MOCK ?? 'true').toLowerCase() === 'true';
+  (process.env.NEXT_PUBLIC_USE_MOCK ?? 'false').toLowerCase() === 'true';

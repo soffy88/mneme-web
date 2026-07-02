@@ -57,6 +57,7 @@ export default function ForceAnalysisPage() {
   }, [input, streaming, sessionId]);
 
   const handleKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.nativeEvent.isComposing) return;
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
   };
 

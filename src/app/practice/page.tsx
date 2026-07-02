@@ -89,7 +89,7 @@ function PracticeInner() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {[...topics].sort((a, b) => b.count - a.count).map((t) => (
             <button key={t.ku_id} type="button" className="mn-card-interactive"
-              onClick={() => router.push(`/subjects/math/practice?subject=${subject}&ku_id=${encodeURIComponent(t.ku_id)}`)}
+              onClick={() => router.push(`/subjects/math/practice?subject=${subject}&ku_id=${encodeURIComponent(t.ku_id)}&name=${encodeURIComponent(t.ku_name ?? t.ku_id)}`)}
               style={{ width: '100%', textAlign: 'left', background: 'var(--mn-surface)', border: '1px solid var(--mn-border)',
                 borderRadius: 14, padding: '14px 16px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--mn-ink)' }}>{t.ku_name ?? t.ku_id}</span>
@@ -151,7 +151,7 @@ function PracticeInner() {
               {byGrade.get(g)!.sort((a, b) => b.count - a.count).map((t) => (
                 <Link
                   key={t.ku_id}
-                  href={`/subjects/math/practice?ku_id=${encodeURIComponent(t.ku_id)}`}
+                  href={`/subjects/math/practice?ku_id=${encodeURIComponent(t.ku_id)}&name=${encodeURIComponent(t.label)}`}
                   className="mn-card"
                   style={{ padding: '16px', textDecoration: 'none', display: 'block' }}
                 >

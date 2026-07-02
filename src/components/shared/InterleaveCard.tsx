@@ -12,10 +12,10 @@ import type { ReviewQueueItem } from '@/types/api';
  */
 const PALETTE = ['#6366f1', '#10b981', '#f59e0b', '#8b5cf6', '#f43f5e', '#0ea5e9', '#14b8a6', '#ec4899'];
 
-// 从 kc_id 提取友好短名：取 -ku-/-kc- 之后，或末段
-function kcLabel(id: string): string {
-  const m = id.match(/-(?:ku|kc)-(.+)$/);
-  const name = m ? m[1] : (id.split('-').pop() ?? id);
+// 优先用后端返回的 kc_name；缺失才从 kc_id 提取短名（取 -ku-/-kc- 之后，或末段）
+function kcLabel(it: ReviewQueueItem): string {
+  const m = it.kc_id.match(/-(?:ku|kc)-(.+)$/);
+  const name = it.kc_name || (m ? m[1] : (it.kc_id.split('-').pop() ?? it.kc_id));
   return name.length > 10 ? name.slice(0, 10) + '…' : name;
 }
 
@@ -58,9 +58,9 @@ export function InterleaveCard({ studentId }: { studentId: string }) {
         {items.map((it, i) => {
           const c = colorOf.get(it.kc_id) ?? '#6366f1';
           return (
-            <span key={i} title={it.kc_id}
+            <span key={i} title={it.kc_name || it.kc_id}
               style={{ padding: '4px 9px', borderRadius: 7, fontSize: 12, fontWeight: 600, color: c, background: `${c}1a` }}>
-              {i + 1}. {kcLabel(it.kc_id)}
+              {i + 1}. {kcLabel(it)}
             </span>
           );
         })}

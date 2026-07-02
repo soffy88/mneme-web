@@ -8,7 +8,7 @@ import { StreakBadge } from '@/components/shared/StreakBadge';
 import { Achievements } from '@/components/shared/Achievements';
 import { EffortBoard } from '@/components/shared/EffortBoard';
 import { InterleaveCard } from '@/components/shared/InterleaveCard';
-import type { MissionRes, CompleteMissionRes, ReviewDueItem, DailyPlanRes } from '@/types/api';
+import type { MissionRes, CompleteMissionRes, ReviewDueItem, DailyPlanRes, UserProfile } from '@/types/api';
 
 
 const TYPE_META: Record<string, { icon: string; color: string; bg: string; action: string; href: string }> = {
@@ -43,6 +43,8 @@ export default function HomePage() {
   const [reviewDue,  setReviewDue]  = useState<ReviewDueItem[]>([]);
   const [dailyPlan,  setDailyPlan]  = useState<DailyPlanRes | null>(null);
   const [studentId,  setStudentId]  = useState<string | null>(null);
+  const [me,         setMe]         = useState<UserProfile | null>(null);
+  const [codeCopied, setCodeCopied] = useState(false);
 
   const load = async () => {
     const sid = getUserId();
@@ -60,6 +62,8 @@ export default function HomePage() {
     if (planRes.ok)   setDailyPlan(planRes.data);
     // review/due 慢（变式生成），不挡首屏，回来再补
     void api.getReviewDue(sid).then((r) => { if (r.ok) setReviewDue(r.data); });
+    // 邀请码（家长监督卡）：/v1/auth/me，异步不挡首屏
+    void api.getMe().then((r) => { if (r.ok) setMe(r.data); });
   };
 
   useEffect(() => { void load(); }, []);
@@ -382,6 +386,46 @@ export default function HomePage() {
 
       {/* 成就（动机钩子） */}
       <Achievements />
+
+      {/* 家长监督：学生邀请码（家长注册凭此绑定，查看学习周报） */}
+      {me?.invite_code && me.role !== 'parent' && (
+        <div className="mn-card" style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div style={{
+            width: '38px', height: '38px', borderRadius: '10px',
+            background: 'var(--mn-blue-dim)', display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+            fontSize: '18px', flexShrink: 0,
+          }}>👪</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, fontSize: '15px', color: 'var(--mn-ink)' }}>
+              家长监督 · 邀请码{' '}
+              <span style={{ color: 'var(--mn-blue)', letterSpacing: '0.08em', fontVariantNumeric: 'tabular-nums' }}>
+                {me.invite_code}
+              </span>
+            </div>
+            <div style={{ fontSize: '13px', color: 'var(--mn-ink-3)', marginTop: '2px' }}>
+              家长注册后输入此码即可查看学习周报
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              void navigator.clipboard?.writeText(me.invite_code ?? '').then(() => {
+                setCodeCopied(true);
+                setTimeout(() => setCodeCopied(false), 2000);
+              });
+            }}
+            style={{
+              flexShrink: 0, fontSize: '12px', fontWeight: 600, padding: '6px 12px',
+              borderRadius: '99px', cursor: 'pointer',
+              background: 'var(--mn-surface)', color: 'var(--mn-blue)',
+              border: '1px solid var(--mn-border)',
+            }}
+          >
+            {codeCopied ? '已复制 ✓' : '复制'}
+          </button>
+        </div>
+      )}
 
       {/* 我的错题本入口 */}
       <button
