@@ -256,6 +256,7 @@ export interface KnowledgeUnitItem {
   mastery_levels: unknown[];
   p_mastery: number | null;
   mastery_color: MasteryColor;
+  fringe?: 'mastered' | 'learning' | 'learnable' | 'locked' | null;  // KST 掌握门控(教育理念01)
   prereq_mastery?: { ku_id: string; p_mastery: number | null; mastery_color: MasteryColor }[];
   rich_content?: Record<string, string | string[]> | null;
 }
@@ -299,7 +300,32 @@ export interface PracticeSubmitRes {
   p_mastery: number | null;
   mastery_color: MasteryColor;
   feedback: { text: string; type: string | null } | null;
+  growth_message?: string | null;  // 成长型措辞(教育理念05)
+  step_analysis?: { first_wrong_step: number | null; step_verdicts: { step: string; verdict: string }[] } | null;  // 首错步(07)
 }
+
+// ── 先进教育理念端点(01/02/03/08) ────────────────────────────────
+export interface LearnerModel {
+  kc_id: string;
+  started: boolean;
+  p_mastery?: number;
+  retrievability?: number | null;
+  effective_mastery?: number;
+  recognition?: number | null;
+  error_profile?: { careless: number; dontknow: number };
+  attempts?: number;
+  next_review?: string | null;
+  last_interaction?: string | null;
+}
+export interface LeagueRes {
+  grade: string | null;
+  cohort_size: number;
+  my_mastered: number;
+  percentile: number | null;
+  tier: string | null;
+  note?: string;
+}
+export interface AffectRes { state: 'frustrated' | 'disengaged' | 'flow' | 'neutral'; adaptation: string; n: number; }
 
 // ── 每日学科计划（规则引擎） ────────────────────────────────────
 export type DailyPlanTaskType = 'review' | 'weak_practice' | 'error_review' | 'new_learn';

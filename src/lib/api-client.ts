@@ -24,6 +24,7 @@ import type {
   KnowledgeUnitItem, QuestionBankRes, PracticeSubmitReq, PracticeSubmitRes,
   EffortfulGainsRes, ReviewQueueItem, WeakRootsRes,
   Achievement, PatternsRes,
+  LearnerModel, LeagueRes, AffectRes,
 } from '@/types/api';
 import * as mock from './mock-data';
 
@@ -417,6 +418,15 @@ export const listQuestionBank = (params: {
 
 export const submitPracticeAnswer = (body: PracticeSubmitReq) =>
   req<PracticeSubmitRes>('/v1/practice/submit', { method: 'POST', body: JSON.stringify(body) });
+
+// ── 先进教育理念端点 ──────────────────────────────────────────────
+export const getLearnerModel = (sid: string, kcId: string) =>
+  req<LearnerModel>(`/v1/learner-model/${sid}/${encodeURIComponent(kcId)}`);
+export const getLeague = (sid: string) => req<LeagueRes>(`/v1/league/${sid}`);
+export const getAffect = (sid: string) => req<AffectRes>(`/v1/affect/${sid}`);
+export const setExamDate = (sid: string, examDate: string | null) =>
+  req<{ exam_date: string | null; exam_countdown_days: number | null }>(
+    `/v1/users/${sid}/exam-date`, { method: 'POST', body: JSON.stringify({ exam_date: examDate }) });
 
 // ── 苏格拉底（KU 入口） ───────────────────────────────────────
 export const startSocraticForKu = (kuId: string, studentId: string) =>
