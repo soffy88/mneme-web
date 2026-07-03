@@ -327,6 +327,7 @@ export interface LeagueRes {
   note?: string;
 }
 export interface AffectRes { state: 'frustrated' | 'disengaged' | 'flow' | 'neutral'; adaptation: string; n: number; }
+export interface TeachingPolicy { stage: string; engine_enabled: boolean; mode: 'never'|'full_example'|'hint_ladder'; allow_full_answer: boolean; allow_worked_example: boolean; rationale: string; }
 
 // ── 每日学科计划（规则引擎） ────────────────────────────────────
 export type DailyPlanTaskType = 'review' | 'weak_practice' | 'error_review' | 'new_learn';

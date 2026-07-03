@@ -137,6 +137,8 @@ function PracticeBody({ kuId, subject = 'math' }: { kuId: string; subject?: stri
   const [asking,    setAsking]    = useState(false);
   const [offlineSaved, setOfflineSaved] = useState(false);
   const [jol,       setJol]       = useState<number | null>(null);
+  const [workedExample, setWorkedExample] = useState<Record<string, string | string[]> | null>(null);
+  const [showWE,    setShowWE]    = useState(false);
 
   const getStudentId = useCallback(() => getUserId(), []);
 
@@ -147,6 +149,22 @@ function PracticeBody({ kuId, subject = 'math' }: { kuId: string; subject?: stri
       })
       .finally(() => setLoading(false));
   }, [kuId, subject]);
+
+  // L2 教学引擎：新知阶段(worked_example)+flag开→先给完整样例(讲透)再做题；flag关(默认)不出样例。
+  useEffect(() => {
+    const sid = getUserId();
+    if (!sid) return;
+    api.getTeachingPolicy(sid, kuId, 'system_taught').then(pr => {
+      if (pr.ok && pr.data.mode === 'full_example' && pr.data.allow_worked_example) {
+        api.getKnowledgePoint(kuId, sid).then(kr => {
+          if (kr.ok && kr.data.rich_content) {
+            setWorkedExample(kr.data.rich_content as Record<string, string | string[]>);
+            setShowWE(true);
+          }
+        }).catch(() => {});
+      }
+    }).catch(() => {});
+  }, [kuId]);
 
   const currentQ = questions[idx] ?? null;
 
@@ -301,6 +319,26 @@ function PracticeBody({ kuId, subject = 'math' }: { kuId: string; subject?: stri
             border: 'none', fontSize: '14px', fontWeight: 600, cursor: 'pointer',
           }}>再练一遍</button>
         </div>
+      </div>
+    );
+  }
+
+  if (showWE && workedExample) {
+    return (
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--mn-blue)' }}>📖 先看一个例子（新知识点先学后练）</div>
+        <div style={{ background: 'var(--mn-surface)', border: '1px solid var(--mn-border)', borderRadius: 12, padding: 16, fontSize: 14, lineHeight: 1.8, color: 'var(--mn-ink)' }}>
+          {Object.entries(workedExample).map(([k, v]) => (
+            <div key={k} style={{ marginBottom: 10 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--mn-ink-3)', marginBottom: 4 }}>{k}</div>
+              <div><RichText>{Array.isArray(v) ? v.join('\n') : String(v)}</RichText></div>
+            </div>
+          ))}
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--mn-ink-3)' }}>想一想：这个例子的关键一步为什么可以这样做？</div>
+        <button onClick={() => setShowWE(false)} style={{ padding: 14, borderRadius: 12, background: 'var(--mn-blue)', color: '#fff', border: 'none', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>
+          我看懂了，开始做题
+        </button>
       </div>
     );
   }

@@ -3,6 +3,8 @@
 import { useMemo, useState } from 'react';
 import { VOCAB_WORDS, type VocabWord } from './words.data';
 import { rate, stats, buildQueue, speak, type Rating } from './srs';
+import * as api from '@/lib/api-client';
+import { getUserId } from '@/lib/auth-store';
 
 type Scope = 'all' | 'zk' | 'gk';
 type Mode = 'browse' | 'recite';
@@ -143,7 +145,21 @@ export default function VocabularyPage() {
 
   const onRate = (r: Rating) => {
     const w = reciteList[reciteIdx];
-    if (w) rate(w.w, r, Date.now());
+    if (w) {
+      rate(w.w, r, Date.now());
+      // L4·英语接内核：词=记忆单元，评分同步进后端 FSRS/永久档案（fire-and-forget）
+      const sid = getUserId();
+      if (sid) {
+        void api.postInteraction({
+          student_id: sid,
+          kc_id: `EN-VOCAB-${w.w}`,
+          is_correct: r !== 'again',
+          struggled: r === 'hard',
+          effortless: r === 'easy',
+          source: 'review',
+        });
+      }
+    }
     if (reciteIdx + 1 >= reciteList.length) { setStatsTick(t => t + 1); setMode('browse'); }
     else setReciteIdx(i => i + 1);
   };
