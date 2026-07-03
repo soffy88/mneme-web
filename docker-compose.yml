@@ -13,7 +13,8 @@ services:
       NEXT_PUBLIC_USE_MOCK: "false"
     networks:
       - helios-net
-    # 不暴露宿主端口,只走 Cloudflare Tunnel 内网访问 mneme-web:3000
+    ports:
+      - "3300:3000"   # 供主机 cloudflared(mneme.yml) 反代
 
 networks:
   helios-net:
