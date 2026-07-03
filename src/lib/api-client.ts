@@ -426,6 +426,8 @@ export const getLeague = (sid: string) => req<LeagueRes>(`/v1/league/${sid}`);
 export const getAffect = (sid: string) => req<AffectRes>(`/v1/affect/${sid}`);
 export const getTeachingPolicy = (sid: string, kuId: string, context = 'system_taught') =>
   req<TeachingPolicy>(`/v1/teaching/policy?student_id=${sid}&kc_id=${encodeURIComponent(kuId)}&context=${context}`);
+export const setPrivacy = (sid: string, share: boolean) =>
+  req<{ share_process_with_parent: boolean }>(`/v1/users/${sid}/privacy`, { method: 'POST', body: JSON.stringify({ share_process_with_parent: share }) });
 export const setExamDate = (sid: string, examDate: string | null) =>
   req<{ exam_date: string | null; exam_countdown_days: number | null }>(
     `/v1/users/${sid}/exam-date`, { method: 'POST', body: JSON.stringify({ exam_date: examDate }) });
