@@ -18,7 +18,7 @@ const CONFIG: SubjectConfig = {
         { icon: '诗', title: '古诗文诵读', desc: '必背古诗文精讲', href: '/subjects/chinese/poetry' },
         { icon: '📖', title: '阅读理解引导', desc: '引导式文本分析', href: '/subjects/chinese/reading' },
         { icon: '◌', title: '苏格拉底答疑', desc: '引导而非直接告知', href: '/socratic' },
-        { icon: '字', title: '字词典', desc: '成语·文化常识·汉字检索', href: '/subjects/chinese/dictionary', disabled: true },
+        { icon: '字', title: '字词典', desc: '成语·文化常识·汉字检索', href: '/subjects/chinese/dictionary' },
         { icon: '📖', title: '教材阅读', desc: '高亮·笔记·知识点', href: '/library' },
       ],
     },

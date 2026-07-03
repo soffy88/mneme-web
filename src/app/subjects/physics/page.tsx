@@ -13,7 +13,7 @@ const CONFIG: SubjectConfig = {
       bg: '#f0fdf4',
       cards: [
         { icon: '✐', title: '知识点讲解', desc: '分考点精讲例题', href: '/subjects/physics/lesson' },
-        { icon: '∑', title: '公式手册', desc: '物理公式速查', href: '/subjects/physics/formula', disabled: true },
+        { icon: '∑', title: '公式手册', desc: '物理公式速查', href: '/subjects/physics/formula' },
         { icon: '→', title: '受力分析引导', desc: '结构化受力分析', href: '/subjects/physics/force-analysis' },
         { icon: '✏', title: '专题练习', desc: '按考点分层练习', href: '/practice?subject=physics', disabled: true },
         { icon: '⊕', title: '拍照解题', desc: '拍下题目秒出解析', href: '/upload' },
