@@ -8,6 +8,7 @@ import { StreakBadge } from '@/components/shared/StreakBadge';
 import { Achievements } from '@/components/shared/Achievements';
 import { EffortBoard } from '@/components/shared/EffortBoard';
 import { InterleaveCard } from '@/components/shared/InterleaveCard';
+import { GrowthExtras } from '@/components/student/GrowthExtras';
 import type { MissionRes, CompleteMissionRes, ReviewDueItem, DailyPlanRes, UserProfile } from '@/types/api';
 
 
@@ -383,6 +384,9 @@ export default function HomePage() {
 
       {/* 努力收益（M-F · 对抗努力错觉） */}
       {studentId && <EffortBoard studentId={studentId} />}
+
+      {/* 联赛/情感/考期（教育理念 02/08/06） */}
+      <GrowthExtras />
 
       {/* 成就（动机钩子） */}
       <Achievements />

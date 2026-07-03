@@ -130,6 +130,7 @@ function PracticeBody({ kuId, subject = 'math' }: { kuId: string; subject?: stri
   const [idx,       setIdx]       = useState(0);
   const [phase,     setPhase]     = useState<Phase>('answering');
   const [answer,    setAnswer]    = useState('');
+  const [selfExpl,  setSelfExpl]  = useState('');  // 自我解释(04)
   const [feedback,  setFeedback]  = useState<PracticeSubmitRes | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [results,   setResults]   = useState<PracticeSubmitRes[]>([]);
@@ -172,6 +173,7 @@ function PracticeBody({ kuId, subject = 'math' }: { kuId: string; subject?: stri
       student_answer: answer,
       ku_id: kuId,
       ...(jol !== null ? { predicted_confidence: jol } : {}),
+      ...(selfExpl.trim() ? { self_explanation: selfExpl.trim() } : {}),
     });
     setSubmitting(false);
     if (res.ok) {
@@ -189,7 +191,7 @@ function PracticeBody({ kuId, subject = 'math' }: { kuId: string; subject?: stri
       enqueuePractice({ question_id: currentQ.id, student_id: studentId, student_answer: answer, ku_id: kuId, is_correct: isCorrect, ...(jol !== null ? { predicted_confidence: jol } : {}) });
       setOfflineSaved(true);
     }
-  }, [currentQ, answer, kuId, jol, getStudentId, router]);
+  }, [currentQ, answer, kuId, jol, selfExpl, getStudentId, router]);
 
   const handleSelfGrade = useCallback(async (isCorrect: boolean) => {
     if (!currentQ) return;
@@ -204,6 +206,7 @@ function PracticeBody({ kuId, subject = 'math' }: { kuId: string; subject?: stri
       is_correct: isCorrect,
       ku_id: kuId,
       ...(jol !== null ? { predicted_confidence: jol } : {}),
+      ...(selfExpl.trim() ? { self_explanation: selfExpl.trim() } : {}),
     });
     setSubmitting(false);
 
@@ -215,7 +218,7 @@ function PracticeBody({ kuId, subject = 'math' }: { kuId: string; subject?: stri
       enqueuePractice({ question_id: currentQ.id, student_id: studentId, student_answer: answer, is_correct: isCorrect, ku_id: kuId, ...(jol !== null ? { predicted_confidence: jol } : {}) });
       setOfflineSaved(true);
     }
-  }, [currentQ, answer, kuId, jol, getStudentId, router]);
+  }, [currentQ, answer, kuId, jol, selfExpl, getStudentId, router]);
 
   const handleNext = useCallback(() => {
     setOfflineSaved(false);
@@ -226,6 +229,7 @@ function PracticeBody({ kuId, subject = 'math' }: { kuId: string; subject?: stri
       setIdx(i => i + 1);
       setPhase('answering');
       setAnswer('');
+      setSelfExpl('');
       setFeedback(null);
     }
   }, [idx, questions.length]);
@@ -357,6 +361,18 @@ function PracticeBody({ kuId, subject = 'math' }: { kuId: string; subject?: stri
               }}
             />
           )}
+          {/* 自我解释（教育理念04·Chi 效应，选填）：讲清"为什么"最长脑子 */}
+          <textarea
+            value={selfExpl}
+            onChange={e => setSelfExpl(e.target.value)}
+            placeholder="用一句话说说你的思路（选填）——讲清为什么最长脑子"
+            rows={2}
+            style={{
+              width: '100%', padding: '8px 10px', borderRadius: '10px',
+              border: '1px solid var(--mn-border)', background: 'var(--mn-surface)',
+              fontSize: '13px', color: 'var(--mn-ink)', resize: 'vertical', fontFamily: 'inherit',
+            }}
+          />
           {/* JOL 把握度自评（可选）：作答后提交前一行 chips，不选也能提交 */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '12px', color: 'var(--mn-ink-3)' }}>做对的把握？</span>
