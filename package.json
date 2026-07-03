@@ -11,8 +11,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@helios/blocks": "file:./vendor/helios-blocks-2.7.1.tgz",
-    "@helios/oui": "file:./vendor/helios-oui-1.5.3.tgz",
+    "@helios/blocks": "file:./vendor/helios-blocks-3.0.0.tgz",
+    "@helios/oui": "file:./vendor/helios-oui-2.0.0.tgz",
     "@react-pdf-viewer/core": "^3.12.0",
     "@react-pdf-viewer/default-layout": "^3.12.0",
     "@react-pdf-viewer/highlight": "^3.12.0",

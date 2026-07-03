@@ -105,6 +105,16 @@ function FeedbackCard({ result }: { result: PracticeSubmitRes }) {
             {result.feedback.text}
           </div>
         )}
+        {result.growth_message && (
+          <div style={{ fontSize: '12.5px', color: 'var(--mn-ink-2)', marginTop: '6px', lineHeight: 1.5 }}>
+            {result.growth_message}
+          </div>
+        )}
+        {result.step_analysis && result.step_analysis.first_wrong_step != null && (
+          <div style={{ fontSize: '12px', color: '#c26a06', marginTop: '4px' }}>
+            ✎ 第 {result.step_analysis.first_wrong_step + 1} 步开始出问题，回看这一步。
+          </div>
+        )}
       </div>
     </div>
   );

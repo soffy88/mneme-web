@@ -373,15 +373,19 @@ function KuRow({ ku, selected, sort, indent, onSelect }: {
   indent?: number; onSelect: () => void;
 }) {
   const dot = MASTERY_DOT[ku.mastery_color];
+  // 掌握门控(KST,教育理念01)：前置未齐=locked(锁+淡化)；前置齐未开始=learnable(可学)
+  const locked = ku.fringe === 'locked';
+  const learnable = ku.fringe === 'learnable';
   return (
     <div
       onClick={onSelect}
+      title={locked ? '前置知识点还没掌握——先补前置再学这个' : learnable ? '前置已齐，现在可以学' : undefined}
       style={{
         display: 'flex', alignItems: 'center', gap: '10px',
         padding: `10px 16px 10px ${indent ?? 16}px`,
         background: selected ? 'var(--mn-blue-dim)' : 'transparent',
         borderLeft: selected ? '3px solid var(--mn-blue)' : '3px solid transparent',
-        cursor: 'pointer', transition: 'background 0.15s',
+        cursor: 'pointer', transition: 'background 0.15s', opacity: locked ? 0.55 : 1,
       }}
     >
       <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: dot.bg }} />
@@ -389,6 +393,11 @@ function KuRow({ ku, selected, sort, indent, onSelect }: {
         flex: 1, fontSize: '13px', color: 'var(--mn-ink)',
         lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
       }}>{ku.name}</span>
+      {locked && <span title="锁定" style={{ fontSize: '11px', flexShrink: 0 }}>🔒</span>}
+      {learnable && (
+        <span style={{ fontSize: '9px', flexShrink: 0, color: 'var(--mn-emerald,#0f8a5f)',
+          border: '1px solid currentColor', borderRadius: '6px', padding: '0 4px', lineHeight: 1.5 }}>可学</span>
+      )}
       {(sort === 'textbook' || sort === 'topic' || sort === 'prereq') && <DifficultyBadge d={ku.difficulty} />}
       {sort === 'exam_freq' && (
         <span style={{ fontSize: '10px', color: 'var(--mn-ink-3)', flexShrink: 0 }}>
@@ -553,6 +562,52 @@ function GroupSection({ label, kus, sort, selectedId, onSelect, defaultOpen = tr
 
 // ── KuDetailPanel ────────────────────────────────────────────────────
 
+// 开放学习者模型（教育理念03·"镜子"）：把 KT 模型透明摊给学生自己看
+function LearnerModelPanel({ kuId }: { kuId: string }) {
+  const [m, setM] = useState<import('@/types/api').LearnerModel | null>(null);
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const uid = getUserId();
+    if (!uid) return;
+    api.getLearnerModel(uid, kuId).then(r => { if (r.ok) setM(r.data); }).catch(() => {});
+  }, [kuId]);
+  if (!m || !m.started) return null;
+  const pct = (x?: number | null) => (x == null ? '—' : `${Math.round(x * 100)}%`);
+  const ep = m.error_profile;
+  return (
+    <div style={{ margin: '12px 16px 0', border: '1px solid var(--mn-border)', borderRadius: '10px', overflow: 'hidden' }}>
+      <button onClick={() => setOpen(o => !o)} style={{
+        width: '100%', textAlign: 'left', padding: '10px 12px', background: 'var(--mn-surface)',
+        border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 700, color: 'var(--mn-ink)',
+        display: 'flex', justifyContent: 'space-between',
+      }}>
+        <span>🪞 我的学习模型</span><span style={{ color: 'var(--mn-ink-3)' }}>{open ? '收起' : '展开'}</span>
+      </button>
+      {open && (
+        <div style={{ padding: '12px', fontSize: '12.5px', color: 'var(--mn-ink-2)', display: 'grid', gap: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>长期掌握 P(L)</span><b>{pct(m.p_mastery)}</b></div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>此刻能记起 R</span><b>{pct(m.retrievability)}</b></div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>有效掌握 (P(L)×R)</span><b>{pct(m.effective_mastery)}</b></div>
+          {ep && (
+            <div>
+              <div style={{ marginBottom: '4px' }}>你的错法（点开自省）：</div>
+              <div style={{ display: 'flex', height: '10px', borderRadius: '5px', overflow: 'hidden', background: 'var(--mn-border)' }}>
+                <div title={`粗心 ${pct(ep.careless)}`} style={{ width: `${ep.careless * 100}%`, background: '#f5a623' }} />
+                <div title={`没学会 ${pct(ep.dontknow)}`} style={{ width: `${ep.dontknow * 100}%`, background: '#e0563f' }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', marginTop: '3px', color: 'var(--mn-ink-3)' }}>
+                <span>🟠 粗心 {pct(ep.careless)}</span><span>🔴 没学会 {pct(ep.dontknow)}</span>
+              </div>
+            </div>
+          )}
+          {m.next_review && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>下次复习</span><b>{new Date(m.next_review).toLocaleDateString()}</b></div>}
+          <div style={{ fontSize: '11px', color: 'var(--mn-ink-3)' }}>做几道题，模型会随你更新——这就是你学习的镜子。</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function KuDetailPanel({ ku, onClose, onJumpPractice, onJumpReader, onStartSocratic }: {
   ku: KnowledgeUnitItem;
   onClose: () => void;
@@ -602,6 +657,8 @@ function KuDetailPanel({ ku, onClose, onJumpPractice, onJumpReader, onStartSocra
           )}
         </div>
       </div>
+
+      <LearnerModelPanel kuId={ku.id} />
 
       <div style={{ flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {ku.description && (() => {

@@ -12,9 +12,9 @@ const CONFIG: SubjectConfig = {
       color: '#16a34a',
       bg: '#f0fdf4',
       cards: [
-        { icon: '📚', title: '单词本', desc: '高考词汇记忆', href: '/subjects/english/vocabulary', disabled: true },
-        { icon: '🎧', title: '听力练习', desc: '真题听力专项', href: '/subjects/english/listening', disabled: true },
-        { icon: '✐', title: '语法讲解', desc: '语法考点精讲', href: '/subjects/english/grammar', disabled: true },
+        { icon: '📚', title: '单词本', desc: '高考词汇记忆', href: '/subjects/english/vocabulary' },
+        { icon: '🎧', title: '听力练习', desc: '真题听力专项', href: '/subjects/english/listening' },
+        { icon: '✐', title: '语法讲解', desc: '语法考点精讲', href: '/subjects/english/grammar' },
         { icon: '📖', title: '阅读理解引导', desc: '引导式文本分析', href: '/subjects/english/reading' },
         { icon: '◌', title: '苏格拉底答疑', desc: '引导而非直接告知', href: '/socratic' },
         { icon: '📖', title: '教材阅读', desc: '高亮·笔记·知识点', href: '/library' },
