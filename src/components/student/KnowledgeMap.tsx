@@ -642,6 +642,7 @@ function KuDetailPanel({ ku, onClose, onJumpPractice, onJumpReader, onStartSocra
             <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--mn-ink)', lineHeight: 1.3 }}>{ku.name}</div>
             <div style={{ fontSize: '11px', color: 'var(--mn-ink-3)', marginTop: '2px' }}>
               {ku.book_name}
+              {ku.track && <span style={{ marginLeft: 6, padding: '0 6px', borderRadius: 6, fontSize: 10, fontWeight: 700, background: ku.track === 'recite' ? '#fef3c7' : '#e0e7ff', color: ku.track === 'recite' ? '#b45309' : '#4338ca' }}>{ku.track === 'recite' ? '记诵轨' : '素养轨'}</span>}
             </div>
           </div>
         </div>

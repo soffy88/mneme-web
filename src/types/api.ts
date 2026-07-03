@@ -167,6 +167,7 @@ export type AlertLevel = 'notice' | 'attention' | 'important';
 export interface ParentAlert {
   id: string; alert_type: AlertType; alert_level: AlertLevel;
   content: string; is_read: boolean; created_at: string;
+  support_action?: string; conversation_script?: string;  // L6 对话时机
 }
 export interface ParentAlertsRes { alerts: ParentAlert[] }
 export interface ChildInfo { student_id: string; name: string; grade: string }
@@ -257,6 +258,7 @@ export interface KnowledgeUnitItem {
   p_mastery: number | null;
   mastery_color: MasteryColor;
   fringe?: 'mastered' | 'learning' | 'learnable' | 'locked' | null;  // KST 掌握门控(教育理念01)
+  track?: 'recite' | 'literacy' | null;  // L4 语文双轨(记诵/素养)
   prereq_mastery?: { ku_id: string; p_mastery: number | null; mastery_color: MasteryColor }[];
   rich_content?: Record<string, string | string[]> | null;
 }
