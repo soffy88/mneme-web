@@ -115,6 +115,19 @@ function FeedbackCard({ result }: { result: PracticeSubmitRes }) {
             ✎ 第 {result.step_analysis.first_wrong_step + 1} 步开始出问题，回看这一步。
           </div>
         )}
+        {result.misconception && (
+          <div style={{
+            marginTop: '8px', padding: '8px 10px', borderRadius: '8px',
+            background: 'rgba(140,90,200,0.08)', border: '1px solid rgba(140,90,200,0.22)',
+          }}>
+            <div style={{ fontSize: '12px', fontWeight: 700, color: '#7a4bbf' }}>
+              🧩 易混点：{result.misconception.label}
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--mn-ink-2)', marginTop: '3px', lineHeight: 1.5 }}>
+              重建方向：{result.misconception.remediation}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
