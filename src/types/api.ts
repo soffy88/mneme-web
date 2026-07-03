@@ -290,6 +290,7 @@ export interface PracticeSubmitReq {
   is_correct?: boolean | null;   // 省略=让后端自动判；判不了时二次提交带自评
   ku_id: string;
   predicted_confidence?: number; // JOL：作答前把握度自评(0~1)，不选则不发
+  self_explanation?: string;     // 自我解释(Chi 效应,教育理念04)，选填
 }
 export interface PracticeSubmitRes {
   is_correct: boolean | null;
