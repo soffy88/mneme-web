@@ -306,6 +306,12 @@ export interface PracticeSubmitRes {
   feedback: { text: string; type: string | null } | null;
   growth_message?: string | null;  // 成长型措辞(教育理念05)
   step_analysis?: { first_wrong_step: number | null; step_verdicts: { step: string; verdict: string }[] } | null;  // 首错步(07)
+  misconception?: {
+    id: string;
+    label: string;
+    remediation: string;
+    precision: 'exact' | 'heuristic';
+  } | null;  // L3 误解诊断(答错才有)
 }
 
 // ── 先进教育理念端点(01/02/03/08) ────────────────────────────────
