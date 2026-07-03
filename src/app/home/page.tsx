@@ -105,7 +105,7 @@ export default function HomePage() {
             第 {streak.current_streak} 天
           </p>
         </div>
-        <StreakBadge days={streak.current_streak} />
+        <StreakBadge days={streak.current_streak} freezes={streak.freezes_available} />
       </div>
 
       {/* 引导第一步：无学习历史（无连续天、无到期复习）时给清晰入口，降低冷启动茫然。

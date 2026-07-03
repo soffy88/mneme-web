@@ -115,10 +115,10 @@ export interface Mission {
   interleaved: boolean; requires_active_recall: boolean;
 }
 export interface MissionRes {
-  mission: Mission; streak: { current_streak: number; longest_streak: number };
+  mission: Mission; streak: { current_streak: number; longest_streak: number; freezes_available?: number };
 }
 export interface CompleteMissionRes {
-  streak: { current_streak: number; longest_streak: number }; next_preview: string;
+  streak: { current_streak: number; longest_streak: number; freezes_available?: number }; next_preview: string;
 }
 
 // ── 变式题 ────────────────────────────────────────────────────
