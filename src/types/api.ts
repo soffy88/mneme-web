@@ -30,6 +30,7 @@ export interface UserProfile {
   id: string; name: string; role: 'student' | 'parent';
   grade?: string; phone: string;
   invite_code?: string;   // 学生邀请码（家长注册凭此绑定）；GET /v1/auth/me 返回
+  share_process_with_parent?: boolean;  // L6 隐私分层
 }
 
 // ── 试卷 ─────────────────────────────────────────────────────

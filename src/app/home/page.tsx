@@ -46,6 +46,7 @@ export default function HomePage() {
   const [studentId,  setStudentId]  = useState<string | null>(null);
   const [me,         setMe]         = useState<UserProfile | null>(null);
   const [codeCopied, setCodeCopied] = useState(false);
+  const [shareProcess, setShareProcess] = useState(false);  // L6 隐私开关
 
   const load = async () => {
     const sid = getUserId();
@@ -64,7 +65,7 @@ export default function HomePage() {
     // review/due 慢（变式生成），不挡首屏，回来再补
     void api.getReviewDue(sid).then((r) => { if (r.ok) setReviewDue(r.data); });
     // 邀请码（家长监督卡）：/v1/auth/me，异步不挡首屏
-    void api.getMe().then((r) => { if (r.ok) setMe(r.data); });
+    void api.getMe().then((r) => { if (r.ok) { setMe(r.data); setShareProcess(!!r.data.share_process_with_parent); } });
   };
 
   useEffect(() => { void load(); }, []);
@@ -427,6 +428,35 @@ export default function HomePage() {
             }}
           >
             {codeCopied ? '已复制 ✓' : '复制'}
+          </button>
+        </div>
+      )}
+
+      {/* L6 隐私分层：学生协商是否向家长开放过程数据（错题细节/情绪/求助） */}
+      {me && me.role !== 'parent' && (
+        <div className="mn-card" style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span style={{ fontSize: '20px', flexShrink: 0 }}>🔒</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, fontSize: '14px', color: 'var(--mn-ink)' }}>过程数据对家长可见</div>
+            <div style={{ fontSize: '12px', color: 'var(--mn-ink-3)', marginTop: '2px', lineHeight: 1.5 }}>
+              进度/掌握度家长一直能看；这里控制错题细节、情绪、求助记录是否也让家长看到——由你决定。
+            </div>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={shareProcess}
+            onClick={() => {
+              const sid = getUserId(); if (!sid) return;
+              const next = !shareProcess; setShareProcess(next);
+              void api.setPrivacy(sid, next).then(r => { if (!r.ok) setShareProcess(!next); });
+            }}
+            style={{
+              flexShrink: 0, width: 44, height: 26, borderRadius: 99, border: 'none', cursor: 'pointer', position: 'relative',
+              background: shareProcess ? 'var(--mn-blue)' : 'var(--mn-border)', transition: 'background 0.2s',
+            }}
+          >
+            <span style={{ position: 'absolute', top: 3, left: shareProcess ? 21 : 3, width: 20, height: 20, borderRadius: '50%', background: '#fff', transition: 'left 0.2s' }} />
           </button>
         </div>
       )}
