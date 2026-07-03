@@ -100,6 +100,12 @@ export default function AlertsPage() {
                   <div style={{ fontSize: '14px', color: 'var(--mn-ink)', lineHeight: 1.5, marginBottom: '4px' }}>
                     {alert.content}
                   </div>
+                  {alert.conversation_script && (
+                    <div style={{ marginTop: 6, marginBottom: 6, padding: '10px 12px', borderRadius: 10, background: 'var(--mn-blue-dim, #eff6ff)', borderLeft: '3px solid var(--mn-blue)' }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--mn-blue)', marginBottom: 3 }}>💬 对话时机{alert.support_action ? ` · ${alert.support_action}` : ''}</div>
+                      <div style={{ fontSize: 13, color: 'var(--mn-ink-2)', lineHeight: 1.6 }}>{alert.conversation_script}</div>
+                    </div>
+                  )}
                   <div style={{ fontSize: '11px', color: 'var(--mn-ink-3)', fontVariantNumeric: 'tabular-nums' }}>
                     {new Date(alert.created_at).toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                   </div>
