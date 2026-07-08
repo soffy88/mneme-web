@@ -157,6 +157,8 @@ export interface KnowledgeMapProps {
   onJumpPractice: (kuId: string) => void;
   onJumpReader: (fileId: string) => void;
   onStartSocratic?: (ku: KnowledgeUnitItem) => void;
+  onJumpForceAnalysis?: (kuId: string) => void;
+  onJumpReadingGuide?: (kuId: string) => void;
 }
 
 // ── 掌握度 ────────────────────────────────────────────────────────────
@@ -608,12 +610,14 @@ function LearnerModelPanel({ kuId }: { kuId: string }) {
   );
 }
 
-function KuDetailPanel({ ku, onClose, onJumpPractice, onJumpReader, onStartSocratic }: {
+function KuDetailPanel({ ku, onClose, onJumpPractice, onJumpReader, onStartSocratic, onJumpForceAnalysis, onJumpReadingGuide }: {
   ku: KnowledgeUnitItem;
   onClose: () => void;
   onJumpPractice: (kuId: string) => void;
   onJumpReader: (fileId: string) => void;
   onStartSocratic?: (ku: KnowledgeUnitItem) => void;
+  onJumpForceAnalysis?: (kuId: string) => void;
+  onJumpReadingGuide?: (kuId: string) => void;
 }) {
   const dot = MASTERY_DOT[ku.mastery_color];
   const masteryPct = ku.p_mastery !== null ? Math.round((ku.p_mastery ?? 0) * 100) : null;
@@ -807,6 +811,32 @@ function KuDetailPanel({ ku, onClose, onJumpPractice, onJumpReader, onStartSocra
             </button>
           )}
 
+          {onJumpForceAnalysis && (
+            <button onClick={() => onJumpForceAnalysis(ku.id)} style={{
+              width: '100%', padding: '12px', borderRadius: '12px',
+              background: 'var(--mn-blue-dim)', border: '1px solid var(--mn-blue)',
+              fontSize: '14px', color: 'var(--mn-blue)', fontWeight: 600,
+              cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px',
+            }}>
+              <span style={{ fontSize: '18px' }}>⚖️</span>
+              受力分析引导
+              <span style={{ fontSize: '11px', opacity: 0.6, marginLeft: 'auto' }}>›</span>
+            </button>
+          )}
+
+          {onJumpReadingGuide && (
+            <button onClick={() => onJumpReadingGuide(ku.id)} style={{
+              width: '100%', padding: '12px', borderRadius: '12px',
+              background: 'var(--mn-blue-dim)', border: '1px solid var(--mn-blue)',
+              fontSize: '14px', color: 'var(--mn-blue)', fontWeight: 600,
+              cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '10px',
+            }}>
+              <span style={{ fontSize: '18px' }}>📖</span>
+              阅读理解引导
+              <span style={{ fontSize: '11px', opacity: 0.6, marginLeft: 'auto' }}>›</span>
+            </button>
+          )}
+
           <button onClick={() => onJumpPractice(ku.id)} style={{
             width: '100%', padding: '12px', borderRadius: '12px',
             background: 'var(--mn-green)', border: 'none',
@@ -827,6 +857,7 @@ function KuDetailPanel({ ku, onClose, onJumpPractice, onJumpReader, onStartSocra
 
 export default function KnowledgeMap({
   subject, title, textbookId, onBack, onJumpPractice, onJumpReader, onStartSocratic,
+  onJumpForceAnalysis, onJumpReadingGuide,
 }: KnowledgeMapProps) {
   const [kus,         setKus]       = useState<KnowledgeUnitItem[]>([]);
   const [loading,     setLoading]   = useState(true);
@@ -1023,6 +1054,8 @@ export default function KnowledgeMap({
               onJumpPractice={onJumpPractice}
               onJumpReader={onJumpReader}
               onStartSocratic={onStartSocratic ? handleStartSocratic : undefined}
+              onJumpForceAnalysis={onJumpForceAnalysis}
+              onJumpReadingGuide={onJumpReadingGuide}
             />
           </div>
         )}
@@ -1049,6 +1082,8 @@ export default function KnowledgeMap({
             onJumpPractice={onJumpPractice}
             onJumpReader={onJumpReader}
             onStartSocratic={onStartSocratic ? handleStartSocratic : undefined}
+            onJumpForceAnalysis={onJumpForceAnalysis}
+            onJumpReadingGuide={onJumpReadingGuide}
           />
         </div>
       )}

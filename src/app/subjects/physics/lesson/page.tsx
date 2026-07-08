@@ -14,6 +14,10 @@ export default function PhysicsLessonPage() {
     router.push(`/subjects/physics/practice?ku_id=${encodeURIComponent(kuId)}`);
   }, [router]);
 
+  const handleJumpForceAnalysis = useCallback((kuId: string) => {
+    router.push(`/subjects/physics/force-analysis?ku_id=${encodeURIComponent(kuId)}`);
+  }, [router]);
+
   const handleJumpReader = useCallback((fileId: string) => {
     router.push(`/reader/${encodeURIComponent(fileId)}`);
   }, [router]);
@@ -34,6 +38,7 @@ export default function PhysicsLessonPage() {
       onJumpPractice={handleJumpPractice}
       onJumpReader={handleJumpReader}
       onStartSocratic={handleStartSocratic}
+      onJumpForceAnalysis={handleJumpForceAnalysis}
     />
   );
 }

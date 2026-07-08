@@ -16,6 +16,10 @@ export default function ChineseLessonPage() {
     router.push(`/reader/${encodeURIComponent(fileId)}`);
   }, [router]);
 
+  const handleJumpReadingGuide = useCallback((kuId: string) => {
+    router.push(`/subjects/chinese/reading?ku_id=${encodeURIComponent(kuId)}`);
+  }, [router]);
+
   return (
     <KnowledgeMap
       subject="chinese"
@@ -23,6 +27,7 @@ export default function ChineseLessonPage() {
       onBack={() => router.back()}
       onJumpPractice={handleJumpPractice}
       onJumpReader={handleJumpReader}
+      onJumpReadingGuide={handleJumpReadingGuide}
     />
   );
 }

@@ -107,6 +107,15 @@ export type SocraticChunk = SocraticDelta | SocraticDone;
 
 export interface EscapeRes { answer_outline: string; used_escape_hatch: boolean }
 
+// 受力分析引导 / 阅读理解引导的 /end 端点共用的返回形状
+export interface SessionEndRes {
+  session_id: string;
+  outcome: SocraticOutcome;
+  client_outcome: string;
+  duration_seconds: number;
+  kc_updated: boolean;
+}
+
 // ── 今日目标 ─────────────────────────────────────────────────
 export type MissionType = 'review' | 'socratic' | 'upload' | 'knowledge_focus' | 'rest' | 'cold_start';
 export interface Mission {
@@ -218,7 +227,7 @@ export interface EssayGuideRes {
 }
 
 // ── 英语口语 ──────────────────────────────────────────────────
-export interface SpeakingPracticeReq { topic: string; target_sentences: string; grade: string }
+export interface SpeakingPracticeReq { topic: string; target_sentences: string; grade: string; ku_id?: string }
 export interface SpeakingPracticeRes {
   session_id: string;
   turns: unknown[];

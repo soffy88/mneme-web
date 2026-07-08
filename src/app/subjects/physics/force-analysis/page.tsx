@@ -1,13 +1,16 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useCallback, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import * as api from '@/lib/api-client';
+import type { SocraticOutcome } from '@/types/api';
 
 interface Msg { role: 'ai' | 'user'; text: string; streaming?: boolean }
 
-export default function ForceAnalysisPage() {
+function ForceAnalysisPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const kuId = searchParams.get('ku_id');
 
   const [questionText,  setQuestionText]  = useState('');
   const [sessionId,     setSessionId]     = useState<string | null>(null);
@@ -17,6 +20,9 @@ export default function ForceAnalysisPage() {
   const [loading,       setLoading]       = useState(false);
   const [equationReady, setEquationReady] = useState(false);
   const [err,           setErr]           = useState('');
+  const [ending,        setEnding]        = useState(false);
+  const [outcome,       setOutcome]       = useState<SocraticOutcome>(null);
+  const [kcUpdated,     setKcUpdated]     = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const taRef     = useRef<HTMLTextAreaElement>(null);
 
@@ -26,12 +32,22 @@ export default function ForceAnalysisPage() {
     if (!questionText.trim()) return;
     setLoading(true);
     setErr('');
-    const res = await api.startForceAnalysis(questionText.trim());
+    const res = await api.startForceAnalysis(questionText.trim(), kuId ?? undefined);
     setLoading(false);
     if (!res.ok) { setErr('启动失败，请稍后重试'); return; }
     setSessionId(res.data.session_id);
     setMsgs([{ role: 'ai', text: res.data.first_question }]);
     scroll();
+  };
+
+  // outcome 不由前端伪造：equationReady 只是提示前端"看起来做完了"，success 与否服务端按会话内是否
+  // 真的 equation_ready 过来核验，谎报会被降级为 partial，不放行污染掌握度。
+  const onEnd = async () => {
+    if (!sessionId || ending) return;
+    setEnding(true);
+    const res = await api.endForceAnalysis(sessionId, equationReady ? 'success' : 'abandoned');
+    setEnding(false);
+    if (res.ok) { setOutcome(res.data.outcome); setKcUpdated(res.data.kc_updated); }
   };
 
   const send = useCallback(async () => {
@@ -148,32 +164,55 @@ export default function ForceAnalysisPage() {
         <div ref={bottomRef} />
       </div>
 
-      <div style={{ padding: '12px 16px', borderTop: '1px solid var(--mn-border)', display: 'flex', gap: '8px' }}>
-        <textarea
-          ref={taRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKey}
-          placeholder="输入你的想法，按 Enter 发送…"
-          rows={2}
-          style={{
-            flex: 1, padding: '10px 12px', border: '1.5px solid var(--mn-border)', borderRadius: '10px',
-            fontFamily: 'inherit', fontSize: '15px', resize: 'none', outline: 'none',
-            background: 'var(--mn-canvas)', color: 'var(--mn-ink)', lineHeight: 1.5,
-          }}
-        />
-        <button
-          onClick={send}
-          disabled={streaming || !input.trim()}
-          style={{
-            padding: '0 16px', border: 'none', borderRadius: '10px',
-            background: streaming || !input.trim() ? 'var(--mn-border)' : 'var(--mn-blue)',
-            color: '#fff', fontSize: '14px', fontWeight: 600, cursor: streaming ? 'wait' : 'pointer',
-            alignSelf: 'flex-end',
-          }}>
-          {streaming ? '…' : '发送'}
-        </button>
-      </div>
+      {outcome ? (
+        <div style={{ margin: '12px 16px 16px', padding: '12px', textAlign: 'center', fontSize: '13px', color: 'var(--mn-ink-3)', background: 'var(--mn-canvas)', borderRadius: '12px', border: '1px solid var(--mn-border)' }}>
+          对话结束 · {outcome === 'success' ? '🎉 你想通了！' : outcome === 'partial' ? '💪 有进步！' : '继续加油'}
+          {kcUpdated && <span style={{ display: 'block', marginTop: '4px', color: 'var(--mn-green)' }}>已记入掌握度</span>}
+        </div>
+      ) : (
+        <div style={{ padding: '12px 16px', borderTop: '1px solid var(--mn-border)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <textarea
+              ref={taRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKey}
+              placeholder="输入你的想法，按 Enter 发送…"
+              rows={2}
+              style={{
+                flex: 1, padding: '10px 12px', border: '1.5px solid var(--mn-border)', borderRadius: '10px',
+                fontFamily: 'inherit', fontSize: '15px', resize: 'none', outline: 'none',
+                background: 'var(--mn-canvas)', color: 'var(--mn-ink)', lineHeight: 1.5,
+              }}
+            />
+            <button
+              onClick={send}
+              disabled={streaming || !input.trim()}
+              style={{
+                padding: '0 16px', border: 'none', borderRadius: '10px',
+                background: streaming || !input.trim() ? 'var(--mn-border)' : 'var(--mn-blue)',
+                color: '#fff', fontSize: '14px', fontWeight: 600, cursor: streaming ? 'wait' : 'pointer',
+                alignSelf: 'flex-end',
+              }}>
+              {streaming ? '…' : '发送'}
+            </button>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button type="button" onClick={() => void onEnd()} disabled={ending}
+              style={{ fontSize: '12px', color: equationReady ? 'var(--mn-green)' : 'var(--mn-ink-3)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px', fontWeight: equationReady ? 600 : 400, opacity: ending ? 0.6 : 1 }}>
+              {ending ? '结束中…' : equationReady ? '我完成了 ✓' : '结束对话 ↩'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+export default function ForceAnalysisPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '48px', textAlign: 'center', color: 'var(--mn-ink-3)' }}>加载中…</div>}>
+      <ForceAnalysisPageInner />
+    </Suspense>
   );
 }

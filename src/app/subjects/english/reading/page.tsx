@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useCallback, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import * as api from '@/lib/api-client';
+import type { SocraticOutcome } from '@/types/api';
 
 interface Msg { role: 'ai' | 'user'; text: string; streaming?: boolean }
 
@@ -20,10 +21,20 @@ const LABELS = {
   snippet:     (q: string) => `Q: ${q.length > 50 ? q.slice(0, 50) + '…' : q}`,
   startErr:    'Failed to start. Please try again.',
   streamErr:   '⚠️ Connection lost. Please try again.',
+  finishBtn:   'I got it ✓',
+  endBtn:      'End conversation ↩',
+  ending:      'Ending…',
+  ended:       'Conversation ended',
+  outSuccess:  '🎉 You got it!',
+  outPartial:  '💪 Good progress!',
+  outOther:    'Keep going',
+  kcUpdated:   'Progress recorded',
 };
 
-export default function EnglishReadingPage() {
+function EnglishReadingPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const kuId = searchParams.get('ku_id');
 
   const [articleText,     setArticleText]    = useState('');
   const [question,        setQuestion]       = useState('');
@@ -34,6 +45,9 @@ export default function EnglishReadingPage() {
   const [loading,         setLoading]        = useState(false);
   const [locatedPassage,  setLocatedPassage] = useState(false);
   const [err,             setErr]            = useState('');
+  const [ending,          setEnding]         = useState(false);
+  const [outcome,         setOutcome]        = useState<SocraticOutcome>(null);
+  const [kcUpdated,       setKcUpdated]      = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const taRef     = useRef<HTMLTextAreaElement>(null);
 
@@ -43,12 +57,22 @@ export default function EnglishReadingPage() {
     if (!articleText.trim() || !question.trim()) return;
     setLoading(true);
     setErr('');
-    const res = await api.startReadingGuide({ article_text: articleText.trim(), question: question.trim(), subject: 'english' });
+    const res = await api.startReadingGuide({ article_text: articleText.trim(), question: question.trim(), subject: 'english', ku_id: kuId ?? undefined });
     setLoading(false);
     if (!res.ok) { setErr(LABELS.startErr); return; }
     setSessionId(res.data.session_id);
     setMsgs([{ role: 'ai', text: res.data.first_question }]);
     scroll();
+  };
+
+  // outcome is never faked client-side: locatedPassage is just a client-side hint, the server verifies
+  // via located_passage_ever and downgrades a falsely-claimed "success" to "partial".
+  const onEnd = async () => {
+    if (!sessionId || ending) return;
+    setEnding(true);
+    const res = await api.endReadingGuide(sessionId, locatedPassage ? 'success' : 'abandoned');
+    setEnding(false);
+    if (res.ok) { setOutcome(res.data.outcome); setKcUpdated(res.data.kc_updated); }
   };
 
   const send = useCallback(async () => {
@@ -129,14 +153,37 @@ export default function EnglishReadingPage() {
         ))}
         <div ref={bottomRef} />
       </div>
-      <div style={{ padding: '12px 16px', borderTop: '1px solid var(--mn-border)', display: 'flex', gap: '8px' }}>
-        <textarea ref={taRef} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKey} placeholder={LABELS.inputPh} rows={2}
-          style={{ flex: 1, padding: '10px 12px', border: '1.5px solid var(--mn-border)', borderRadius: '10px', fontFamily: 'inherit', fontSize: '15px', resize: 'none', outline: 'none', background: 'var(--mn-canvas)', color: 'var(--mn-ink)', lineHeight: 1.5 }} />
-        <button onClick={send} disabled={streaming || !input.trim()}
-          style={{ padding: '0 16px', border: 'none', borderRadius: '10px', background: streaming || !input.trim() ? 'var(--mn-border)' : 'var(--mn-blue)', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: streaming ? 'wait' : 'pointer', alignSelf: 'flex-end' }}>
-          {streaming ? '…' : LABELS.sendBtn}
-        </button>
-      </div>
+      {outcome ? (
+        <div style={{ margin: '12px 16px 16px', padding: '12px', textAlign: 'center', fontSize: '13px', color: 'var(--mn-ink-3)', background: 'var(--mn-canvas)', borderRadius: '12px', border: '1px solid var(--mn-border)' }}>
+          {LABELS.ended} · {outcome === 'success' ? LABELS.outSuccess : outcome === 'partial' ? LABELS.outPartial : LABELS.outOther}
+          {kcUpdated && <span style={{ display: 'block', marginTop: '4px', color: 'var(--mn-green)' }}>{LABELS.kcUpdated}</span>}
+        </div>
+      ) : (
+        <div style={{ padding: '12px 16px', borderTop: '1px solid var(--mn-border)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <textarea ref={taRef} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKey} placeholder={LABELS.inputPh} rows={2}
+              style={{ flex: 1, padding: '10px 12px', border: '1.5px solid var(--mn-border)', borderRadius: '10px', fontFamily: 'inherit', fontSize: '15px', resize: 'none', outline: 'none', background: 'var(--mn-canvas)', color: 'var(--mn-ink)', lineHeight: 1.5 }} />
+            <button onClick={send} disabled={streaming || !input.trim()}
+              style={{ padding: '0 16px', border: 'none', borderRadius: '10px', background: streaming || !input.trim() ? 'var(--mn-border)' : 'var(--mn-blue)', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: streaming ? 'wait' : 'pointer', alignSelf: 'flex-end' }}>
+              {streaming ? '…' : LABELS.sendBtn}
+            </button>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button type="button" onClick={() => void onEnd()} disabled={ending}
+              style={{ fontSize: '12px', color: locatedPassage ? 'var(--mn-green)' : 'var(--mn-ink-3)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px', fontWeight: locatedPassage ? 600 : 400, opacity: ending ? 0.6 : 1 }}>
+              {ending ? LABELS.ending : locatedPassage ? LABELS.finishBtn : LABELS.endBtn}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+export default function EnglishReadingPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '48px', textAlign: 'center', color: 'var(--mn-ink-3)' }}>Loading…</div>}>
+      <EnglishReadingPageInner />
+    </Suspense>
   );
 }
