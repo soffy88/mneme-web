@@ -12,7 +12,7 @@ import type {
   SendCodeReq, LoginReq, LoginRes, RegisterStudentReq, RegisterParentReq, UserProfile,
   PaperUploadRes, PaperResult,
   InteractionReq, InteractionRes, MasteryRes, MasteryCurveRes,
-  SocraticStartRes, EscapeRes,
+  SocraticStartRes, EscapeRes, SessionEndRes, SocraticOutcome,
   MissionRes, CompleteMissionRes,
   PracticeRes, LessonRes,
   ParentOverviewRes, ParentAlertsRes, ParentAlert, ChildInfo, BindChildRes, WeeklyDigestRes,
@@ -256,15 +256,22 @@ export const getSpeakingHistory = (sid: string) =>
   USE_MOCK ? mock.mockSpeakingHistory() : req<SpeakingHistoryItem[]>(`/v1/speaking/history/${sid}`);
 
 // ── 受力分析引导（物理）──────────────────────────────────────────
-export const startForceAnalysis = (questionText: string) =>
+export const startForceAnalysis = (questionText: string, kuId?: string) =>
   USE_MOCK
     ? Promise.resolve({ ok: true as const, data: { session_id: 'mock-fa', first_question: '这道题的物体处于什么状态？' } })
     : req<{ session_id: string; first_question: string }>(
-        `/v1/physics/force-analysis/start?question_text=${encodeURIComponent(questionText)}`,
+        `/v1/physics/force-analysis/start?question_text=${encodeURIComponent(questionText)}`
+          + (kuId ? `&ku_id=${encodeURIComponent(kuId)}` : ''),
         { method: 'POST' },
         true,
         90_000,
       );
+
+// outcome: 'success'|'partial'|'failed'|'abandoned'；服务端会按会话内实际状态核验/降级，不可伪造
+export const endForceAnalysis = (sessionId: string, outcome: Exclude<SocraticOutcome, null>) =>
+  USE_MOCK
+    ? Promise.resolve({ ok: true as const, data: { session_id: sessionId, outcome, client_outcome: outcome, duration_seconds: 0, kc_updated: outcome === 'success' } })
+    : req<SessionEndRes>(`/v1/physics/force-analysis/${encodeURIComponent(sessionId)}/end?outcome=${encodeURIComponent(outcome)}`, { method: 'POST' });
 
 export async function forceAnalysisStream(
   sessionId: string,
@@ -311,7 +318,7 @@ export async function forceAnalysisStream(
 }
 
 // ── 阅读理解引导（英语/语文）────────────────────────────────────
-export const startReadingGuide = (params: { article_text: string; question: string; subject: string }) =>
+export const startReadingGuide = (params: { article_text: string; question: string; subject: string; ku_id?: string }) =>
   USE_MOCK
     ? Promise.resolve({ ok: true as const, data: { session_id: 'mock-rg', first_question: '先找找哪个段落和题目最相关？', subject: params.subject } })
     : req<{ session_id: string; first_question: string; subject: string }>(
@@ -320,6 +327,12 @@ export const startReadingGuide = (params: { article_text: string; question: stri
         true,
         90_000,
       );
+
+// outcome: 同 endForceAnalysis，服务端按 located_passage_ever 核验/降级
+export const endReadingGuide = (sessionId: string, outcome: Exclude<SocraticOutcome, null>) =>
+  USE_MOCK
+    ? Promise.resolve({ ok: true as const, data: { session_id: sessionId, outcome, client_outcome: outcome, duration_seconds: 0, kc_updated: outcome === 'success' } })
+    : req<SessionEndRes>(`/v1/reading/guide/${encodeURIComponent(sessionId)}/end?outcome=${encodeURIComponent(outcome)}`, { method: 'POST' });
 
 export async function readingGuideStream(
   sessionId: string,
