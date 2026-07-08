@@ -9,7 +9,7 @@ import { Achievements } from '@/components/shared/Achievements';
 import { EffortBoard } from '@/components/shared/EffortBoard';
 import { InterleaveCard } from '@/components/shared/InterleaveCard';
 import { GrowthExtras } from '@/components/student/GrowthExtras';
-import type { MissionRes, CompleteMissionRes, ReviewDueItem, DailyPlanRes, UserProfile } from '@/types/api';
+import type { MissionRes, CompleteMissionRes, ReviewDueItem, DailyPlanRes, UserProfile, QuizDueRes } from '@/types/api';
 
 
 const TYPE_META: Record<string, { icon: string; color: string; bg: string; action: string; href: string }> = {
@@ -42,6 +42,7 @@ export default function HomePage() {
   const [done,       setDone]       = useState<CompleteMissionRes | null>(null);
   const [error,      setError]      = useState('');
   const [reviewDue,  setReviewDue]  = useState<ReviewDueItem[]>([]);
+  const [quizDue,    setQuizDue]    = useState<QuizDueRes | null>(null);
   const [dailyPlan,  setDailyPlan]  = useState<DailyPlanRes | null>(null);
   const [studentId,  setStudentId]  = useState<string | null>(null);
   const [me,         setMe]         = useState<UserProfile | null>(null);
@@ -64,6 +65,7 @@ export default function HomePage() {
     if (planRes.ok)   setDailyPlan(planRes.data);
     // review/due 慢（变式生成），不挡首屏，回来再补
     void api.getReviewDue(sid).then((r) => { if (r.ok) setReviewDue(r.data); });
+    void api.getQuizDue(sid).then((r) => { if (r.ok) setQuizDue(r.data); });
     // 邀请码（家长监督卡）：/v1/auth/me，异步不挡首屏
     void api.getMe().then((r) => { if (r.ok) { setMe(r.data); setShareProcess(!!r.data.share_process_with_parent); } });
   };
@@ -259,6 +261,37 @@ export default function HomePage() {
             </div>
             <div style={{ fontSize: '13px', color: 'var(--mn-ink-2)', marginTop: '2px' }}>
               {reviewDue.length} 个知识点到了复习时间
+            </div>
+          </div>
+          <span style={{ color: 'var(--mn-ink-3)', fontSize: '16px' }}>›</span>
+        </button>
+      )}
+
+      {/* 限时小测卡片（仅在有到期小测时显示） */}
+      {quizDue?.due === true && (
+        <button
+          type="button"
+          className="mn-card-interactive"
+          onClick={() => router.push('/quiz')}
+          style={{
+            width: '100%', textAlign: 'left', background: 'none',
+            border: '1.5px solid var(--mn-orange)', borderRadius: '16px',
+            padding: '16px 18px', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: '14px',
+          }}
+        >
+          <div style={{
+            width: '38px', height: '38px', borderRadius: '10px',
+            background: 'var(--mn-orange-dim)', display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+            fontSize: '18px', flexShrink: 0,
+          }}>⏱</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, fontSize: '15px', color: 'var(--mn-orange)' }}>
+              限时小测
+            </div>
+            <div style={{ fontSize: '13px', color: 'var(--mn-ink-2)', marginTop: '2px' }}>
+              {quizDue.items.length} 道检索检查点，限时 {Math.round(quizDue.time_limit_seconds / 60)} 分钟
             </div>
           </div>
           <span style={{ color: 'var(--mn-ink-3)', fontSize: '16px' }}>›</span>
