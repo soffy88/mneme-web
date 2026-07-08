@@ -218,6 +218,17 @@ export interface ReviewDueItem {
 export interface ReviewRevealRes { kc_id: string; answer: string; recorded_again: boolean }
 export interface ReviewSubmitRes { kc_id: string; verdict: 'correct' | 'wrong' | 'unsure'; answer: string }
 
+// ── 周期限时小测（T.8，检索检查点）─────────────────────────────
+export interface QuizItem { kc_id: string; question_id: string; question_text: string }
+export type QuizDueRes =
+  | { due: false; next_due_date?: string; reason?: string }
+  | { due: true; quiz_id: string; time_limit_seconds: number; items: QuizItem[] };
+
+export interface QuizResultItem { kc_id: string; question_id: string; verdict: 'correct' | 'wrong' | 'unsure' }
+export type QuizSubmitRes =
+  | { quiz_id: string; score: number; results: QuizResultItem[]; failed_kcs: string[] }
+  | { error: string };
+
 // ── 作文引导 ──────────────────────────────────────────────────
 export interface EssayGuideReq { essay_text: string; grade: string; essay_type: string }
 export interface EssayGuideRes {

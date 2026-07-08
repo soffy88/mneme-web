@@ -18,6 +18,7 @@ import type {
   ParentOverviewRes, ParentAlertsRes, ParentAlert, ChildInfo, BindChildRes, WeeklyDigestRes,
   CalibrationRes,
   ErrorJournalRes, ReviewDueItem, ReviewRevealRes, ReviewSubmitRes,
+  QuizDueRes, QuizSubmitRes,
   EssayGuideReq, EssayGuideRes,
   SpeakingPracticeReq, SpeakingPracticeRes, SpeakingHistoryItem,
   DailyPlanRes,
@@ -242,6 +243,17 @@ export const reviewReveal = (sid: string, kc_id: string) =>
 // 先检索后核对：提交作答 → 后端确定性判分入 BKT/FSRS，返回参考答案
 export const reviewSubmit = (sid: string, kc_id: string, answer: string) =>
   req<ReviewSubmitRes>(`/v1/review/submit/${sid}`, { method: 'POST', body: JSON.stringify({ kc_id, answer }) });
+
+// ── 周期限时小测（T.8）── real-only（同 effortful-gains/weak-roots，护城河接口不走 mock）
+export const getQuizDue = (sid: string) => req<QuizDueRes>(`/v1/quiz/due/${sid}`);
+export const submitQuiz = (
+  quizId: string, sid: string,
+  answers: { question_id: string; student_answer: string }[],
+  timeSpentSeconds: number,
+) => req<QuizSubmitRes>(
+  `/v1/quiz/${quizId}/submit?student_id=${encodeURIComponent(sid)}`,
+  { method: 'POST', body: JSON.stringify({ answers, time_spent_seconds: timeSpentSeconds }) },
+);
 
 // ── 作文引导 ──────────────────────────────────────────────────
 export const postEssayGuide = (r: EssayGuideReq) =>
