@@ -21,7 +21,7 @@ import type {
   QuizDueRes, QuizSubmitRes,
   EssayGuideReq, EssayGuideRes,
   SpeakingPracticeReq, SpeakingPracticeRes, SpeakingHistoryItem,
-  DailyPlanRes, DailyPlanPrefs,
+  DailyPlanRes, DailyPlanPrefs, TextbookBindings, TextbookOption,
   KnowledgeUnitItem, QuestionBankRes, PracticeSubmitReq, PracticeSubmitRes,
   EffortfulGainsRes, ReviewQueueItem, WeakRootsRes,
   Achievement, PatternsRes,
@@ -462,6 +462,13 @@ export const setExamDate = (sid: string, examDate: string | null) =>
 export const getDailyPlanPrefs = (sid: string) => req<DailyPlanPrefs>(`/v1/users/${sid}/daily-plan-prefs`);
 export const setDailyPlanPrefs = (sid: string, updates: Partial<DailyPlanPrefs>) =>
   req<DailyPlanPrefs>(`/v1/users/${sid}/daily-plan-prefs`, { method: 'POST', body: JSON.stringify(updates) });
+
+// ── 用户教材绑定（N.4）── real-only，涉及真实调度行为，不走 mock
+export const getTextbookBindings = (sid: string) => req<TextbookBindings>(`/v1/users/${sid}/textbook-bindings`);
+export const setTextbookBindings = (sid: string, updates: TextbookBindings) =>
+  req<TextbookBindings>(`/v1/users/${sid}/textbook-bindings`, { method: 'POST', body: JSON.stringify(updates) });
+export const listTextbooks = (subject: string) =>
+  req<TextbookOption[]>(`/v1/textbooks?subject=${encodeURIComponent(subject)}`);
 
 // ── 苏格拉底（KU 入口） ───────────────────────────────────────
 export const startSocraticForKu = (kuId: string, studentId: string) =>
