@@ -21,7 +21,7 @@ import type {
   QuizDueRes, QuizSubmitRes,
   EssayGuideReq, EssayGuideRes,
   SpeakingPracticeReq, SpeakingPracticeRes, SpeakingHistoryItem,
-  DailyPlanRes,
+  DailyPlanRes, DailyPlanPrefs,
   KnowledgeUnitItem, QuestionBankRes, PracticeSubmitReq, PracticeSubmitRes,
   EffortfulGainsRes, ReviewQueueItem, WeakRootsRes,
   Achievement, PatternsRes,
@@ -457,6 +457,11 @@ export const setPrivacy = (sid: string, share: boolean) =>
 export const setExamDate = (sid: string, examDate: string | null) =>
   req<{ exam_date: string | null; exam_countdown_days: number | null }>(
     `/v1/users/${sid}/exam-date`, { method: 'POST', body: JSON.stringify({ exam_date: examDate }) });
+
+// ── 每日计划参数可见+可配置（V.2）── real-only，涉及真实调度行为，不走 mock
+export const getDailyPlanPrefs = (sid: string) => req<DailyPlanPrefs>(`/v1/users/${sid}/daily-plan-prefs`);
+export const setDailyPlanPrefs = (sid: string, updates: Partial<DailyPlanPrefs>) =>
+  req<DailyPlanPrefs>(`/v1/users/${sid}/daily-plan-prefs`, { method: 'POST', body: JSON.stringify(updates) });
 
 // ── 苏格拉底（KU 入口） ───────────────────────────────────────
 export const startSocraticForKu = (kuId: string, studentId: string) =>

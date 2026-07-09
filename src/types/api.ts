@@ -381,6 +381,15 @@ export interface DailyPlanRes {
   tasks: DailyPlanTask[];
 }
 
+// ── 每日计划参数可见+可配置（V.2）── GATE 掌握度阈值不在此列（单源常量，不可调）
+export interface DailyPlanPrefs {
+  budget_minutes: number | null;
+  late_night_hour: number;
+  late_night_minute: number;
+  weak_max_items: number;
+  new_max_items: number;
+}
+
 // ── 努力收益看板（M-F 对抗努力错觉）──
 export interface EffortGain {
   question_id: string | null;
