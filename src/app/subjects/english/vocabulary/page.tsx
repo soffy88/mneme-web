@@ -152,7 +152,7 @@ export default function VocabularyPage() {
       if (sid) {
         void api.postInteraction({
           student_id: sid,
-          kc_id: `EN-VOCAB-${w.w}`,
+          ku_id: `EN-VOCAB-${w.w}`,
           is_correct: r !== 'again',
           struggled: r === 'hard',
           effortless: r === 'easy',

@@ -96,7 +96,7 @@ export const listPapers    = ()                  => USE_MOCK ? mock.mockListPape
 // ── 认知状态 ────────────────────────────────────────────────
 export const postInteraction = (r: InteractionReq)         => USE_MOCK ? mock.mockInteraction(r) : post<InteractionRes>('/v1/interaction', r);
 export const getMastery      = (sid: string)               => USE_MOCK ? mock.mockMastery()      : req<MasteryRes>(`/v1/mastery/${sid}`);
-export const getMasteryCurve = (sid: string, kcId: string) => USE_MOCK ? mock.mockCurve()        : req<MasteryCurveRes>(`/v1/mastery/curve/${sid}/${kcId}`);
+export const getMasteryCurve = (sid: string, kuId: string) => USE_MOCK ? mock.mockCurve()        : req<MasteryCurveRes>(`/v1/mastery/curve/${sid}/${kuId}`);
 export const getReviewQueue  = (sid: string)               => USE_MOCK ? mock.mockReviewQueue()  : req<ReviewQueueItem[]>(`/v1/review-queue/${sid}`);
 
 // SSE 整体兜底超时：N 毫秒内无新数据则中止流，防止永久卡死。
@@ -168,9 +168,9 @@ export const getMission      = (sid: string)       => USE_MOCK ? mock.mockMissio
 export const completeMission = (mid: string)       => USE_MOCK ? mock.mockCompleteMission()  : post<CompleteMissionRes>(`/v1/missions/${mid}/complete`, {});
 
 // ── 变式题 ───────────────────────────────────────────────────
-export const generatePractice = (kcId: string, count = 3, difficulty = 0.5) => {
+export const generatePractice = (kuId: string, count = 3, difficulty = 0.5) => {
   if (USE_MOCK) return mock.mockPractice();
-  const qs = new URLSearchParams({ kc_id: kcId, count: String(count), difficulty: String(difficulty) });
+  const qs = new URLSearchParams({ ku_id: kuId, count: String(count), difficulty: String(difficulty) });
   return req<PracticeRes>(`/v1/practice/generate?${qs}`, { method: 'POST' });
 };
 
@@ -220,11 +220,11 @@ export const getCalibration = (sid: string) =>
 // ── 错题本 ───────────────────────────────────────────────────
 export const getErrorJournal = (
   sid: string,
-  filters?: { kc_id?: string; error_type?: string; subject?: string; limit?: number; offset?: number },
+  filters?: { ku_id?: string; error_type?: string; subject?: string; limit?: number; offset?: number },
 ) => {
   if (USE_MOCK) return mock.mockErrorJournal();
   const p = new URLSearchParams();
-  if (filters?.kc_id)     p.set('kc_id',     filters.kc_id);
+  if (filters?.ku_id)     p.set('ku_id',     filters.ku_id);
   if (filters?.error_type) p.set('error_type', filters.error_type);
   if (filters?.subject)   p.set('subject',   filters.subject);
   if (filters?.limit)     p.set('limit',     String(filters.limit));
@@ -238,12 +238,12 @@ export const getReviewDue = (sid: string) =>
   USE_MOCK ? mock.mockReviewDue() : req<ReviewDueItem[]>(`/v1/review/due/${sid}`);
 
 // 检索练习红线：看答案=放弃检索（后端记 FSRS Again），再返回答案
-export const reviewReveal = (sid: string, kc_id: string) =>
-  req<ReviewRevealRes>(`/v1/review/reveal/${sid}`, { method: 'POST', body: JSON.stringify({ kc_id }) });
+export const reviewReveal = (sid: string, ku_id: string) =>
+  req<ReviewRevealRes>(`/v1/review/reveal/${sid}`, { method: 'POST', body: JSON.stringify({ ku_id }) });
 
 // 先检索后核对：提交作答 → 后端确定性判分入 BKT/FSRS，返回参考答案
-export const reviewSubmit = (sid: string, kc_id: string, answer: string) =>
-  req<ReviewSubmitRes>(`/v1/review/submit/${sid}`, { method: 'POST', body: JSON.stringify({ kc_id, answer }) });
+export const reviewSubmit = (sid: string, ku_id: string, answer: string) =>
+  req<ReviewSubmitRes>(`/v1/review/submit/${sid}`, { method: 'POST', body: JSON.stringify({ ku_id, answer }) });
 
 // ── 周期限时小测（T.8）── real-only（同 effortful-gains/weak-roots，护城河接口不走 mock）
 export const getQuizDue = (sid: string) => req<QuizDueRes>(`/v1/quiz/due/${sid}`);
@@ -446,12 +446,12 @@ export const submitPracticeAnswer = (body: PracticeSubmitReq) =>
   req<PracticeSubmitRes>('/v1/practice/submit', { method: 'POST', body: JSON.stringify(body) });
 
 // ── 先进教育理念端点 ──────────────────────────────────────────────
-export const getLearnerModel = (sid: string, kcId: string) =>
-  req<LearnerModel>(`/v1/learner-model/${sid}/${encodeURIComponent(kcId)}`);
+export const getLearnerModel = (sid: string, kuId: string) =>
+  req<LearnerModel>(`/v1/learner-model/${sid}/${encodeURIComponent(kuId)}`);
 export const getLeague = (sid: string) => req<LeagueRes>(`/v1/league/${sid}`);
 export const getAffect = (sid: string) => req<AffectRes>(`/v1/affect/${sid}`);
 export const getTeachingPolicy = (sid: string, kuId: string, context = 'system_taught') =>
-  req<TeachingPolicy>(`/v1/teaching/policy?student_id=${sid}&kc_id=${encodeURIComponent(kuId)}&context=${context}`);
+  req<TeachingPolicy>(`/v1/teaching/policy?student_id=${sid}&ku_id=${encodeURIComponent(kuId)}&context=${context}`);
 export const setPrivacy = (sid: string, share: boolean) =>
   req<{ share_process_with_parent: boolean }>(`/v1/users/${sid}/privacy`, { method: 'POST', body: JSON.stringify({ share_process_with_parent: share }) });
 export const setExamDate = (sid: string, examDate: string | null) =>

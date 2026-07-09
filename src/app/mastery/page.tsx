@@ -12,7 +12,7 @@ import type { KnowledgePoint, CalibrationRes, PatternsRes } from '@/types/api';
 /**
  * 个人学习模式识别（招牌洞察：模式 > 知识点）。
  * 数据来自 GET /v1/patterns/{student_id}。展示整体趋势 + 进步/遗忘/停滞分组。
- * nameOf：把 kc_id 映射成友好名（来自已加载掌握度数据），无则回退 kc_id。
+ * nameOf：把 ku_id 映射成友好名（来自已加载掌握度数据），无则回退 ku_id。
  */
 function LearningPatterns({ studentId, nameOf }: { studentId: string; nameOf: (id: string) => string }) {
   const [data, setData]   = useState<PatternsRes | null>(null);
@@ -194,7 +194,7 @@ function KCCard({ kc, onClick }: { kc: KnowledgePoint; onClick: () => void }) {
           marginBottom: '3px',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
-          {kc.kc_name}
+          {kc.ku_name}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {/* thin progress bar */}
@@ -266,8 +266,8 @@ export default function MasteryPage() {
   const weak   = safeKcs.filter((k) => k.effective_mastery < 0.5).length;
   const strong = safeKcs.filter((k) => k.effective_mastery >= 0.75).length;
 
-  /* kc_id → 友好名（来自掌握度数据），无则回退 kc_id */
-  const nameOf = (id: string) => safeKcs.find((k) => k.kc_id === id)?.kc_name ?? id;
+  /* ku_id → 友好名（来自掌握度数据），无则回退 ku_id */
+  const nameOf = (id: string) => safeKcs.find((k) => k.ku_id === id)?.ku_name ?? id;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -329,9 +329,9 @@ export default function MasteryPage() {
         }}>
           {safeKcs.map((kc) => (
             <KCCard
-              key={kc.kc_id}
+              key={kc.ku_id}
               kc={kc}
-              onClick={() => router.push(`/curve?kc=${kc.kc_id}&name=${encodeURIComponent(kc.kc_name)}`)}
+              onClick={() => router.push(`/curve?ku=${kc.ku_id}&name=${encodeURIComponent(kc.ku_name)}`)}
             />
           ))}
         </div>
@@ -343,7 +343,7 @@ export default function MasteryPage() {
           type="button"
           className="mn-btn-primary"
           style={{ width: '100%' }}
-          onClick={() => router.push(`/subjects/math/practice?ku_id=${encodeURIComponent(safeKcs[0].kc_id)}`)}
+          onClick={() => router.push(`/subjects/math/practice?ku_id=${encodeURIComponent(safeKcs[0].ku_id)}`)}
         >
           练习最薄弱的考点
         </button>

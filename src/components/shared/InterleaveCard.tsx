@@ -12,10 +12,10 @@ import type { ReviewQueueItem } from '@/types/api';
  */
 const PALETTE = ['#6366f1', '#10b981', '#f59e0b', '#8b5cf6', '#f43f5e', '#0ea5e9', '#14b8a6', '#ec4899'];
 
-// 优先用后端返回的 kc_name；缺失才从 kc_id 提取短名（取 -ku-/-kc- 之后，或末段）
+// 优先用后端返回的 ku_name；缺失才从 ku_id 提取短名（取 -ku-/-kc- 之后，或末段）
 function kcLabel(it: ReviewQueueItem): string {
-  const m = it.kc_id.match(/-(?:ku|kc)-(.+)$/);
-  const name = it.kc_name || (m ? m[1] : (it.kc_id.split('-').pop() ?? it.kc_id));
+  const m = it.ku_id.match(/-(?:ku|kc)-(.+)$/);
+  const name = it.ku_name || (m ? m[1] : (it.ku_id.split('-').pop() ?? it.ku_id));
   return name.length > 10 ? name.slice(0, 10) + '…' : name;
 }
 
@@ -34,12 +34,12 @@ export function InterleaveCard({ studentId }: { studentId: string }) {
   const colorOf = useMemo(() => {
     const map = new Map<string, string>();
     let i = 0;
-    for (const it of items) if (!map.has(it.kc_id)) map.set(it.kc_id, PALETTE[i++ % PALETTE.length]);
+    for (const it of items) if (!map.has(it.ku_id)) map.set(it.ku_id, PALETTE[i++ % PALETTE.length]);
     return map;
   }, [items]);
 
   const adjacentDifferent = useMemo(
-    () => items.every((it, i) => i === 0 || it.kc_id !== items[i - 1].kc_id),
+    () => items.every((it, i) => i === 0 || it.ku_id !== items[i - 1].ku_id),
     [items],
   );
 
@@ -56,9 +56,9 @@ export function InterleaveCard({ studentId }: { studentId: string }) {
       </p>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
         {items.map((it, i) => {
-          const c = colorOf.get(it.kc_id) ?? '#6366f1';
+          const c = colorOf.get(it.ku_id) ?? '#6366f1';
           return (
-            <span key={i} title={it.kc_name || it.kc_id}
+            <span key={i} title={it.ku_name || it.ku_id}
               style={{ padding: '4px 9px', borderRadius: 7, fontSize: 12, fontWeight: 600, color: c, background: `${c}1a` }}>
               {i + 1}. {kcLabel(it)}
             </span>

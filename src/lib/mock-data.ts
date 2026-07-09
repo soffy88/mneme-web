@@ -48,8 +48,8 @@ export const mockGetPaper = async (id: string): Promise<ApiResult<PaperResult>> 
     paper_id: id,
     status: 'done',
     wrong_questions: [
-      { question_no: '3', kc_id: 'GDMATH-CONIC-01', kc_name: '椭圆', description: '焦距计算错误' },
-      { question_no: '7', kc_id: 'GDMATH-CONIC-04', kc_name: '圆锥曲线综合', description: '抛物线焦点距离公式混淆' },
+      { question_no: '3', ku_id: 'GDMATH-CONIC-01', ku_name: '椭圆', description: '焦距计算错误' },
+      { question_no: '7', ku_id: 'GDMATH-CONIC-04', ku_name: '圆锥曲线综合', description: '抛物线焦点距离公式混淆' },
     ],
     common_breakpoint: {
       has_breakpoint: true,
@@ -79,10 +79,10 @@ export const mockMastery = async (): Promise<ApiResult<MasteryRes>> => {
     student_id: 'stu-001',
     count: 4,
     knowledge_points: [
-      { kc_id: 'GDMATH-CONIC-04', kc_name: '圆锥曲线综合（压轴）', long_term_mastery: 0.12, effective_mastery: 0.09, n_attempts: 2, peer_percentile: 0.34 },
-      { kc_id: 'GDMATH-CONIC-01', kc_name: '椭圆',                  long_term_mastery: 0.41, effective_mastery: 0.35, n_attempts: 8, peer_percentile: 0.52 },
-      { kc_id: 'GDMATH-SEQ-01',   kc_name: '等差数列与等比数列',     long_term_mastery: 0.73, effective_mastery: 0.68, n_attempts: 15, peer_percentile: 0.81 },
-      { kc_id: 'GDMATH-PROB-01',  kc_name: '概率与统计',             long_term_mastery: 0.85, effective_mastery: 0.82, n_attempts: 20, peer_percentile: 0.91 },
+      { ku_id: 'GDMATH-CONIC-04', ku_name: '圆锥曲线综合（压轴）', long_term_mastery: 0.12, effective_mastery: 0.09, n_attempts: 2, peer_percentile: 0.34 },
+      { ku_id: 'GDMATH-CONIC-01', ku_name: '椭圆',                  long_term_mastery: 0.41, effective_mastery: 0.35, n_attempts: 8, peer_percentile: 0.52 },
+      { ku_id: 'GDMATH-SEQ-01',   ku_name: '等差数列与等比数列',     long_term_mastery: 0.73, effective_mastery: 0.68, n_attempts: 15, peer_percentile: 0.81 },
+      { ku_id: 'GDMATH-PROB-01',  ku_name: '概率与统计',             long_term_mastery: 0.85, effective_mastery: 0.82, n_attempts: 20, peer_percentile: 0.91 },
     ],
   });
 };
@@ -90,7 +90,7 @@ export const mockMastery = async (): Promise<ApiResult<MasteryRes>> => {
 export const mockCurve = async (): Promise<ApiResult<MasteryCurveRes>> => {
   await delay(300);
   return ok({
-    kc_id: 'GDMATH-CONIC-01', kc_name: '椭圆',
+    ku_id: 'GDMATH-CONIC-01', ku_name: '椭圆',
     points: [
       { month: '2026-01', mastery: 0.10 },
       { month: '2026-02', mastery: 0.18 },
@@ -149,7 +149,7 @@ export const mockMission = async (): Promise<ApiResult<MissionRes>> => {
   return ok({
     mission: {
       id: 'miss-001', mission_type: 'review',
-      content: { description: '回顾上周错的 2 道椭圆题', kc_id: 'GDMATH-CONIC-01', kc_name: '椭圆' },
+      content: { description: '回顾上周错的 2 道椭圆题', ku_id: 'GDMATH-CONIC-01', ku_name: '椭圆' },
       estimated_minutes: 10, completed: false, interleaved: false, requires_active_recall: true,
     },
     streak: { current_streak: 12, longest_streak: 23 },
@@ -164,7 +164,7 @@ export const mockCompleteMission = async (): Promise<ApiResult<CompleteMissionRe
 export const mockPractice = async (): Promise<ApiResult<PracticeRes>> => {
   await delay(800);
   return ok({
-    kc_name: '椭圆',
+    ku_name: '椭圆',
     all_kernel_verified: true,
     items: [
       {
@@ -206,7 +206,7 @@ export const mockLesson = async (): Promise<ApiResult<LessonRes>> => {
       x_range: [-6, 6], y_range: [-5, 5],
     },
     self_check_passed: true,
-    kc_id: 'GDMATH-CONIC-01',
+    ku_id: 'GDMATH-CONIC-01',
   });
 };
 
@@ -221,13 +221,13 @@ export const mockErrorJournal = async (): Promise<ApiResult<ErrorJournalRes>> =>
   await delay(400);
   return ok({
     distribution: [
-      { kc_id: 'GDMATH-CONIC-01', error_count: 3, error_types: { careless: 1, dontknow: 2 } as Record<string, number> },
-      { kc_id: 'GDMATH-CONIC-04', error_count: 2, error_types: { careless: 2 } as Record<string, number> },
+      { ku_id: 'GDMATH-CONIC-01', error_count: 3, error_types: { careless: 1, dontknow: 2 } as Record<string, number> },
+      { ku_id: 'GDMATH-CONIC-04', error_count: 2, error_types: { careless: 2 } as Record<string, number> },
     ],
     items: [
-      { question_id: 'q-001', kc_id: 'GDMATH-CONIC-01', subject: 'math', error_tag: 'dontknow', wrong_at: new Date(Date.now() - 86400000).toISOString(),     can_practice_variant: true  },
-      { question_id: 'q-002', kc_id: 'GDMATH-CONIC-04', subject: 'math', error_tag: 'careless', wrong_at: new Date(Date.now() - 2 * 86400000).toISOString(), can_practice_variant: true  },
-      { question_id: 'q-003', kc_id: 'GDMATH-CONIC-01', subject: 'math', error_tag: 'dontknow', wrong_at: new Date(Date.now() - 3 * 86400000).toISOString(), can_practice_variant: false },
+      { question_id: 'q-001', ku_id: 'GDMATH-CONIC-01', subject: 'math', error_tag: 'dontknow', wrong_at: new Date(Date.now() - 86400000).toISOString(),     can_practice_variant: true  },
+      { question_id: 'q-002', ku_id: 'GDMATH-CONIC-04', subject: 'math', error_tag: 'careless', wrong_at: new Date(Date.now() - 2 * 86400000).toISOString(), can_practice_variant: true  },
+      { question_id: 'q-003', ku_id: 'GDMATH-CONIC-01', subject: 'math', error_tag: 'dontknow', wrong_at: new Date(Date.now() - 3 * 86400000).toISOString(), can_practice_variant: false },
     ],
   });
 };
@@ -235,8 +235,8 @@ export const mockErrorJournal = async (): Promise<ApiResult<ErrorJournalRes>> =>
 export const mockReviewDue = async (): Promise<ApiResult<ReviewDueItem[]>> => {
   await delay(300);
   return ok([
-    { kc_id: 'GDMATH-CONIC-01', variant_question: '已知椭圆 \\dfrac{x^2}{9}+\\dfrac{y^2}{4}=1，求焦距和离心率。', due_since: new Date(Date.now() - 86400000).toISOString(), fsrs_interval: 3 },
-    { kc_id: 'GDMATH-SEQ-01',   variant_question: '设等差数列 {a_n} 满足 a_3=5，a_7=13，求公差 d。',               due_since: new Date(Date.now() - 2 * 86400000).toISOString(), fsrs_interval: 7 },
+    { ku_id: 'GDMATH-CONIC-01', variant_question: '已知椭圆 \\dfrac{x^2}{9}+\\dfrac{y^2}{4}=1，求焦距和离心率。', due_since: new Date(Date.now() - 86400000).toISOString(), fsrs_interval: 3 },
+    { ku_id: 'GDMATH-SEQ-01',   variant_question: '设等差数列 {a_n} 满足 a_3=5，a_7=13，求公差 d。',               due_since: new Date(Date.now() - 2 * 86400000).toISOString(), fsrs_interval: 7 },
   ]);
 };
 
