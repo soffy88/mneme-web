@@ -330,7 +330,7 @@ function ErrorJournalPageInner() {
                         onClick={() => router.push(
                           item.subject === 'math'
                             ? `/subjects/math/practice?ku_id=${encodeURIComponent(item.kc_id)}${item.kc_name ? `&name=${encodeURIComponent(item.kc_name)}` : ''}`
-                            : `/practice?subject=${encodeURIComponent(item.subject)}`
+                            : `/practice/session?subject=${encodeURIComponent(item.subject)}&ku_id=${encodeURIComponent(item.kc_id)}${item.kc_name ? `&name=${encodeURIComponent(item.kc_name)}` : ''}`
                         )}
                         style={{ fontSize: '12px', padding: '6px 12px' }}
                       >

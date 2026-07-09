@@ -11,7 +11,7 @@ export default function PhysicsLessonPage() {
   const router = useRouter();
 
   const handleJumpPractice = useCallback((kuId: string) => {
-    router.push(`/subjects/physics/practice?ku_id=${encodeURIComponent(kuId)}`);
+    router.push(`/practice/session?subject=physics&ku_id=${encodeURIComponent(kuId)}`);
   }, [router]);
 
   const handleJumpForceAnalysis = useCallback((kuId: string) => {

@@ -340,10 +340,13 @@ export default function HomePage() {
               const goTask = () => {
                 // 错题回顾：跳错题本并按学科过滤（同 SubjectHub.tsx 的 DailyPlanWidget）
                 if (t.type === 'error_review') { router.push(`/error-journal?subject=${t.subject}`); return; }
-                // 数学有真题练习闭环，直接跳具体知识点；其它科目暂无该闭环，先导到按学科
-                // 过滤的选题页，至少不会跳错学科/跳错引擎（详见 SubjectHub.tsx 同款注释）。
-                if (t.subject === 'math' && t.ku_ids && t.ku_ids.length) {
-                  router.push(`/subjects/math/practice?ku_id=${encodeURIComponent(t.ku_ids[0])}`);
+                // 有具体知识点→直接跳练习引擎（数学走自己的页面，其它学科走通用引擎
+                // /practice/session，详见 SubjectHub.tsx 同款注释）；没有才落选题页兜底。
+                if (t.ku_ids && t.ku_ids.length) {
+                  const kuId = encodeURIComponent(t.ku_ids[0]);
+                  router.push(t.subject === 'math'
+                    ? `/subjects/math/practice?ku_id=${kuId}`
+                    : `/practice/session?subject=${t.subject}&ku_id=${kuId}`);
                   return;
                 }
                 router.push(`/practice?subject=${t.subject}`);

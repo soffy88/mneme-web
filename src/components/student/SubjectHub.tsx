@@ -84,11 +84,14 @@ function DailyPlanWidget({ subject }: { subject: string }) {
             const goTask = () => {
               // 错题回顾：跳错题本并按学科过滤（error-journal 页/接口均已支持 subject 过滤）
               if (task.type === 'error_review') { router.push(`/error-journal?subject=${subject}`); return; }
-              // 数学有真题练习闭环，直接跳具体知识点；其它科目暂无该闭环
-              // （/subjects/physics/practice 只是空壳重定向，/subjects/{subject}/lesson 是整个
-              // 知识地图不聚焦到具体任务），先导到按学科过滤的选题页，至少不会跳错学科/跳错引擎。
-              if (subject === 'math' && task.ku_ids && task.ku_ids.length) {
-                router.push(`/subjects/math/practice?ku_id=${encodeURIComponent(task.ku_ids[0])}`);
+              // 有具体知识点→直接跳练习引擎（数学走自己的页面，其它学科走通用引擎
+              // /practice/session，两边都已验证判分/掌握度更新是 subject-agnostic 的）；
+              // 没有具体知识点才落到选题页兜底。
+              if (task.ku_ids && task.ku_ids.length) {
+                const kuId = encodeURIComponent(task.ku_ids[0]);
+                router.push(subject === 'math'
+                  ? `/subjects/math/practice?ku_id=${kuId}`
+                  : `/practice/session?subject=${subject}&ku_id=${kuId}`);
                 return;
               }
               router.push(`/practice?subject=${subject}`);
