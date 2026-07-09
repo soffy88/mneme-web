@@ -9,7 +9,7 @@ export default function ChineseLessonPage() {
   const router = useRouter();
 
   const handleJumpPractice = useCallback((kuId: string) => {
-    router.push(`/practice?subject=chinese&ku_id=${encodeURIComponent(kuId)}`);
+    router.push(`/practice/session?subject=chinese&ku_id=${encodeURIComponent(kuId)}`);
   }, [router]);
 
   const handleJumpReader = useCallback((fileId: string) => {
