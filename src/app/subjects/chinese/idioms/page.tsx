@@ -427,7 +427,7 @@ export default function IdiomsPage() {
     try {
       res = await api.postInteraction({
         student_id: sid,
-        kc_id: ku.id,
+        ku_id: ku.id,
         is_correct: rating === 'good' || rating === 'easy',
         struggled: rating === 'hard',
         effortless: rating === 'easy',

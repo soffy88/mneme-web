@@ -34,7 +34,7 @@ function PrintPageInner() {
     setVariantsLoading(true);
     const pairs = await Promise.all(
       items.filter((it) => it.can_practice_variant).map(async (it) => {
-        const res = await api.generatePractice(it.kc_id, 1, 0.5);
+        const res = await api.generatePractice(it.ku_id, 1, 0.5);
         return [it.question_id, res.ok ? (res.data.items[0] ?? null) : null] as const;
       })
     );
@@ -95,7 +95,7 @@ function PrintPageInner() {
             return (
               <div key={item.question_id} style={{ pageBreakInside: 'avoid', borderBottom: '1px solid var(--mn-border)', paddingBottom: '14px' }}>
                 <div style={{ fontSize: '11px', color: 'var(--mn-ink-3)', marginBottom: '6px' }}>
-                  第 {i + 1} 题 · {item.kc_name ?? item.kc_id}
+                  第 {i + 1} 题 · {item.ku_name ?? item.ku_id}
                   {(item.wrong_count ?? 1) > 1 && ` · 错过${item.wrong_count}次`}
                 </div>
                 <div style={{ fontSize: '14px', color: 'var(--mn-ink)', lineHeight: 1.7 }}>

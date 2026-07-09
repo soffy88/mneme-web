@@ -118,7 +118,7 @@ function ErrorJournalPageInner() {
     const sid = getUserId();
     if (!sid) return;
     void api.getReviewQueue(sid).then((r) => {
-      if (r.ok) { setDueCount(r.data.length); setDueKc(r.data[0]?.kc_id ?? null); }
+      if (r.ok) { setDueCount(r.data.length); setDueKc(r.data[0]?.ku_id ?? null); }
     });
   }, []);
 
@@ -254,7 +254,7 @@ function ErrorJournalPageInner() {
                     background: 'var(--mn-blue-dim)', color: 'var(--mn-blue)', flexShrink: 0,
                     maxWidth: '45%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>
-                    {item.kc_name ?? item.kc_id}
+                    {item.ku_name ?? item.ku_id}
                   </span>
                   {(item.wrong_count ?? 1) > 1 && (
                     <span style={{
@@ -329,8 +329,8 @@ function ErrorJournalPageInner() {
                         className="mn-btn-secondary"
                         onClick={() => router.push(
                           item.subject === 'math'
-                            ? `/subjects/math/practice?ku_id=${encodeURIComponent(item.kc_id)}${item.kc_name ? `&name=${encodeURIComponent(item.kc_name)}` : ''}`
-                            : `/practice/session?subject=${encodeURIComponent(item.subject)}&ku_id=${encodeURIComponent(item.kc_id)}${item.kc_name ? `&name=${encodeURIComponent(item.kc_name)}` : ''}`
+                            ? `/subjects/math/practice?ku_id=${encodeURIComponent(item.ku_id)}${item.ku_name ? `&name=${encodeURIComponent(item.ku_name)}` : ''}`
+                            : `/practice/session?subject=${encodeURIComponent(item.subject)}&ku_id=${encodeURIComponent(item.ku_id)}${item.ku_name ? `&name=${encodeURIComponent(item.ku_name)}` : ''}`
                         )}
                         style={{ fontSize: '12px', padding: '6px 12px' }}
                       >

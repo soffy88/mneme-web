@@ -33,7 +33,7 @@ export default function ReviewPage() {
   const submit = async () => {
     const s = sid(); if (!s || !cur || !answer.trim()) return;
     setBusy(true);
-    const r = await api.reviewSubmit(s, cur.kc_id, answer.trim());
+    const r = await api.reviewSubmit(s, cur.ku_id, answer.trim());
     setBusy(false);
     if (r.ok) setResult({ verdict: r.data.verdict, answer: r.data.answer, recordedAgain: false });
   };
@@ -41,7 +41,7 @@ export default function ReviewPage() {
   const reveal = async () => {
     const s = sid(); if (!s || !cur) return;
     setBusy(true);
-    const r = await api.reviewReveal(s, cur.kc_id);
+    const r = await api.reviewReveal(s, cur.ku_id);
     setBusy(false);
     if (r.ok) setResult({ answer: r.data.answer, recordedAgain: r.data.recorded_again });
   };

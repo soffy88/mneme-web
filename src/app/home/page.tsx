@@ -180,9 +180,9 @@ export default function HomePage() {
             <div style={{ fontSize: '20px', fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--mn-ink)', lineHeight: 1.3, marginBottom: '6px' }}>
               {mission.mission_type === 'cold_start'
                 ? '欢迎来到善学记 👋 先做一道题，看看它怎么帮你'
-                : (mission.content.kc_name ?? mission.content.description ?? dailyPlan?.tasks?.[0]?.title ?? '今天先做一组专项练习')}
+                : (mission.content.ku_name ?? mission.content.description ?? dailyPlan?.tasks?.[0]?.title ?? '今天先做一组专项练习')}
             </div>
-            {mission.content.kc_name && (
+            {mission.content.ku_name && (
               <div style={{ fontSize: '14px', color: 'var(--mn-ink-2)', marginBottom: '6px' }}>
                 {mission.content.description}
               </div>
@@ -214,7 +214,7 @@ export default function HomePage() {
                 onClick={() => {
                   // mission 内容为空时，目标卡直接对接今日计划首个任务（去做，而非泛化跳转）
                   const t0 = dailyPlan?.tasks?.[0];
-                  if (!mission.content?.kc_name && t0) {
+                  if (!mission.content?.ku_name && t0) {
                     if (t0.subject === 'math' && t0.ku_ids?.length) { router.push(`/subjects/math/practice?ku_id=${encodeURIComponent(t0.ku_ids[0])}`); return; }
                     if (t0.type === 'error_review') { router.push('/error-journal'); return; }
                   }

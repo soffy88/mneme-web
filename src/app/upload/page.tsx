@@ -179,7 +179,7 @@ export default function UploadPage() {
                   </span>
                   <div>
                     <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--mn-ink)' }}>
-                      {q.kc_name ?? '未知考点'}
+                      {q.ku_name ?? '未知考点'}
                     </div>
                     {q.description && (
                       <div style={{ fontSize: '12px', color: 'var(--mn-ink-3)', marginTop: '2px' }}>{q.description}</div>

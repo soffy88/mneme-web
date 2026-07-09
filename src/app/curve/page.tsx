@@ -86,7 +86,7 @@ function LineChart({ points }: { points: CurvePoint[] }) {
 function CurveContent() {
   const params  = useSearchParams();
   const router  = useRouter();
-  const kcId    = params?.get('kc')   ?? 'GDMATH-CONIC-01';
+  const kuId    = params?.get('ku')   ?? 'GDMATH-CONIC-01';
   const kcName  = params?.get('name') ?? '椭圆';
   const [points,  setPoints]  = useState<CurvePoint[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,12 +96,12 @@ function CurveContent() {
     const sid = getUserId();
     if (!sid) { router.push('/login'); return; }
     setLoading(true); setError('');
-    const res = await api.getMasteryCurve(sid, kcId);
+    const res = await api.getMasteryCurve(sid, kuId);
     setLoading(false);
     if (res.ok) setPoints(res.data.points);
     else setError(res.error);
   };
-  useEffect(() => { void load(); }, [kcId]);
+  useEffect(() => { void load(); }, [kuId]);
 
   const latest = points.length ? points[points.length - 1].mastery : 0;
   const earliest = points.length ? points[0].mastery : 0;

@@ -38,7 +38,7 @@ export interface PaperUploadRes { paper_id: string; status: 'processing' }
 export type PaperStatus = 'processing' | 'done' | 'failed';
 
 export interface WrongQuestion {
-  question_no: string; description?: string; kc_id?: string; kc_name?: string;
+  question_no: string; description?: string; ku_id?: string; ku_name?: string;
 }
 export interface PaperResult {
   paper_id: string; status: PaperStatus;
@@ -53,7 +53,7 @@ export interface PaperResult {
 // ── 认知状态 ─────────────────────────────────────────────────
 export type InteractionSource = 'paper' | 'quick' | 'review' | 'socratic';
 export interface InteractionReq {
-  student_id: string; kc_id: string; is_correct: boolean;
+  student_id: string; ku_id: string; is_correct: boolean;
   used_answer?: boolean; struggled?: boolean; effortless?: boolean;
   source: InteractionSource; question_id?: string; is_interleaved?: boolean;
 }
@@ -66,7 +66,7 @@ export interface InteractionRes {
 }
 
 export interface KnowledgePoint {
-  kc_id: string; kc_name: string;
+  ku_id: string; ku_name: string;
   long_term_mastery: number; effective_mastery: number;
   n_attempts: number; peer_percentile: number | null;
   p_recognition?: number | null;
@@ -86,10 +86,10 @@ export interface MasteryRes {
 
 export interface CurvePoint { month: string; mastery: number; dominant_error_type?: string | null }
 export interface MasteryCurveRes {
-  kc_id: string; kc_name: string; points: CurvePoint[];
+  ku_id: string; ku_name: string; points: CurvePoint[];
 }
 
-export interface ReviewQueueItem { question_id: string; kc_id: string; kc_name: string; due: string }
+export interface ReviewQueueItem { question_id: string; ku_id: string; ku_name: string; due: string }
 
 // ── 苏格拉底 ─────────────────────────────────────────────────
 export type SocraticMode = 'deep' | 'mixed' | 'sprint';
@@ -120,7 +120,7 @@ export interface SessionEndRes {
 export type MissionType = 'review' | 'socratic' | 'upload' | 'knowledge_focus' | 'rest' | 'cold_start';
 export interface Mission {
   id: string; mission_type: MissionType;
-  content: { description: string; kc_id?: string; kc_name?: string };
+  content: { description: string; ku_id?: string; ku_name?: string };
   estimated_minutes: number; completed: boolean;
   interleaved: boolean; requires_active_recall: boolean;
 }
@@ -139,7 +139,7 @@ export interface PracticeItem {
   kernel_verified: boolean; plot_data: PlotData | null; difficulty: number;
 }
 export interface PracticeRes {
-  items: PracticeItem[]; all_kernel_verified: boolean; kc_name: string;
+  items: PracticeItem[]; all_kernel_verified: boolean; ku_name: string;
 }
 
 // ── 讲解页 ────────────────────────────────────────────────────
@@ -162,7 +162,7 @@ export interface PlotData {
 export interface LessonRes {
   question_id: string; question_text: string; answer: string;
   solution_steps: SolutionStep[];
-  plot_data: PlotData | null; self_check_passed: boolean; kc_id: string;
+  plot_data: PlotData | null; self_check_passed: boolean; ku_id: string;
 }
 
 // ── 家长端 ────────────────────────────────────────────────────
@@ -197,10 +197,10 @@ export interface CalibrationRes {
 
 // ── 错题本 ────────────────────────────────────────────────────
 export interface ErrorJournalDistribution {
-  kc_id: string; error_count: number; error_types: Record<string, number>;
+  ku_id: string; error_count: number; error_types: Record<string, number>;
 }
 export interface ErrorJournalItem {
-  question_id: string; kc_id: string; kc_name?: string; subject: string;
+  question_id: string; ku_id: string; ku_name?: string; subject: string;
   question_text?: string; student_answer?: string; correct_answer?: string;
   error_tag: string; wrong_at: string; wrong_count?: number; can_practice_variant: boolean;
 }
@@ -210,21 +210,21 @@ export interface ErrorJournalRes {
 
 // ── 待复习 ────────────────────────────────────────────────────
 export interface ReviewDueItem {
-  kc_id: string; variant_question: string;
+  ku_id: string; variant_question: string;
   requires_retrieval?: boolean;
   question_id?: string | null;
   due_since: string | null; fsrs_interval: number;
 }
-export interface ReviewRevealRes { kc_id: string; answer: string; recorded_again: boolean }
-export interface ReviewSubmitRes { kc_id: string; verdict: 'correct' | 'wrong' | 'unsure'; answer: string }
+export interface ReviewRevealRes { ku_id: string; answer: string; recorded_again: boolean }
+export interface ReviewSubmitRes { ku_id: string; verdict: 'correct' | 'wrong' | 'unsure'; answer: string }
 
 // ── 周期限时小测（T.8，检索检查点）─────────────────────────────
-export interface QuizItem { kc_id: string; question_id: string; question_text: string }
+export interface QuizItem { ku_id: string; question_id: string; question_text: string }
 export type QuizDueRes =
   | { due: false; next_due_date?: string; reason?: string }
   | { due: true; quiz_id: string; time_limit_seconds: number; items: QuizItem[] };
 
-export interface QuizResultItem { kc_id: string; question_id: string; verdict: 'correct' | 'wrong' | 'unsure' }
+export interface QuizResultItem { ku_id: string; question_id: string; verdict: 'correct' | 'wrong' | 'unsure' }
 export type QuizSubmitRes =
   | { quiz_id: string; score: number; results: QuizResultItem[]; failed_kcs: string[] }
   | { error: string };
@@ -336,7 +336,7 @@ export interface PracticeSubmitRes {
 
 // ── 先进教育理念端点(01/02/03/08) ────────────────────────────────
 export interface LearnerModel {
-  kc_id: string;
+  ku_id: string;
   started: boolean;
   p_mastery?: number;
   retrievability?: number | null;
@@ -405,7 +405,7 @@ export interface EffortfulGainsRes {
 
 // ── 个人学习模式识别（招牌洞察：模式 > 知识点）──
 export interface PatternItem {
-  kc_id: string;
+  ku_id: string;
   trend: number;
   current_accuracy: number;
   is_forgetting: boolean;
