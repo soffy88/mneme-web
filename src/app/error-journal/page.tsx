@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { getUserId } from '@/lib/auth-store';
 import * as api from '@/lib/api-client';
 import { RichText } from '@/components/shared/RichText';
@@ -88,8 +88,10 @@ function DistributionBar({ dist }: { dist: ErrorJournalDistribution[] }) {
 const ALL_TYPES = ['', 'careless', 'dontknow', 'concept', 'logic'];
 const TYPE_LABELS: Record<string, string> = { '': '全部', careless: '粗心', dontknow: '不会', concept: '概念', logic: '逻辑' };
 
-export default function ErrorJournalPage() {
+function ErrorJournalPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const subject = searchParams.get('subject') ?? undefined;
   const [data,      setData]      = useState<ErrorJournalRes | null>(null);
   const [loading,   setLoading]   = useState(true);
   const [error,     setError]     = useState('');
@@ -103,7 +105,7 @@ export default function ErrorJournalPage() {
     const sid = getUserId();
     if (!sid) { router.push('/login'); return; }
     setLoading(true);
-    const res = await api.getErrorJournal(sid, tag ? { error_type: tag } : undefined);
+    const res = await api.getErrorJournal(sid, { subject, ...(tag ? { error_type: tag } : {}) });
     setLoading(false);
     if (res.ok) setData(res.data);
     else setError(res.error);
@@ -309,7 +311,11 @@ export default function ErrorJournalPage() {
                       <button
                         type="button"
                         className="mn-btn-secondary"
-                        onClick={() => router.push(`/subjects/math/practice?ku_id=${encodeURIComponent(item.kc_id)}${item.kc_name ? `&name=${encodeURIComponent(item.kc_name)}` : ''}`)}
+                        onClick={() => router.push(
+                          item.subject === 'math'
+                            ? `/subjects/math/practice?ku_id=${encodeURIComponent(item.kc_id)}${item.kc_name ? `&name=${encodeURIComponent(item.kc_name)}` : ''}`
+                            : `/practice?subject=${encodeURIComponent(item.subject)}`
+                        )}
                         style={{ fontSize: '12px', padding: '6px 12px' }}
                       >
                         举一反三
@@ -323,5 +329,13 @@ export default function ErrorJournalPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ErrorJournalPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '48px', textAlign: 'center', color: 'var(--mn-ink-3)' }}>加载中…</div>}>
+      <ErrorJournalPageInner />
+    </Suspense>
   );
 }

@@ -337,16 +337,15 @@ export default function HomePage() {
               };
               const color = colors[t.type] ?? 'var(--mn-ink-3)';
               const goTask = () => {
-                // 仅数学有真题练习闭环；其它科目导到已存在的页面，避免 404/占位死链
-                if (t.subject === 'math') {
-                  if (t.ku_ids && t.ku_ids.length) router.push(`/subjects/math/practice?ku_id=${encodeURIComponent(t.ku_ids[0])}`);
-                  else if (t.type === 'error_review') router.push('/error-journal');
-                  else router.push('/practice');
+                // 错题回顾：跳错题本并按学科过滤（同 SubjectHub.tsx 的 DailyPlanWidget）
+                if (t.type === 'error_review') { router.push(`/error-journal?subject=${t.subject}`); return; }
+                // 数学有真题练习闭环，直接跳具体知识点；其它科目暂无该闭环，先导到按学科
+                // 过滤的选题页，至少不会跳错学科/跳错引擎（详见 SubjectHub.tsx 同款注释）。
+                if (t.subject === 'math' && t.ku_ids && t.ku_ids.length) {
+                  router.push(`/subjects/math/practice?ku_id=${encodeURIComponent(t.ku_ids[0])}`);
                   return;
                 }
-                if (t.type === 'error_review') { router.push('/error-journal'); return; }
-                if (t.subject === 'physics' || t.subject === 'chinese') router.push(`/subjects/${t.subject}/lesson`);
-                else router.push(`/subjects/${t.subject}`);
+                router.push(`/practice?subject=${t.subject}`);
               };
               return (
                 <button key={i} type="button" onClick={goTask} style={{

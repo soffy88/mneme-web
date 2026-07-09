@@ -82,16 +82,16 @@ function DailyPlanWidget({ subject }: { subject: string }) {
           {plan.tasks.map((task, i) => {
             const m = TASK_META[task.type] ?? TASK_META.review;
             const goTask = () => {
-              // 仅数学有真题练习闭环；其它科目导到该科已存在的页面，避免 404/占位死链
-              if (subject === 'math') {
-                if (task.ku_ids && task.ku_ids.length) router.push(`/subjects/math/practice?ku_id=${encodeURIComponent(task.ku_ids[0])}`);
-                else if (task.type === 'error_review') router.push('/error-journal?subject=math');
-                else router.push('/practice');
+              // 错题回顾：跳错题本并按学科过滤（error-journal 页/接口均已支持 subject 过滤）
+              if (task.type === 'error_review') { router.push(`/error-journal?subject=${subject}`); return; }
+              // 数学有真题练习闭环，直接跳具体知识点；其它科目暂无该闭环
+              // （/subjects/physics/practice 只是空壳重定向，/subjects/{subject}/lesson 是整个
+              // 知识地图不聚焦到具体任务），先导到按学科过滤的选题页，至少不会跳错学科/跳错引擎。
+              if (subject === 'math' && task.ku_ids && task.ku_ids.length) {
+                router.push(`/subjects/math/practice?ku_id=${encodeURIComponent(task.ku_ids[0])}`);
                 return;
               }
-              if (task.type === 'error_review') { router.push(`/error-journal?subject=${subject}`); return; }
-              if (subject === 'physics' || subject === 'chinese') router.push(`/subjects/${subject}/lesson`);
-              else router.push(`/subjects/${subject}`);
+              router.push(`/practice?subject=${subject}`);
             };
             return (
               <button key={i} type="button" onClick={goTask} style={{

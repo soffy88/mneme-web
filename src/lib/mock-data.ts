@@ -225,9 +225,9 @@ export const mockErrorJournal = async (): Promise<ApiResult<ErrorJournalRes>> =>
       { kc_id: 'GDMATH-CONIC-04', error_count: 2, error_types: { careless: 2 } as Record<string, number> },
     ],
     items: [
-      { question_id: 'q-001', kc_id: 'GDMATH-CONIC-01', error_tag: 'dontknow', wrong_at: new Date(Date.now() - 86400000).toISOString(),     can_practice_variant: true  },
-      { question_id: 'q-002', kc_id: 'GDMATH-CONIC-04', error_tag: 'careless', wrong_at: new Date(Date.now() - 2 * 86400000).toISOString(), can_practice_variant: true  },
-      { question_id: 'q-003', kc_id: 'GDMATH-CONIC-01', error_tag: 'dontknow', wrong_at: new Date(Date.now() - 3 * 86400000).toISOString(), can_practice_variant: false },
+      { question_id: 'q-001', kc_id: 'GDMATH-CONIC-01', subject: 'math', error_tag: 'dontknow', wrong_at: new Date(Date.now() - 86400000).toISOString(),     can_practice_variant: true  },
+      { question_id: 'q-002', kc_id: 'GDMATH-CONIC-04', subject: 'math', error_tag: 'careless', wrong_at: new Date(Date.now() - 2 * 86400000).toISOString(), can_practice_variant: true  },
+      { question_id: 'q-003', kc_id: 'GDMATH-CONIC-01', subject: 'math', error_tag: 'dontknow', wrong_at: new Date(Date.now() - 3 * 86400000).toISOString(), can_practice_variant: false },
     ],
   });
 };

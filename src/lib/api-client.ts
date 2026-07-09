@@ -220,12 +220,13 @@ export const getCalibration = (sid: string) =>
 // ── 错题本 ───────────────────────────────────────────────────
 export const getErrorJournal = (
   sid: string,
-  filters?: { kc_id?: string; error_type?: string; limit?: number; offset?: number },
+  filters?: { kc_id?: string; error_type?: string; subject?: string; limit?: number; offset?: number },
 ) => {
   if (USE_MOCK) return mock.mockErrorJournal();
   const p = new URLSearchParams();
   if (filters?.kc_id)     p.set('kc_id',     filters.kc_id);
   if (filters?.error_type) p.set('error_type', filters.error_type);
+  if (filters?.subject)   p.set('subject',   filters.subject);
   if (filters?.limit)     p.set('limit',     String(filters.limit));
   if (filters?.offset)    p.set('offset',    String(filters.offset));
   const qs = p.toString();
