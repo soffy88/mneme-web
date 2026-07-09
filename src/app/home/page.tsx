@@ -10,6 +10,7 @@ import { EffortBoard } from '@/components/shared/EffortBoard';
 import { InterleaveCard } from '@/components/shared/InterleaveCard';
 import { GrowthExtras } from '@/components/student/GrowthExtras';
 import { DailyPlanPrefsCard } from '@/components/shared/DailyPlanPrefsCard';
+import { TextbookBindingsCard } from '@/components/shared/TextbookBindingsCard';
 import type { MissionRes, CompleteMissionRes, ReviewDueItem, DailyPlanRes, UserProfile, QuizDueRes } from '@/types/api';
 
 
@@ -471,6 +472,11 @@ export default function HomePage() {
       {/* V.2 每日计划参数可见+可配置 */}
       {studentId && me && me.role !== 'parent' && (
         <DailyPlanPrefsCard studentId={studentId} />
+      )}
+
+      {/* N.4 用户教材绑定 */}
+      {studentId && me && me.role !== 'parent' && (
+        <TextbookBindingsCard studentId={studentId} />
       )}
 
       {/* L6 隐私分层：学生协商是否向家长开放过程数据（错题细节/情绪/求助） */}

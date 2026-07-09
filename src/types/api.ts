@@ -390,6 +390,15 @@ export interface DailyPlanPrefs {
   new_max_items: number;
 }
 
+// ── 用户教材绑定（N.4）── 未绑定学科=该 key 不存在=全教材混排（向后兼容）
+export type TextbookBindings = Partial<Record<'math' | 'physics' | 'chinese' | 'english', string>>;
+export interface TextbookOption {
+  textbook_id: string;
+  book_name: string;
+  grade: string;
+  edition: string;
+}
+
 // ── 努力收益看板（M-F 对抗努力错觉）──
 export interface EffortGain {
   question_id: string | null;
