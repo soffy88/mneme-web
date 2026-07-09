@@ -200,7 +200,7 @@ export interface ErrorJournalDistribution {
   kc_id: string; error_count: number; error_types: Record<string, number>;
 }
 export interface ErrorJournalItem {
-  question_id: string; kc_id: string; kc_name?: string;
+  question_id: string; kc_id: string; kc_name?: string; subject: string;
   question_text?: string; student_answer?: string; correct_answer?: string;
   error_tag: string; wrong_at: string; wrong_count?: number; can_practice_variant: boolean;
 }
