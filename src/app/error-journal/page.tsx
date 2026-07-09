@@ -156,13 +156,29 @@ function ErrorJournalPageInner() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
-      <div>
-        <h1 style={{ fontSize: '22px', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--mn-ink)', lineHeight: 1.2 }}>
-          错题本
-        </h1>
-        <p style={{ fontSize: '13px', color: 'var(--mn-ink-3)', marginTop: '2px' }}>
-          整理错误，举一反三
-        </p>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>
+        <div>
+          <h1 style={{ fontSize: '22px', fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--mn-ink)', lineHeight: 1.2 }}>
+            错题本
+          </h1>
+          <p style={{ fontSize: '13px', color: 'var(--mn-ink-3)', marginTop: '2px' }}>
+            整理错误，举一反三
+          </p>
+        </div>
+        {items.length > 0 && (
+          <button
+            type="button"
+            onClick={() => router.push(`/error-journal/print${subject ? `?subject=${encodeURIComponent(subject)}` : ''}`)}
+            style={{
+              flexShrink: 0, marginTop: '4px', padding: '7px 14px', borderRadius: '10px',
+              border: '1px solid var(--mn-border)', background: 'var(--mn-surface)',
+              color: 'var(--mn-ink-2)', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: '6px',
+            }}
+          >
+            🖨 打印/导出
+          </button>
+        )}
       </div>
 
       {/* 到期重练（间隔重复）：错题到记忆临界点时安排重练 */}
