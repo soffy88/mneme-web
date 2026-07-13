@@ -1,6 +1,6 @@
 {
   "name": "mneme-web",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "private": true,
   "description": "Mneme 善学记 Web 前端 — K12 认知状态追踪。Frontend scaffold by Helios 前端架构组。",
   "scripts": {
