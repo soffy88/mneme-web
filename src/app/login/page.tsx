@@ -6,7 +6,7 @@ import * as api from '@/lib/api-client';
 import { setToken, setUser } from '@/lib/auth-store';
 
 type Mode = 'login' | 'register' | 'parent';
-type Phase = 'phone' | 'code' | 'loading';
+type Phase = 'email' | 'code' | 'loading';
 
 const IS_DEV = process.env.NODE_ENV === 'development';
 
@@ -45,24 +45,24 @@ export default function LoginPage() {
   const [mode, setMode] = useState<Mode>('login');
 
   // ── login state ──
-  const [phase, setPhase] = useState<Phase>('phone');
-  const [phone, setPhone] = useState('');
+  const [phase, setPhase] = useState<Phase>('email');
+  const [email, setEmail] = useState('');
   const [code,  setCode]  = useState('');
   const [error, setError] = useState('');
 
   // ── register state ──
-  const [rPhone, setRPhone]   = useState('');
+  const [rEmail, setREmail]   = useState('');
   const [rCode,  setRCode]    = useState('');
   const [name,   setName]     = useState('');
   const [birth,  setBirth]    = useState('');
   const [grade,  setGrade]    = useState('');
-  const [gPhone, setGPhone]   = useState('');
+  const [gEmail, setGEmail]   = useState('');
   const [gConsent, setGConsent] = useState(false);
   const [codeSent, setCodeSent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   // ── parent register state ──
-  const [pPhone,  setPPhone]  = useState('');
+  const [pEmail,  setPEmail]  = useState('');
   const [pCode,   setPCode]   = useState('');
   const [pName,   setPName]   = useState('');
   const [pInvite, setPInvite] = useState('');
@@ -72,16 +72,16 @@ export default function LoginPage() {
 
   // ── login handlers ──
   const sendCode = async () => {
-    if (!phone.trim()) return;
+    if (!email.trim()) return;
     setPhase('loading'); setError('');
-    const res = await api.sendCode({ phone });
-    if (!res.ok) { setError(res.error); setPhase('phone'); return; }
+    const res = await api.sendEmailCode({ email: email.trim() });
+    if (!res.ok) { setError(res.error); setPhase('email'); return; }
     setPhase('code');
   };
   const login = async () => {
     if (code.length < 4) return;
     setPhase('loading'); setError('');
-    const res = await api.login({ phone, code });
+    const res = await api.loginEmail({ email: email.trim(), code });
     if (!res.ok) { setError(res.error); setPhase('code'); return; }
     setToken(res.data.token);
     // login 响应 user 不含 role/grade/invite_code，补拉 /v1/auth/me 后按身份分流
@@ -96,29 +96,29 @@ export default function LoginPage() {
   const needGuardian = age !== null && age < 14;
 
   const sendRegCode = async () => {
-    if (!rPhone.trim()) return;
+    if (!rEmail.trim()) return;
     setError('');
-    const res = await api.sendCode({ phone: rPhone });
+    const res = await api.sendEmailCode({ email: rEmail.trim() });
     if (!res.ok) { setError(res.error); return; }
     setCodeSent(true);
   };
 
   const registerReady =
-    rPhone.trim() && rCode.length >= 4 && name.trim() && birth && grade &&
-    (!needGuardian || (gPhone.trim() && gConsent));
+    rEmail.trim() && rCode.length >= 4 && name.trim() && birth && grade &&
+    (!needGuardian || (gEmail.trim() && gConsent));
 
   const register = async () => {
     setError('');
-    if (needGuardian && (!gPhone.trim() || !gConsent)) {
-      setError('未满 14 周岁，须填写监护人手机号并勾选监护人同意');
+    if (needGuardian && (!gEmail.trim() || !gConsent)) {
+      setError('未满 14 周岁，须填写监护人邮箱并勾选监护人同意');
       return;
     }
     if (!registerReady) { setError('请完整填写注册信息'); return; }
     setSubmitting(true);
-    const res = await api.registerStudent({
-      phone: rPhone, code: rCode, name: name.trim(),
+    const res = await api.registerStudentEmail({
+      email: rEmail.trim(), code: rCode, name: name.trim(),
       birth_date: birth, grade,
-      ...(needGuardian ? { guardian_phone: gPhone.trim(), guardian_consent: gConsent } : {}),
+      ...(needGuardian ? { guardian_email: gEmail.trim(), guardian_consent: gConsent } : {}),
     });
     setSubmitting(false);
     if (!res.ok) { setError(res.error); return; }
@@ -129,22 +129,22 @@ export default function LoginPage() {
 
   // ── parent register handlers ──
   const sendParentCode = async () => {
-    if (!pPhone.trim()) return;
+    if (!pEmail.trim()) return;
     setError('');
-    const res = await api.sendCode({ phone: pPhone });
+    const res = await api.sendEmailCode({ email: pEmail.trim() });
     if (!res.ok) { setError(res.error); return; }
     setPCodeSent(true);
   };
 
   const parentReady =
-    pPhone.trim() && pCode.length >= 4 && pName.trim() && pInvite.trim();
+    pEmail.trim() && pCode.length >= 4 && pName.trim() && pInvite.trim();
 
   const registerParent = async () => {
     setError('');
     if (!parentReady) { setError('请完整填写注册信息'); return; }
     setSubmitting(true);
-    const res = await api.registerParent({
-      phone: pPhone, code: pCode, name: pName.trim(),
+    const res = await api.registerParentEmail({
+      email: pEmail.trim(), code: pCode, name: pName.trim(),
       invite_code: pInvite.trim().toUpperCase(),
     });
     setSubmitting(false);
@@ -202,12 +202,12 @@ export default function LoginPage() {
         {mode === 'login' && (
           <div className="mn-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {phase !== 'code' && (
-              <Field label="手机号">
+              <Field label="邮箱">
                 <input
-                  type="tel" value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  type="email" value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   onKeyDown={(e) => { if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') void sendCode(); }}
-                  placeholder="13800138000" inputMode="numeric"
+                  placeholder="you@example.com" inputMode="email" autoComplete="email"
                   disabled={phase === 'loading'} style={inputStyle}
                 />
               </Field>
@@ -216,9 +216,9 @@ export default function LoginPage() {
               <>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--mn-ink-2)' }}>验证码</span>
-                  <button type="button" onClick={() => setPhase('phone')}
+                  <button type="button" onClick={() => setPhase('email')}
                     style={{ fontSize: '13px', color: 'var(--mn-blue)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 500 }}>
-                    {phone} 修改
+                    {email} 修改
                   </button>
                 </div>
                 <input
@@ -248,8 +248,8 @@ export default function LoginPage() {
                 <span style={{ fontSize: '14px', color: 'var(--mn-ink-3)' }}>请稍候…</span>
                 <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
               </div>
-            ) : phase === 'phone' ? (
-              <button type="button" className="mn-btn-primary" style={{ width: '100%' }} disabled={!phone.trim()} onClick={sendCode}>
+            ) : phase === 'email' ? (
+              <button type="button" className="mn-btn-primary" style={{ width: '100%' }} disabled={!email.trim()} onClick={sendCode}>
                 发送验证码
               </button>
             ) : (
@@ -263,16 +263,16 @@ export default function LoginPage() {
         {/* ── Register card ── */}
         {mode === 'register' && (
           <div className="mn-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <Field label="手机号">
+            <Field label="邮箱">
               <div style={{ display: 'flex', gap: '8px' }}>
                 <input
-                  type="tel" value={rPhone}
-                  onChange={(e) => setRPhone(e.target.value)}
-                  placeholder="13800138000" inputMode="numeric"
+                  type="email" value={rEmail}
+                  onChange={(e) => setREmail(e.target.value)}
+                  placeholder="you@example.com" inputMode="email" autoComplete="email"
                   style={{ ...inputStyle, flex: 1 }}
                 />
                 <button type="button" className="mn-btn-secondary" style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
-                  disabled={!rPhone.trim()} onClick={sendRegCode}>
+                  disabled={!rEmail.trim()} onClick={sendRegCode}>
                   {codeSent ? '重发' : '发送验证码'}
                 </button>
               </div>
@@ -309,9 +309,9 @@ export default function LoginPage() {
                 <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--mn-orange)' }}>
                   未满 14 周岁，需监护人同意
                 </div>
-                <Field label="监护人手机号">
-                  <input type="tel" value={gPhone} onChange={(e) => setGPhone(e.target.value)}
-                    placeholder="监护人手机号" inputMode="numeric" style={inputStyle} />
+                <Field label="监护人邮箱">
+                  <input type="email" value={gEmail} onChange={(e) => setGEmail(e.target.value)}
+                    placeholder="监护人邮箱" inputMode="email" style={inputStyle} />
                 </Field>
                 <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: 'var(--mn-ink-2)', lineHeight: 1.5, cursor: 'pointer' }}>
                   <input type="checkbox" checked={gConsent} onChange={(e) => setGConsent(e.target.checked)} style={{ marginTop: '2px', flexShrink: 0 }} />
@@ -339,16 +339,16 @@ export default function LoginPage() {
             <p style={{ fontSize: '13px', color: 'var(--mn-ink-3)', lineHeight: 1.6, margin: 0 }}>
               输入孩子注册后生成的邀请码（孩子首页「家长监督」卡可查看），注册即绑定，可查看学习周报。
             </p>
-            <Field label="手机号">
+            <Field label="邮箱">
               <div style={{ display: 'flex', gap: '8px' }}>
                 <input
-                  type="tel" value={pPhone}
-                  onChange={(e) => setPPhone(e.target.value)}
-                  placeholder="13800138000" inputMode="numeric"
+                  type="email" value={pEmail}
+                  onChange={(e) => setPEmail(e.target.value)}
+                  placeholder="you@example.com" inputMode="email" autoComplete="email"
                   style={{ ...inputStyle, flex: 1 }}
                 />
                 <button type="button" className="mn-btn-secondary" style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
-                  disabled={!pPhone.trim()} onClick={sendParentCode}>
+                  disabled={!pEmail.trim()} onClick={sendParentCode}>
                   {pCodeSent ? '重发' : '发送验证码'}
                 </button>
               </div>

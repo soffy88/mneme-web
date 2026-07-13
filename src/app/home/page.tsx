@@ -8,6 +8,7 @@ import { StreakBadge } from '@/components/shared/StreakBadge';
 import { Achievements } from '@/components/shared/Achievements';
 import { EffortBoard } from '@/components/shared/EffortBoard';
 import { InterleaveCard } from '@/components/shared/InterleaveCard';
+import { MasteryRing } from '@/components/shared/MasteryRing';
 import { GrowthExtras } from '@/components/student/GrowthExtras';
 import { DailyPlanPrefsCard } from '@/components/shared/DailyPlanPrefsCard';
 import { TextbookBindingsCard } from '@/components/shared/TextbookBindingsCard';
@@ -118,11 +119,22 @@ export default function HomePage() {
           新生计划里多是 new_learn(去讲解)，这里补一个"先做题/传卷"建档的快入口。 */}
       {streak.current_streak === 0 && reviewDue.length === 0 && (
         <div className="mn-card" style={{ padding: '20px', border: '1.5px solid var(--mn-blue)' }}>
-          <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--mn-ink)', marginBottom: '4px' }}>
-            👋 从一道题开始
+          {/* "活的产品"预览(CC 补充 spec 任务13 设计模式试点):新用户还没有任何数据,
+              与其用静态插画/纯文字介绍"我们会算掌握度",不如直接展示 MasteryRing 本身
+              ——用户做完题、有真实数据后,看到的会是同一个组件,不是"效果图"。 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '10px' }}>
+            <MasteryRing value={0.65} size={44} strokeWidth={6} />
+            <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--mn-ink)' }}>
+              {['👋', '从一道题开始'].map((w, i) => (
+                <span key={i} className="mn-blurtext-word" style={{ '--i': i } as React.CSSProperties}>
+                  {w}{' '}
+                </span>
+              ))}
+            </div>
           </div>
           <div style={{ fontSize: '13px', color: 'var(--mn-ink-3)', marginBottom: '14px', lineHeight: 1.6 }}>
-            做几道题或上传一张试卷，系统就会算出你的薄弱点、自动排复习、建立学习档案。
+            做几道题或上传一张试卷，系统就会算出你的薄弱点、自动排复习、建立学习档案——
+            左边这个环就是你的掌握度,现在是示例,做完题就会变成真的。
           </div>
           <div style={{ display: 'flex', gap: '10px' }}>
             <button type="button" onClick={() => router.push('/practice')}

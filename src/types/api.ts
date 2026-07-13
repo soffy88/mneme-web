@@ -26,9 +26,22 @@ export interface RegisterStudentReq {
 export interface RegisterParentReq {
   phone: string; code: string; name: string; invite_code: string;
 }
+
+// 邮箱注册（新主标识；手机号类型保留兼容旧接口）
+export interface SendEmailCodeReq { email: string }
+export interface LoginEmailReq    { email: string; code: string }
+export interface RegisterStudentEmailReq {
+  email: string; code: string; name: string;
+  birth_date: string; grade: string;
+  guardian_email?: string; guardian_consent?: boolean;
+}
+export interface RegisterParentEmailReq {
+  email: string; code: string; name: string; invite_code: string;
+}
+
 export interface UserProfile {
   id: string; name: string; role: 'student' | 'parent';
-  grade?: string; phone: string;
+  grade?: string; phone?: string; email?: string;
   invite_code?: string;   // 学生邀请码（家长注册凭此绑定）；GET /v1/auth/me 返回
   share_process_with_parent?: boolean;  // L6 隐私分层
 }

@@ -10,6 +10,7 @@ import { authHeader, clearToken } from './auth-store';
 import type {
   ApiResult,
   SendCodeReq, LoginReq, LoginRes, RegisterStudentReq, RegisterParentReq, UserProfile,
+  SendEmailCodeReq, LoginEmailReq, RegisterStudentEmailReq, RegisterParentEmailReq,
   PaperUploadRes, PaperResult,
   InteractionReq, InteractionRes, MasteryRes, MasteryCurveRes,
   SocraticStartRes, EscapeRes, SessionEndRes, SocraticOutcome,
@@ -74,6 +75,12 @@ export const login     = (r: LoginReq)            => USE_MOCK ? mock.mockLogin(r
 export const registerStudent = (r: RegisterStudentReq) => USE_MOCK ? mock.mockRegisterStudent() : post<LoginRes>('/v1/auth/register/student', r, false);
 export const registerParent  = (r: RegisterParentReq)  => USE_MOCK ? mock.mockRegisterParent()  : post<LoginRes>('/v1/auth/register/parent', r, false);
 export const getMe     = ()                       => USE_MOCK ? mock.mockMe()            : req<UserProfile>('/v1/auth/me');
+
+// 邮箱注册/登录（新主标识）。mock 模式复用手机号那套 mock（mock 不关心标识）。
+export const sendEmailCode = (r: SendEmailCodeReq) => USE_MOCK ? mock.mockSendCode() : post<void>('/v1/auth/send-email-code', r, false);
+export const loginEmail    = (r: LoginEmailReq)    => USE_MOCK ? mock.mockLogin({ phone: r.email, code: r.code }) : post<LoginRes>('/v1/auth/login-email', r, false);
+export const registerStudentEmail = (r: RegisterStudentEmailReq) => USE_MOCK ? mock.mockRegisterStudent() : post<LoginRes>('/v1/auth/register/student-email', r, false);
+export const registerParentEmail  = (r: RegisterParentEmailReq)  => USE_MOCK ? mock.mockRegisterParent()  : post<LoginRes>('/v1/auth/register/parent-email', r, false);
 
 // ── 试卷 ────────────────────────────────────────────────────
 export async function uploadPaper(
