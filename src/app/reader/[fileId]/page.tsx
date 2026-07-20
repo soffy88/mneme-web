@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { DocumentViewer } from '@/components/reader/DocumentViewer';
 import { HighlightPanel } from '@/components/reader/HighlightPanel';
+import { TextbookChat } from '@/components/reader/TextbookChat';
 import {
   listHighlights, listReadingNotes,
   type TextbookFile, type HighlightItem, type ReadingNoteItem,
@@ -259,11 +260,12 @@ function KuSidebar({ textbookId }: { textbookId: string | null }) {
 
 // ── 移动端 Tab ─────────────────────────────────────────────
 
-type MobileTab = 'ku' | 'reader' | 'notes';
+type MobileTab = 'ku' | 'reader' | 'chat' | 'notes';
 
 const MOBILE_TABS: { id: MobileTab; label: string; icon: string }[] = [
   { id: 'ku',     label: '知识点', icon: '◑' },
   { id: 'reader', label: '阅读',   icon: '◎' },
+  { id: 'chat',   label: 'AI辅导', icon: '⚡' },
   { id: 'notes',  label: '笔记',   icon: '✐' },
 ];
 
@@ -279,6 +281,7 @@ export default function ReaderPage() {
   const [notes,      setNotes]      = useState<ReadingNoteItem[]>([]);
   const [loading,    setLoading]    = useState(true);
   const [mobileTab,  setMobileTab]  = useState<MobileTab>('reader');
+  const [desktopTab, setDesktopTab] = useState<'notes' | 'chat'>('chat');
 
   useEffect(() => {
     (async () => {
@@ -376,12 +379,33 @@ export default function ReaderPage() {
         </div>
         <div style={{
           width: '280px', flexShrink: 0, borderLeft: '1px solid var(--mn-border)',
-          background: 'var(--mn-surface)', overflow: 'hidden',
+          background: 'var(--mn-surface)', overflow: 'hidden', display: 'flex', flexDirection: 'column'
         }}>
-          <HighlightPanel
-            fileId={fileId} highlights={highlights} notes={notes}
-            onHighlightDelete={handleHighlightDelete} onNotesChange={setNotes}
-          />
+          {/* Desktop Right Panel Tabs */}
+          <div style={{ display: 'flex', borderBottom: '1px solid var(--mn-border)' }}>
+            <button onClick={() => setDesktopTab('chat')} style={{
+              flex: 1, padding: '12px 0', background: desktopTab === 'chat' ? 'var(--mn-paper)' : 'none',
+              border: 'none', color: desktopTab === 'chat' ? 'var(--mn-blue)' : 'var(--mn-ink-3)',
+              fontSize: '13px', fontWeight: desktopTab === 'chat' ? 700 : 500, cursor: 'pointer',
+              borderBottom: desktopTab === 'chat' ? '2px solid var(--mn-blue)' : '2px solid transparent'
+            }}>⚡ AI 课本向导</button>
+            <button onClick={() => setDesktopTab('notes')} style={{
+              flex: 1, padding: '12px 0', background: desktopTab === 'notes' ? 'var(--mn-paper)' : 'none',
+              border: 'none', color: desktopTab === 'notes' ? 'var(--mn-blue)' : 'var(--mn-ink-3)',
+              fontSize: '13px', fontWeight: desktopTab === 'notes' ? 700 : 500, cursor: 'pointer',
+              borderBottom: desktopTab === 'notes' ? '2px solid var(--mn-blue)' : '2px solid transparent'
+            }}>✐ 高亮与笔记</button>
+          </div>
+          <div style={{ flex: 1, overflow: 'hidden' }}>
+            {desktopTab === 'chat' ? (
+              <TextbookChat fileId={fileId} />
+            ) : (
+              <HighlightPanel
+                fileId={fileId} highlights={highlights} notes={notes}
+                onHighlightDelete={handleHighlightDelete} onNotesChange={setNotes}
+              />
+            )}
+          </div>
         </div>
       </div>
 
@@ -390,6 +414,7 @@ export default function ReaderPage() {
         <div style={{ flex: 1, overflow: 'hidden' }}>
           {mobileTab === 'ku'     && <KuSidebar textbookId={file.textbook_id} />}
           {mobileTab === 'reader' && <div style={{ height: '100%', padding: '8px' }}>{readerEl}</div>}
+          {mobileTab === 'chat'   && <TextbookChat fileId={fileId} />}
           {mobileTab === 'notes'  && (
             <HighlightPanel
               fileId={fileId} highlights={highlights} notes={notes}
