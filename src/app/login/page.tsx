@@ -91,6 +91,18 @@ export default function LoginPage() {
     router.replace(user.role === 'parent' ? '/parent/overview' : '/home');
   };
 
+  // ── dev 快速登录（仅 dev 环境）──
+  const devLogin = async () => {
+    setPhase('loading'); setError('');
+    const res = await api.loginEmail({ email: 'dev@mneme.local', code: '123456' });
+    if (!res.ok) { setError(res.error); setPhase('email'); return; }
+    setToken(res.data.token);
+    const me = await api.getMe();
+    const user = me.ok ? { ...res.data.user, ...me.data } : res.data.user;
+    setUser(user);
+    router.replace(user.role === 'parent' ? '/parent/overview' : '/home');
+  };
+
   // ── register handlers ──
   const age = ageFromBirth(birth);
   const needGuardian = age !== null && age < 14;
@@ -164,19 +176,38 @@ export default function LoginPage() {
 
         {/* Brand */}
         <div style={{ textAlign: 'center' }}>
-          <div style={{
-            width: '64px', height: '64px', borderRadius: '20px',
-            background: 'var(--mn-blue)', color: 'white',
-            fontSize: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 16px', boxShadow: '0 4px 16px rgba(30,58,95,.25)',
-          }}>◎</div>
-          <h1 style={{ fontSize: '28px', fontWeight: 900, letterSpacing: '-0.04em', color: 'var(--mn-ink)', marginBottom: '6px' }}>
-            善学记
-          </h1>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.png"
+            alt="善学记 · 智慧学习助手"
+            style={{ width: '224px', maxWidth: '72%', height: 'auto', display: 'block', margin: '0 auto 6px', borderRadius: '16px' }}
+          />
           <p style={{ fontSize: '14px', color: 'var(--mn-ink-3)', lineHeight: 1.5 }}>
             认知状态追踪<br />每天进步一点点
           </p>
         </div>
+
+        {/* Dev 快速登录 */}
+        {IS_DEV && (
+          <button
+            type="button"
+            onClick={devLogin}
+            disabled={phase === 'loading'}
+            style={{
+              padding: '10px 16px', borderRadius: '10px', fontSize: '13px', fontWeight: 600,
+              border: '1.5px dashed var(--mn-border-2)', background: 'var(--mn-surface)',
+              color: 'var(--mn-ink-2)', cursor: 'pointer', letterSpacing: '0.01em',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+              transition: 'background var(--mn-duration-fast)',
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--mn-surface-2)')}
+            onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--mn-surface)')}
+          >
+            <span style={{ opacity: 0.5 }}>⚡</span>
+            开发者快速登录
+            <span style={{ opacity: 0.4, fontSize: '11px', fontWeight: 400 }}>dev@mneme.local</span>
+          </button>
+        )}
 
         {/* Tab toggle */}
         <div style={{ display: 'flex', background: 'var(--mn-surface)', borderRadius: '12px', padding: '4px', border: '1px solid var(--mn-border)' }}>

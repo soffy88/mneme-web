@@ -211,7 +211,15 @@ export const mockLesson = async (): Promise<ApiResult<LessonRes>> => {
 };
 
 export const mockChildren      = async (): Promise<ApiResult<ChildInfo[]>>         => ok([{ student_id: 'stu-001', name: '小明', grade: '高三' }]);
-export const mockParentOverview = async (): Promise<ApiResult<ParentOverviewRes>>  => ok({ weak_kc_count: 4, weak_kc_trend: -2, streak: 12, emotion: 'stable', top_improved_kc: '等差数列与等比数列', study_minutes_today: 40 });
+export const mockParentOverview = async (): Promise<ApiResult<ParentOverviewRes>>  => ok({ 
+  headline: "刚开始建立学习档案，做几道题就能看到进步",
+  mastered_kc_count: 5,
+  streak: { current_streak: 3 },
+  total_kc_practiced: 10,
+  weak_kc_count: 2,
+  recent_sessions: 3,
+  learner_profile: "该学生高三数学在押题方向：弱在概率与统计、数列递推；强在平面向量。近7天答题集中在函数，有明显努力错觉迹象（做题多但掌握度涨幅小）。建议结合前置知识点复习。"
+});
 export const mockParentAlerts   = async (): Promise<ApiResult<ParentAlertsRes>>    => ok({ alerts: [{ id: 'a-001', alert_type: 'task_missing', alert_level: 'notice', content: '小明本周有 3 天未完成今日目标', is_read: false, created_at: new Date().toISOString() }] });
 export const mockBindChild     = async (): Promise<ApiResult<BindChildRes>>       => { await delay(400); return ok({ ok: true, student_id: 'stu-001', student_name: '小明' }); };
 export const mockWeeklyDigest  = async (): Promise<ApiResult<WeeklyDigestRes>>    => ok({ current_streak: 12, active_today: true, n_interactions_7d: 48, distinct_kcs_7d: 9, accuracy_7d: 0.72, days_active_7d: 6, effort_gains_7d: 5, headline: '本周练了 48 道、9 个知识点，活跃 6 天，已连续 12 天 🔥' });

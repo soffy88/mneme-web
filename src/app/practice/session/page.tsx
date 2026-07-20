@@ -169,7 +169,8 @@ function PracticeBody({ kuId, subject }: { kuId: string; subject: string }) {
   const getStudentId = useCallback(() => getUserId(), []);
 
   useEffect(() => {
-    api.listQuestionBank({ subject, ku_id: kuId, needs_image: false, limit: 16 })
+    const sid = getUserId();
+    api.listQuestionBank({ subject, ku_id: kuId, student_id: sid || undefined, needs_image: false, limit: 16 })
       .then(res => {
         if (res.ok) setQuestions(res.data.items.filter(q => !missingImage(q)).slice(0, 10));
       })

@@ -32,9 +32,10 @@ function PrintPageInner() {
 
   const fetchVariants = useCallback(async () => {
     setVariantsLoading(true);
+    const sid = getUserId() || undefined;
     const pairs = await Promise.all(
       items.filter((it) => it.can_practice_variant).map(async (it) => {
-        const res = await api.generatePractice(it.ku_id, 1, 0.5);
+        const res = await api.generatePractice(it.ku_id, 1, 0.5, sid);
         return [it.question_id, res.ok ? (res.data.items[0] ?? null) : null] as const;
       })
     );

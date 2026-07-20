@@ -59,8 +59,12 @@ function Shell({
         alignItems: 'center',
         justifyContent: 'space-between',
       }}>
-        <span style={{ fontWeight: 700, fontSize: '16px', letterSpacing: '-0.02em', color: 'var(--mn-ink)' }}>
-          {title}
+        <span style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-mark.png" alt="" style={{ height: '30px', width: 'auto', display: 'block', borderRadius: '7px' }} />
+          <span style={{ fontWeight: 700, fontSize: '16px', letterSpacing: '-0.02em', color: 'var(--mn-ink)' }}>
+            {title}
+          </span>
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {USE_MOCK && (
