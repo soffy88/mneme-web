@@ -181,9 +181,13 @@ export interface LessonRes {
 // ── 家长端 ────────────────────────────────────────────────────
 export type EmotionState = 'stable' | 'anxious' | 'low' | 'crisis';
 export interface ParentOverviewRes {
-  weak_kc_count: number; weak_kc_trend: number;
-  streak: number; emotion: EmotionState;
-  top_improved_kc: string; study_minutes_today: number;
+  headline: string;
+  mastered_kc_count: number;
+  streak: any; // Using any for streak dict for now
+  total_kc_practiced: number;
+  weak_kc_count: number;
+  recent_sessions: number;
+  learner_profile: string;
 }
 export type AlertType = 'emotion' | 'score_drop' | 'task_missing' | 'time_drop' | 'late_night';
 export type AlertLevel = 'notice' | 'attention' | 'important';
