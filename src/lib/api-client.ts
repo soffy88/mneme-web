@@ -59,7 +59,18 @@ async function req<T>(
     const data = await res.json();
     return { ok: true, data: data as T };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    if (e instanceof Error) {
+      // AbortController 超时 → 友好提示，不暴露技术细节
+      if (e.name === 'AbortError' || e.message.includes('aborted')) {
+        return { ok: false, error: '请求超时，请检查网络连接后重试' };
+      }
+      // 无法连接到服务器（ECONNREFUSED / Failed to fetch）
+      if (e.message.includes('Failed to fetch') || e.message.includes('fetch')) {
+        return { ok: false, error: '无法连接到服务器，请稍后重试' };
+      }
+      return { ok: false, error: e.message };
+    }
+    return { ok: false, error: String(e) };
   } finally {
     clearTimeout(timer);
   }
@@ -68,6 +79,9 @@ async function req<T>(
 function post<T>(path: string, body: unknown, auth = true) {
   return req<T>(path, { method: 'POST', body: JSON.stringify(body) }, auth);
 }
+
+// 供未走命名接口封装的调用方(如 TextbookChat)直接用 req 的底层逻辑(超时/鉴权/错误翻译一致)。
+export const apiFetch = <T = any>(path: string, options?: RequestInit) => req<T>(path, options);
 
 // ── 认证(无需 auth header) ──────────────────────────────────
 export const sendCode  = (r: SendCodeReq)         => USE_MOCK ? mock.mockSendCode()     : post<void>('/v1/auth/send-code', r, false);
@@ -175,9 +189,10 @@ export const getMission      = (sid: string)       => USE_MOCK ? mock.mockMissio
 export const completeMission = (mid: string)       => USE_MOCK ? mock.mockCompleteMission()  : post<CompleteMissionRes>(`/v1/missions/${mid}/complete`, {});
 
 // ── 变式题 ───────────────────────────────────────────────────
-export const generatePractice = (kuId: string, count = 3, difficulty = 0.5) => {
+export const generatePractice = (kuId: string, count = 3, difficulty = 0.5, studentId?: string) => {
   if (USE_MOCK) return mock.mockPractice();
   const qs = new URLSearchParams({ ku_id: kuId, count: String(count), difficulty: String(difficulty) });
+  if (studentId) qs.set('student_id', studentId);
   return req<PracticeRes>(`/v1/practice/generate?${qs}`, { method: 'POST' });
 };
 
@@ -438,11 +453,12 @@ export const getKnowledgePoint = (kuId: string, studentId?: string) => {
 
 // ── 题库 & 专题练习 ───────────────────────────────────────────
 export const listQuestionBank = (params: {
-  subject?: string; ku_id?: string; needs_image?: boolean; limit?: number; offset?: number;
+  subject?: string; ku_id?: string; student_id?: string; needs_image?: boolean; limit?: number; offset?: number;
 }) => {
   const p = new URLSearchParams();
   if (params.subject)                    p.set('subject',      params.subject);
   if (params.ku_id)                      p.set('ku_id',        params.ku_id);
+  if (params.student_id)                 p.set('student_id',   params.student_id);
   if (params.needs_image !== undefined)  p.set('needs_image',  String(params.needs_image));
   if (params.limit !== undefined)        p.set('limit',        String(params.limit));
   if (params.offset !== undefined)       p.set('offset',       String(params.offset));
@@ -469,6 +485,23 @@ export const setExamDate = (sid: string, examDate: string | null) =>
 export const getDailyPlanPrefs = (sid: string) => req<DailyPlanPrefs>(`/v1/users/${sid}/daily-plan-prefs`);
 export const setDailyPlanPrefs = (sid: string, updates: Partial<DailyPlanPrefs>) =>
   req<DailyPlanPrefs>(`/v1/users/${sid}/daily-plan-prefs`, { method: 'POST', body: JSON.stringify(updates) });
+
+// ── 深度研究多步推理解题 ──────────────────────────────────────────────
+export interface DeepSolveRes {
+  ok: boolean;
+  data: {
+    analysis: {
+      problem_type: string;
+      required_kus: string[];
+      difficulty_estimate: number;
+    };
+    method_template: string;
+    roadmap: string;
+  };
+}
+
+export const deepSolve = (problem_text: string) =>
+  req<DeepSolveRes>('/v1/deep-solve', { method: 'POST', body: JSON.stringify({ problem_text }) });
 
 // ── 用户教材绑定（N.4）── real-only，涉及真实调度行为，不走 mock
 export const getTextbookBindings = (sid: string) => req<TextbookBindings>(`/v1/users/${sid}/textbook-bindings`);
