@@ -125,6 +125,17 @@ function CurveContent() {
             永久学习档案 · 每月留存掌握度与错因，随时间增值
           </p>
         </div>
+        <button
+          type="button"
+          onClick={() => router.push(`/subjects/math/selftest?ku=${encodeURIComponent(kuId)}&name=${encodeURIComponent(kcName)}`)}
+          style={{
+            marginLeft: 'auto', flexShrink: 0, padding: '8px 14px', borderRadius: '12px', cursor: 'pointer',
+            border: '1px solid var(--mn-border)', background: 'var(--mn-surface)',
+            color: 'var(--mn-blue)', fontSize: '13px', fontWeight: 600,
+          }}
+        >
+          自测校准
+        </button>
       </div>
 
       {loading ? (

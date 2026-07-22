@@ -69,6 +69,7 @@ export interface InteractionReq {
   student_id: string; ku_id: string; is_correct: boolean;
   used_answer?: boolean; struggled?: boolean; effortless?: boolean;
   source: InteractionSource; question_id?: string; is_interleaved?: boolean;
+  predicted_confidence?: number; // JOL：作答前把握度自评(0~1)，不选则不发
 }
 export interface InteractionRes {
   p_mastery: number; long_term_mastery: number; effective_mastery: number;
