@@ -36,10 +36,11 @@ import {
   type DirectorCommand,
   type HandChoreoParams,
 } from '@/lib/aria-director';
-import { requestAriaLipsync, requestAriaTts } from '@/lib/aria-media';
+import { requestAriaLipsync, requestAriaTts, requestEchoDrive } from '@/lib/aria-media';
 import type { AriaMessage } from '@/lib/aria-chat';
-import { getUserId } from '@/lib/auth-store';
+import { getUserId, authHeader } from '@/lib/auth-store';
 import { choreoFromNote } from '@/lib/hand-sync';
+import { MNEME_API_BASE } from '@/lib/env';
 
 type Props = { onOpenStudy?: () => void };
 
@@ -100,6 +101,24 @@ export function AriaStage({ onOpenStudy }: Props) {
     return () => clearInterval(t);
   }, [pose, trackIdx]);
 
+  // P1: 上传场景感知（首次挂载时描述房间）
+  useEffect(() => {
+    const sid = getUserId();
+    if (!sid) return;
+    const hour = new Date().getHours();
+    const timeOfDay = hour < 6 ? 'night' : hour < 12 ? 'morning' : hour < 18 ? 'afternoon' : 'evening';
+    const desc = `Grand piano in a warm music room. Bookshelf with sheet music nearby. ${timeOfDay} light through the window.`;
+    void fetch(`${MNEME_API_BASE}/v1/aria/perception`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeader() },
+      body: JSON.stringify({
+        student_id: sid,
+        room_key: 'music_room',
+        text_description: desc,
+      }),
+    }).catch(() => undefined);
+  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages, orb]);
@@ -121,10 +140,14 @@ export function AriaStage({ onOpenStudy }: Props) {
 
   const speakAria = useCallback(async (text: string, emo?: string) => {
     setSpeaking(true);
+    setEchoVideoUrl(null); // P3: 清除上次视频
+
     const end = () => {
       setSpeaking(false);
       setLipsync(null);
+      setEchoVideoUrl(null); // P3: 说话结束后清除视频
     };
+
     // Phase 2 口型 + Phase 语音：edge-tts → Web Speech 兜底
     try {
       const lip = await requestAriaLipsync({ text, emotion: emo || emotion });
@@ -132,17 +155,35 @@ export function AriaStage({ onOpenStudy }: Props) {
     } catch {
       setLipsync({ mode: 'viseme_css' });
     }
+
     try {
       const tts = await requestAriaTts(text);
       if (tts.ok && tts.audioB64) {
-        speakAudioBase64(tts.audioB64, tts.mime || 'audio/mpeg', end);
+        const audioB64 = tts.audioB64;
+        // P3: 并行触发 EchoDrive（仅在 runtime 启用时）
+        // 音频立即开始；视频在 EchoMimic 返回后淡入替换 PNG
+        if (runtime?.features?.echo_drive) {
+          void requestEchoDrive({
+            audioB64,
+            handPose: handChoreo ?? undefined,
+            emotion: emo || emotion,
+          }).then((echo) => {
+            if (echo.ok && (echo.videoB64 || echo.videoUrl)) {
+              const url = echo.videoUrl ??
+                `data:video/mp4;base64,${echo.videoB64}`;
+              setEchoVideoUrl(url);
+            }
+          });
+        }
+
+        speakAudioBase64(audioB64, tts.mime || 'audio/mpeg', end);
         return;
       }
     } catch {
       /* fallthrough */
     }
     speakEnglish(text, end);
-  }, [emotion]);
+  }, [emotion, handChoreo, runtime]);
 
   const executeCommand = useCallback(
     (cmd: DirectorCommand, opts?: { fromUser?: boolean }) => {
@@ -160,6 +201,16 @@ export function AriaStage({ onOpenStudy }: Props) {
       const act = cmd.action as AriaAction;
       if (act === 'play_piano' || act === 'return_to_piano') {
         setMode('playing');
+        // P3: 预烘焙缓存 — 仅在 echo_drive 启用时尝试加载
+        // 不存在时静默降级到 P2 模拟
+        if (runtime?.features?.echo_drive) {
+          void fetch('/aria/echo_cache/coaching.mp4', { method: 'HEAD' })
+            .then((r) => {
+              if (r.ok) setEchoVideoUrl('/aria/echo_cache/coaching.mp4');
+              else setEchoVideoUrl(null);
+            })
+            .catch(() => setEchoVideoUrl(null));
+        }
       } else if (
         act === 'speak' ||
         act === 'look_at_user' ||
@@ -167,6 +218,7 @@ export function AriaStage({ onOpenStudy }: Props) {
         (opts?.fromUser && act !== 'idle')
       ) {
         setMode('conversation');
+        setEchoVideoUrl(null); // 对话模式不使用预烘焙
       }
 
       if (cmd.utterance) {

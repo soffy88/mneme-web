@@ -87,6 +87,13 @@ export type AriaRuntimeConfig = {
     lipsync_gpu?: boolean;
     tts_edge?: boolean;
     clip_pool?: boolean;
+    // P1
+    perception?: boolean;
+    // P2
+    hand_choreo?: boolean;
+    // P3
+    echo_drive?: boolean;
+    echo_degrade_to_p2?: boolean;
   };
   note?: string;
 };
