@@ -67,6 +67,7 @@ export function AriaStage({ onOpenStudy }: Props) {
   const [layout, setLayout] = useState<AriaLayout>(() => layoutForAction('play_piano'));
   const [hands, setHands] = useState<AriaHands>(() => handsForAction('play_piano'));
   const [handChoreo, setHandChoreo] = useState<HandChoreoParams | null>(null);
+  const [echoVideoUrl, setEchoVideoUrl] = useState<string | null>(null); // P3
 
   const listRef = useRef<HTMLDivElement>(null);
   const ambienceRef = useRef<ReturnType<typeof createPianoAmbience> | null>(null);
@@ -369,6 +370,7 @@ export function AriaStage({ onOpenStudy }: Props) {
         hands={hands}
         action={lastAction}
         handChoreo={handChoreo}
+        echoVideoUrl={echoVideoUrl}
       />
 
       <div

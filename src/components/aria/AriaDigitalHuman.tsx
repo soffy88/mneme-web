@@ -23,6 +23,8 @@ type Props = {
   action?: string;
   /** P2: 手部编排参数（GSAP 动画用） */
   handChoreo?: HandChoreoParams | null;
+  /** P3: EchoMimic 驱动视频 URL（base64 data URI 或 mp4 URL） */
+  echoVideoUrl?: string | null;
 };
 
 const ASSETS = {
@@ -46,6 +48,7 @@ export function AriaDigitalHuman({
   hands: handsProp,
   action,
   handChoreo,
+  echoVideoUrl,
 }: Props) {
   const talk = isTalk(pose);
   const act = action || (talk ? 'speak' : 'play_piano');
@@ -61,6 +64,7 @@ export function AriaDigitalHuman({
   const bodyTl = useRef<gsap.core.Timeline | null>(null);
   const handsTl = useRef<gsap.core.Timeline | null>(null);
   const lipVideoRef = useRef<HTMLVideoElement>(null);
+  const echoVideoRef = useRef<HTMLVideoElement>(null); // P3
 
   // 应用 LLM 布局（平滑过渡）
   useEffect(() => {
@@ -245,6 +249,20 @@ export function AriaDigitalHuman({
     }
   }, [lipsync, speaking]);
 
+  // P3: EchoMimic 驱动视频控制
+  useEffect(() => {
+    const v = echoVideoRef.current;
+    if (!v) return;
+    if (echoVideoUrl) {
+      v.src = echoVideoUrl;
+      void v.play().catch(() => undefined);
+    } else {
+      v.pause();
+      v.removeAttribute('src');
+      v.load();
+    }
+  }, [echoVideoUrl]);
+
   useEffect(() => {
     const m = mouthRef.current;
     if (!m) return;
@@ -307,21 +325,42 @@ export function AriaDigitalHuman({
           willChange: 'transform, left, bottom, width, height',
         }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          ref={personImgRef}
-          src={talk ? ASSETS.personTalk : ASSETS.personPlay}
-          alt="Aria digital human"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'contain',
-            objectPosition: `${layout.anchor_x_pct}% ${layout.anchor_y_pct}%`,
-            filter: 'drop-shadow(0 12px 28px rgba(0,0,0,0.45))',
-          }}
-        />
+        {/* P3: EchoMimic 驱动视频（优先于静态 PNG） */}
+        {echoVideoUrl ? (
+          <video
+            ref={echoVideoRef}
+            src={echoVideoUrl}
+            muted
+            loop
+            playsInline
+            autoPlay
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+              objectPosition: `${layout.anchor_x_pct}% ${layout.anchor_y_pct}%`,
+              filter: 'drop-shadow(0 12px 28px rgba(0,0,0,0.45))',
+            }}
+          />
+        ) : (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            ref={personImgRef}
+            src={talk ? ASSETS.personTalk : ASSETS.personPlay}
+            alt="Aria digital human"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'contain',
+              objectPosition: `${layout.anchor_x_pct}% ${layout.anchor_y_pct}%`,
+              filter: 'drop-shadow(0 12px 28px rgba(0,0,0,0.45))',
+            }}
+          />
+        )}
 
         {/* 手部驱动层：半透明高亮区 + GSAP（示意/驱动锚点） */}
         <div
@@ -476,6 +515,7 @@ export function AriaDigitalHuman({
         {layout.scale.toFixed(2)}
         {hands.style === 'play' ? ' · hands:play' : ` · hands:${hands.style}`}
         {handChoreo ? ` · ${handChoreo.pattern_label}` : ''}
+        {echoVideoUrl ? ' · echo' : ''}
         {speaking ? ' · viseme' : ''}
         {emotion ? ` · ${emotion}` : ''}
       </div>
