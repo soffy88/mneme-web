@@ -13,6 +13,7 @@ const CONFIG: SubjectConfig = {
       bg: '#f0fdf4',
       cards: [
         { icon: '✐', title: '知识点讲解', desc: '分考点精讲例题', href: '/subjects/math/lesson' },
+        { icon: '▣', title: '康奈尔笔记', desc: '线索自测·本地进度', href: '/subjects/math/cornell' },
         { icon: '∑', title: '公式手册', desc: '高考公式速查', href: '/subjects/math/formula' },
         { icon: '✏', title: '专题练习', desc: '按考点分层练习', href: '/practice' },
         { icon: '⊕', title: '拍照解题', desc: '拍下题目秒出解析', href: '/upload' },

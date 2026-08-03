@@ -284,7 +284,7 @@ function PracticeBody({ kuId, subject = 'math' }: { kuId: string; subject?: stri
         <div style={{ fontSize: '32px', opacity: 0.3 }}>📭</div>
         <div style={{ fontSize: '15px', color: 'var(--mn-ink)' }}>该知识点暂无练习题</div>
         <div style={{ fontSize: '13px', color: 'var(--mn-ink-3)', lineHeight: 1.6 }}>
-          题目匹配正在进行中，稍后再来看看
+          题库真题正按知识点挂接中；可从「专项练习」选题表挑带题量的主题
         </div>
         <button onClick={() => router.back()} style={{
           marginTop: '8px', padding: '10px 24px', borderRadius: '99px',

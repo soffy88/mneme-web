@@ -22,6 +22,10 @@ type Ambience = {
 };
 
 export const TRACK_PRESETS = [
+  // Moonlight Sonata 1st movement approximation: C# minor triplets
+  // Notes: C#4, G#4, C#5 in triplet pattern, with bass notes
+  { name: '月光 Moonlight', notes: [61, 68, 73, 61, 68, 73, 61, 68, 73, 61, 68, 73,
+                                     59, 66, 71, 59, 66, 71, 59, 66, 71, 59, 66, 71], bpm: 56, vol: 0.11 },
   // Clair-ish: C# minor-ish soft notes (approximate, original pattern)
   { name: 'Moonlit Keys', notes: [61, 64, 68, 73, 68, 64, 61, 56], bpm: 52, vol: 0.09 },
   // Flowing: A major gentle

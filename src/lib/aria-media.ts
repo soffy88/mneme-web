@@ -1,9 +1,23 @@
 /**
- * Aria Media Planner / Lipsync / TTS 客户端。
+ * Aria Media / TTS 客户端。
  */
 import { MNEME_API_BASE } from './env';
 import { authHeader, getUserId } from './auth-store';
-import type { CinemaPlan, LipsyncMedia } from '@/components/aria/AriaCinemaLayer';
+
+export type LipsyncMedia = {
+  mode: 'video' | 'viseme_css' | 'none';
+  videoUrl?: string | null;
+  stillUrl?: string | null;
+  durationMs?: number;
+};
+
+export type CinemaPlan = {
+  stillUrl: string;
+  stillPool: string[];
+  clipUrl?: string | null;
+  rotateMs: number;
+  keysOverlay: boolean;
+};
 
 export type LipsyncResponse = {
   ok: boolean;
@@ -80,11 +94,18 @@ export async function requestAriaMediaPlan(action: string): Promise<CinemaPlan |
   }
 }
 
+export type VisemeCue = {
+  t: number; // offset in seconds from audio start
+  d: number; // duration in seconds
+  v: string; // viseme id: aa|ih|ou|ee|oh|sil
+};
+
 export type TtsResult = {
   ok: boolean;
   audioB64?: string | null;
   mime?: string;
   backend?: string;
+  visemes?: VisemeCue[];
 };
 
 /** 服务端 edge-tts；失败则 ok=false（调用方 Web Speech） */
@@ -103,6 +124,7 @@ export async function requestAriaTts(text: string): Promise<TtsResult> {
       audio_b64?: string | null;
       mime?: string;
       backend?: string;
+      visemes?: VisemeCue[];
     };
     if (!data.ok || !data.audio_b64) return { ok: false, backend: data.backend };
     return {
@@ -110,6 +132,7 @@ export async function requestAriaTts(text: string): Promise<TtsResult> {
       audioB64: data.audio_b64,
       mime: data.mime || 'audio/mpeg',
       backend: data.backend,
+      visemes: data.visemes?.length ? data.visemes : undefined,
     };
   } catch {
     return { ok: false, backend: 'network' };

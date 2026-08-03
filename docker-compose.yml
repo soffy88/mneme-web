@@ -11,6 +11,8 @@ services:
       # 生产 API(NEXT_PUBLIC_* 构建期由 .env.production 内联=api.sxueji.com,此为运行期兜底)
       NEXT_PUBLIC_API_BASE: https://api.sxueji.com
       NEXT_PUBLIC_USE_MOCK: "false"
+      # Aria 对话 API 密钥（服务端使用，不暴露给前端）
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
     networks:
       - helios-net
     ports:

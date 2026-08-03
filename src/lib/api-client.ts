@@ -255,6 +255,38 @@ export const getErrorJournal = (
   return req<ErrorJournalRes>(`/v1/error-journal/${sid}${qs ? `?${qs}` : ''}`);
 };
 
+// ── 康奈尔笔记进度云同步（自报 checklist，≠ BKT）──────────────
+export type CornellProgressRow = {
+  topic_id: string;
+  version: number;
+  state: Record<string, unknown>;
+  updated_at: string | null;
+};
+
+export const listCornellProgress = (sid: string) =>
+  req<{ items: CornellProgressRow[] }>(`/v1/cornell/${sid}/progress`);
+
+export const getCornellProgress = (sid: string, topicId: string) =>
+  req<CornellProgressRow>(
+    `/v1/cornell/${sid}/progress/${encodeURIComponent(topicId)}`,
+  );
+
+export const putCornellProgress = (
+  sid: string,
+  topicId: string,
+  state: Record<string, unknown>,
+) =>
+  req<CornellProgressRow>(
+    `/v1/cornell/${sid}/progress/${encodeURIComponent(topicId)}`,
+    { method: 'PUT', body: JSON.stringify({ state }) },
+  );
+
+export const deleteCornellProgress = (sid: string, topicId: string) =>
+  req<{ deleted: boolean; topic_id: string }>(
+    `/v1/cornell/${sid}/progress/${encodeURIComponent(topicId)}`,
+    { method: 'DELETE' },
+  );
+
 // ── 待复习 ────────────────────────────────────────────────────
 export const getReviewDue = (sid: string) =>
   USE_MOCK ? mock.mockReviewDue() : req<ReviewDueItem[]>(`/v1/review/due/${sid}`);

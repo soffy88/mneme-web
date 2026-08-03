@@ -1,17 +1,19 @@
 'use client';
 
 /**
- * Aria 数字人舞台 — AI Director 指挥的可行动角色（非视频循环）。
+ * Aria 数字人主舞台 — 3D VRM 骨骼动画（默认且唯一渲染路径）。
  *
  * 架构：
- *   Director (LLM/NIM intelligence) → action 指令
- *   Runtime adapter (mock_scene | nim) → 姿态 / 脸部
- *   用户可打断；闲时 tick 让她自主继续弹琴或互动
+ *   Director (LLM) → action/utterance/emotion
+ *   AriaWorld (Three.js + VRM) → 骨骼动画（走/坐/弹/聊/想/闲）
+ *   TTS (edge-tts) → 语音播放
+ *   用户可打断；闲时 Director tick 让她自主行动
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ThinkingOrb, type OrbState } from './ThinkingOrb';
 import {
   createEnglishRecognizer,
+  getAudioTime,
   speakAudioBase64,
   speakEnglish,
   stopSpeaking,
@@ -21,33 +23,23 @@ import {
   trackMeta,
   TRACK_COUNT,
 } from './pianoAmbience';
-import { AriaDigitalHuman } from './AriaDigitalHuman';
-import type { LipsyncMedia } from './AriaCinemaLayer';
+import { AriaWorld } from './scene3d/AriaWorld';
 import { actionToPose, type AvatarPose } from './nimAdapter';
 import {
   fetchAriaRuntime,
-  handsForAction,
-  layoutForAction,
   requestAriaAct,
   type AriaAction,
-  type AriaHands,
-  type AriaLayout,
   type AriaRuntimeConfig,
   type DirectorCommand,
-  type HandChoreoParams,
 } from '@/lib/aria-director';
-import { requestAriaLipsync, requestAriaTts, requestEchoDrive } from '@/lib/aria-media';
+import { requestAriaTts, type VisemeCue } from '@/lib/aria-media';
+import { AriaBrainWs, type BrainCommand } from '@/lib/aria-brain-ws';
 import type { AriaMessage } from '@/lib/aria-chat';
 import { getUserId, authHeader } from '@/lib/auth-store';
-import { choreoFromNote } from '@/lib/hand-sync';
 import { MNEME_API_BASE } from '@/lib/env';
 
 type Props = { onOpenStudy?: () => void };
 
-/**
- * 独立数字人主舞台：房间层固定 + 人像层动画 + Director/TTS/口型。
- * EchoMimic 侧车可替换人像驱动视频；3D 木偶不进默认路径。
- */
 export function AriaStage({ onOpenStudy }: Props) {
   const [pose, setPose] = useState<AvatarPose>('play_piano');
   const [emotion, setEmotion] = useState('focused');
@@ -64,26 +56,28 @@ export function AriaStage({ onOpenStudy }: Props) {
   const [lastAction, setLastAction] = useState<AriaAction>('play_piano');
   const [runtime, setRuntime] = useState<AriaRuntimeConfig | null>(null);
   const [autonomous, setAutonomous] = useState(true);
-  const [lipsync, setLipsync] = useState<LipsyncMedia | null>(null);
-  const [layout, setLayout] = useState<AriaLayout>(() => layoutForAction('play_piano'));
-  const [hands, setHands] = useState<AriaHands>(() => handsForAction('play_piano'));
-  const [handChoreo, setHandChoreo] = useState<HandChoreoParams | null>(null);
-  const [echoVideoUrl, setEchoVideoUrl] = useState<string | null>(null); // P3
 
   const listRef = useRef<HTMLDivElement>(null);
   const ambienceRef = useRef<ReturnType<typeof createPianoAmbience> | null>(null);
   const audioUnlocked = useRef(false);
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const acting = useRef(false);
+  const visemesRef = useRef<VisemeCue[]>([]);
+  const activeNotesRef = useRef<Map<number, number>>(new Map()); // midi → velocity
+  const brainRef = useRef<AriaBrainWs | null>(null);
+  const [brainConnected, setBrainConnected] = useState(false);
 
   const track = trackMeta(trackIdx);
 
+  // 钢琴环境音 + MIDI note → finger driving
   useEffect(() => {
     const amb = createPianoAmbience();
     ambienceRef.current = amb;
-    // P2: 音符回调 → 实时手部编排
-    amb.onNote(({ midi, bpm }) => {
-      setHandChoreo(choreoFromNote(midi, bpm));
+    amb.onNote((ev) => {
+      // Store active note; auto-expire after beat duration
+      activeNotesRef.current.set(ev.midi, 90);
+      const beatMs = (60 / ev.bpm) * 1000;
+      setTimeout(() => activeNotesRef.current.delete(ev.midi), beatMs * 1.4);
     });
     void fetchAriaRuntime().then(setRuntime);
     return () => {
@@ -91,8 +85,9 @@ export function AriaStage({ onOpenStudy }: Props) {
       if (holdTimer.current) clearTimeout(holdTimer.current);
       stopSpeaking();
     };
-  }, [pose]);
+  }, []);
 
+  // 弹琴进度条
   useEffect(() => {
     if (pose !== 'play_piano') return;
     const t = setInterval(() => {
@@ -101,7 +96,7 @@ export function AriaStage({ onOpenStudy }: Props) {
     return () => clearInterval(t);
   }, [pose, trackIdx]);
 
-  // P1: 上传场景感知（首次挂载时描述房间）
+  // P1: 上传场景感知
   useEffect(() => {
     const sid = getUserId();
     if (!sid) return;
@@ -111,13 +106,9 @@ export function AriaStage({ onOpenStudy }: Props) {
     void fetch(`${MNEME_API_BASE}/v1/aria/perception`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...authHeader() },
-      body: JSON.stringify({
-        student_id: sid,
-        room_key: 'music_room',
-        text_description: desc,
-      }),
+      body: JSON.stringify({ student_id: sid, room_key: 'music_room', text_description: desc }),
     }).catch(() => undefined);
-  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     listRef.current?.scrollTo({ top: listRef.current.scrollHeight, behavior: 'smooth' });
@@ -140,50 +131,19 @@ export function AriaStage({ onOpenStudy }: Props) {
 
   const speakAria = useCallback(async (text: string, emo?: string) => {
     setSpeaking(true);
-    setEchoVideoUrl(null); // P3: 清除上次视频
-
-    const end = () => {
-      setSpeaking(false);
-      setLipsync(null);
-      setEchoVideoUrl(null); // P3: 说话结束后清除视频
-    };
-
-    // Phase 2 口型 + Phase 语音：edge-tts → Web Speech 兜底
-    try {
-      const lip = await requestAriaLipsync({ text, emotion: emo || emotion });
-      setLipsync(lip);
-    } catch {
-      setLipsync({ mode: 'viseme_css' });
-    }
+    const end = () => { setSpeaking(false); visemesRef.current = []; };
 
     try {
       const tts = await requestAriaTts(text);
       if (tts.ok && tts.audioB64) {
-        const audioB64 = tts.audioB64;
-        // P3: 并行触发 EchoDrive（仅在 runtime 启用时）
-        // 音频立即开始；视频在 EchoMimic 返回后淡入替换 PNG
-        if (runtime?.features?.echo_drive) {
-          void requestEchoDrive({
-            audioB64,
-            handPose: handChoreo ?? undefined,
-            emotion: emo || emotion,
-          }).then((echo) => {
-            if (echo.ok && (echo.videoB64 || echo.videoUrl)) {
-              const url = echo.videoUrl ??
-                `data:video/mp4;base64,${echo.videoB64}`;
-              setEchoVideoUrl(url);
-            }
-          });
-        }
-
-        speakAudioBase64(audioB64, tts.mime || 'audio/mpeg', end);
+        visemesRef.current = tts.visemes ?? [];
+        speakAudioBase64(tts.audioB64, tts.mime || 'audio/mpeg', end);
         return;
       }
-    } catch {
-      /* fallthrough */
-    }
+    } catch { /* fallthrough */ }
+    visemesRef.current = [];
     speakEnglish(text, end);
-  }, [emotion, handChoreo, runtime]);
+  }, []);
 
   const executeCommand = useCallback(
     (cmd: DirectorCommand, opts?: { fromUser?: boolean }) => {
@@ -193,32 +153,14 @@ export function AriaStage({ onOpenStudy }: Props) {
       setPose(nextPose);
       applyPianoAudio(nextPose);
 
-      // LLM / 启发式布局 + 手部 + P2 手部编排
-      setLayout(cmd.layout ?? layoutForAction(cmd.action));
-      setHands(cmd.hands ?? handsForAction(cmd.action));
-      setHandChoreo(cmd.hand_choreo ?? null);
-
       const act = cmd.action as AriaAction;
       if (act === 'play_piano' || act === 'return_to_piano') {
         setMode('playing');
-        // P3: 预烘焙缓存 — 仅在 echo_drive 启用时尝试加载
-        // 不存在时静默降级到 P2 模拟
-        if (runtime?.features?.echo_drive) {
-          void fetch('/aria/echo_cache/coaching.mp4', { method: 'HEAD' })
-            .then((r) => {
-              if (r.ok) setEchoVideoUrl('/aria/echo_cache/coaching.mp4');
-              else setEchoVideoUrl(null);
-            })
-            .catch(() => setEchoVideoUrl(null));
-        }
       } else if (
-        act === 'speak' ||
-        act === 'look_at_user' ||
-        act === 'think' ||
+        act === 'speak' || act === 'look_at_user' || act === 'think' ||
         (opts?.fromUser && act !== 'idle')
       ) {
         setMode('conversation');
-        setEchoVideoUrl(null); // 对话模式不使用预烘焙
       }
 
       if (cmd.utterance) {
@@ -227,56 +169,71 @@ export function AriaStage({ onOpenStudy }: Props) {
       }
 
       const label =
-        cmd.action === 'play_piano'
-          ? 'She sits and plays on her own…'
-          : cmd.action === 'look_at_user'
-            ? 'She looks at you.'
-            : cmd.action === 'speak'
-              ? 'She is speaking with you.'
-              : cmd.action === 'think'
-                ? 'She is thinking…'
-                : cmd.action === 'return_to_piano'
-                  ? 'She returns to the keys…'
-                  : 'Waiting softly…';
-      const lay = cmd.layout ?? layoutForAction(cmd.action);
-      setStatus(
-        `${runtime?.backend === 'nim' ? 'NIM' : 'Director'} · ${label}` +
-          ` · pos L${Math.round(lay.left_pct)}` +
-          (cmd.source ? ` (${cmd.source})` : ''),
-      );
+        cmd.action === 'play_piano' ? 'She sits and plays on her own…'
+        : cmd.action === 'look_at_user' ? 'She looks at you.'
+        : cmd.action === 'speak' ? 'She is speaking with you.'
+        : cmd.action === 'think' ? 'She is thinking…'
+        : cmd.action === 'return_to_piano' ? 'She returns to the keys…'
+        : 'Waiting softly…';
+      setStatus(`Director · ${label}${cmd.source ? ` (${cmd.source})` : ''}`);
 
       if (cmd.action === 'think') setOrb('composing');
       else setOrb(null);
 
       return cmd.hold_ms || 3000;
     },
-    [applyPianoAudio, speakAria, runtime?.backend],
+    [applyPianoAudio, speakAria],
   );
 
+  // Phase 3: Aria Brain WebSocket（自主行为大脑）
+  useEffect(() => {
+    if (!getUserId()) return;
+    const brain = new AriaBrainWs({
+      onCommand: (cmd: BrainCommand) => {
+        executeCommand({
+          action: (cmd.action || 'idle') as AriaAction,
+          utterance: cmd.utterance ?? null,
+          emotion: cmd.emotion || 'gentle',
+          hold_ms: cmd.hold_ms ?? 3000,
+          reason: '',
+          source: cmd.source || 'brain',
+        });
+      },
+      onStatus: (s) => setBrainConnected(s === 'connected'),
+    });
+    brainRef.current = brain;
+    brain.connect();
+    brain.userEntered();
+    return () => {
+      brain.dispose();
+      brainRef.current = null;
+    };
+  }, [executeCommand]);
+
   const runDirector = useCallback(
-    async (
-      event: 'tick' | 'wake' | 'user_message',
-      message?: string,
-    ) => {
+    async (event: 'tick' | 'wake' | 'user_message', message?: string) => {
+      // When brain WS is connected, it handles autonomous ticks
+      if (brainConnected && event === 'tick') return;
+
       if (acting.current && event === 'tick') return;
       acting.current = true;
       if (event !== 'tick') {
         setBusy(true);
         setOrb(event === 'user_message' ? 'composing' : 'listening');
       }
+
+      // Notify brain WS of user messages (for its internal state)
+      if (event === 'user_message' && message?.trim()) {
+        brainRef.current?.userSpoke(message.trim());
+      }
+
       try {
         const hist = messages.map((m) => ({ role: m.role, content: m.content }));
         const cmd = await requestAriaAct({
           event,
           message,
           history: hist,
-          state: {
-            mode,
-            last_action: lastAction,
-            emotion,
-            layout,
-            hands,
-          },
+          state: { mode, last_action: lastAction, emotion },
         });
         if (event === 'user_message' && message?.trim()) {
           setMessages((m) => [...m, { role: 'user', content: message.trim() }]);
@@ -286,12 +243,10 @@ export function AriaStage({ onOpenStudy }: Props) {
         setOrb(null);
 
         if (holdTimer.current) clearTimeout(holdTimer.current);
-        // 自主循环：hold 结束后若仍开启 autonomous 且未在忙，再 tick
         holdTimer.current = setTimeout(() => {
           acting.current = false;
-          if (autonomous && !busy) {
-            void runDirector('tick');
-          }
+          // Only poll HTTP if brain WS is not handling autonomy
+          if (autonomous && !busy && !brainRef.current?.connected) void runDirector('tick');
         }, hold);
       } catch {
         acting.current = false;
@@ -300,16 +255,14 @@ export function AriaStage({ onOpenStudy }: Props) {
         setStatus('Director paused — try again.');
       }
     },
-    [messages, mode, lastAction, emotion, layout, hands, executeCommand, autonomous, busy],
+    [messages, mode, lastAction, emotion, executeCommand, autonomous, busy, brainConnected],
   );
 
   // 首屏：自主坐下弹琴
   useEffect(() => {
-    const t = setTimeout(() => {
-      void runDirector('tick');
-    }, 600);
+    const t = setTimeout(() => void runDirector('tick'), 600);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- 仅挂载启动
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const wake = useCallback(() => {
@@ -323,7 +276,7 @@ export function AriaStage({ onOpenStudy }: Props) {
     stopSpeaking();
     setSpeaking(false);
     setInput('');
-    void runDirector('tick'); // 让 Director 选 return/play
+    void runDirector('tick');
     setPose('play_piano');
     setMode('playing');
     applyPianoAudio('play_piano');
@@ -345,10 +298,7 @@ export function AriaStage({ onOpenStudy }: Props) {
   const startListen = useCallback(() => {
     unlockAudio();
     const rec = createEnglishRecognizer();
-    if (!rec) {
-      setStatus('Voice not available in this browser.');
-      return;
-    }
+    if (!rec) { setStatus('Voice not available in this browser.'); return; }
     setListening(true);
     setOrb('listening');
     rec.onresult = (ev) => {
@@ -359,11 +309,8 @@ export function AriaStage({ onOpenStudy }: Props) {
       if (mode === 'playing' || pose === 'play_piano') {
         if (/hey aria|hello|wake|hi /i.test(t) || t.length > 1) {
           void runDirector('wake');
-          // 若说了更多内容，紧跟着当作用户话
           const rest = t.replace(/hey aria|hello|wake up|hi aria/gi, '').trim();
-          if (rest.length > 2) {
-            window.setTimeout(() => void runDirector('user_message', rest), 400);
-          }
+          if (rest.length > 2) window.setTimeout(() => void runDirector('user_message', rest), 400);
         } else {
           void runDirector('user_message', t);
         }
@@ -371,20 +318,9 @@ export function AriaStage({ onOpenStudy }: Props) {
         void send(t);
       }
     };
-    rec.onerror = () => {
-      setListening(false);
-      setOrb(null);
-    };
-    rec.onend = () => {
-      setListening(false);
-      setOrb(null);
-    };
-    try {
-      rec.start();
-    } catch {
-      setListening(false);
-      setOrb(null);
-    }
+    rec.onerror = () => { setListening(false); setOrb(null); };
+    rec.onend = () => { setListening(false); setOrb(null); };
+    try { rec.start(); } catch { setListening(false); setOrb(null); }
   }, [unlockAudio, mode, pose, runDirector, send]);
 
   const nextTrack = () => {
@@ -405,131 +341,61 @@ export function AriaStage({ onOpenStudy }: Props) {
         minHeight: 'min(82vh, 720px)',
         aspectRatio: '3 / 4',
         maxHeight: '85vh',
-        background: '#0c0a09',
+        background: '#1a1410',
         color: '#f5f0e8',
         overflow: 'hidden',
       }}
       onPointerDown={unlockAudio}
     >
-      {/* 独立数字人：房间固定 + 人像层可动（Director 指挥） */}
-      <AriaDigitalHuman
+      {/* 3D VRM 数字人：骨骼动画（走/坐/弹/聊/想/闲）+ viseme 口型 + MIDI 手指 */}
+      <AriaWorld
         pose={pose}
         speaking={speaking}
         emotion={emotion}
-        playingAudio={pose === 'play_piano'}
-        lipsync={lipsync}
-        layout={layout}
-        hands={hands}
-        action={lastAction}
-        handChoreo={handChoreo}
-        echoVideoUrl={echoVideoUrl}
+        visemesRef={visemesRef}
+        getAudioTime={getAudioTime}
+        activeNotesRef={activeNotesRef}
       />
 
-      <div
-        style={{
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          bottom: 0,
-          height: '32%',
-          background:
-            'linear-gradient(180deg, transparent, rgba(8,6,5,0.5) 35%, rgba(8,6,5,0.94) 100%)',
-          pointerEvents: 'none',
-          zIndex: 2,
-        }}
-      />
+      {/* 底部渐变遮罩 */}
+      <div style={{
+        position: 'absolute', left: 0, right: 0, bottom: 0, height: '32%',
+        background: 'linear-gradient(180deg, transparent, rgba(8,6,5,0.5) 35%, rgba(8,6,5,0.94) 100%)',
+        pointerEvents: 'none', zIndex: 2,
+      }} />
 
-      {/* 右上 */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 12,
-          right: 12,
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: 8,
-          zIndex: 5,
-          justifyContent: 'flex-end',
-          maxWidth: '70%',
-        }}
-      >
-        <button
-          type="button"
-          onClick={() => setAutonomous((v) => !v)}
-          style={{
-            ...chipBtn,
-            borderColor: autonomous ? 'rgba(245,200,120,0.5)' : 'rgba(255,255,255,0.18)',
-          }}
-          title="AI 自主行动（Director tick）"
-        >
+      {/* 右上控制 */}
+      <div style={{
+        position: 'absolute', top: 12, right: 12,
+        display: 'flex', flexWrap: 'wrap', gap: 8, zIndex: 5,
+        justifyContent: 'flex-end', maxWidth: '70%',
+      }}>
+        <button type="button" onClick={() => setAutonomous((v) => !v)}
+          style={{ ...chipBtn, borderColor: autonomous ? 'rgba(245,200,120,0.5)' : 'rgba(255,255,255,0.18)' }}
+          title="AI 自主行动（Director tick）">
           {autonomous ? '● 自主中' : '○ 已暂停自主'}
         </button>
         {pose !== 'play_piano' && (
-          <button type="button" onClick={resumePiano} style={chipBtn}>
-            ♪ 让她弹琴
-          </button>
+          <button type="button" onClick={resumePiano} style={chipBtn}>♪ 让她弹琴</button>
         )}
         {onOpenStudy && (
-          <button type="button" onClick={onOpenStudy} style={chipBtn}>
-            学习中心
-          </button>
+          <button type="button" onClick={onOpenStudy} style={chipBtn}>学习中心</button>
         )}
       </div>
 
-      {/* 曲目 — 仅在弹琴姿态 */}
+      {/* 曲目信息 */}
       {pose === 'play_piano' && (
-        <div
-          style={{
-            position: 'absolute',
-            left: 16,
-            bottom: 108,
-            zIndex: 5,
-            maxWidth: '70%',
-          }}
-        >
-          <div
-            style={{
-              fontSize: 11,
-              letterSpacing: '0.08em',
-              color: 'rgba(245,200,120,0.75)',
-              marginBottom: 4,
-            }}
-          >
+        <div style={{ position: 'absolute', left: 16, bottom: 108, zIndex: 5, maxWidth: '70%' }}>
+          <div style={{ fontSize: 11, letterSpacing: '0.08em', color: 'rgba(245,200,120,0.75)', marginBottom: 4 }}>
             SHE CHOSE TO PLAY · LIVE
           </div>
           <div style={{ fontSize: 15, fontWeight: 600 }}>{track.title}</div>
-          <div style={{ fontSize: 12, color: 'rgba(245,240,232,0.55)', marginBottom: 8 }}>
-            {track.subtitle}
+          <div style={{ fontSize: 12, color: 'rgba(245,240,232,0.55)', marginBottom: 8 }}>{track.subtitle}</div>
+          <div style={{ height: 3, borderRadius: 99, background: 'rgba(255,255,255,0.12)', overflow: 'hidden' }}>
+            <div style={{ height: '100%', width: `${progress}%`, background: 'linear-gradient(90deg, #c9a66b, #f0d9a8)' }} />
           </div>
-          <div
-            style={{
-              height: 3,
-              borderRadius: 99,
-              background: 'rgba(255,255,255,0.12)',
-              overflow: 'hidden',
-            }}
-          >
-            <div
-              style={{
-                height: '100%',
-                width: `${progress}%`,
-                background: 'linear-gradient(90deg, #c9a66b, #f0d9a8)',
-              }}
-            />
-          </div>
-          <button
-            type="button"
-            onClick={nextTrack}
-            style={{
-              marginTop: 8,
-              fontSize: 11,
-              color: 'rgba(245,240,232,0.5)',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: 0,
-            }}
-          >
+          <button type="button" onClick={nextTrack}
+            style={{ marginTop: 8, fontSize: 11, color: 'rgba(245,240,232,0.5)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
             换一首 ›
           </button>
         </div>
@@ -537,53 +403,28 @@ export function AriaStage({ onOpenStudy }: Props) {
 
       {/* 对话流 */}
       {showChat && (
-        <div
-          ref={listRef}
-          style={{
-            position: 'absolute',
-            left: 12,
-            right: 12,
-            bottom: 108,
-            maxHeight: '34%',
-            overflowY: 'auto',
-            zIndex: 5,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 8,
-          }}
-        >
+        <div ref={listRef} style={{
+          position: 'absolute', left: 12, right: 12, bottom: 108,
+          maxHeight: '34%', overflowY: 'auto', zIndex: 5,
+          display: 'flex', flexDirection: 'column', gap: 8,
+        }}>
           {messages.map((m, i) => (
-            <div
-              key={i}
-              style={{
-                alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
-                maxWidth: '88%',
-                padding: '10px 14px',
-                borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                background:
-                  m.role === 'user' ? 'rgba(45,90,158,0.85)' : 'rgba(30,24,18,0.82)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                fontSize: 14,
-                lineHeight: 1.5,
-              }}
-            >
+            <div key={i} style={{
+              alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start',
+              maxWidth: '88%', padding: '10px 14px',
+              borderRadius: m.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+              background: m.role === 'user' ? 'rgba(45,90,158,0.85)' : 'rgba(30,24,18,0.82)',
+              border: '1px solid rgba(255,255,255,0.08)', fontSize: 14, lineHeight: 1.5,
+            }}>
               {m.content}
             </div>
           ))}
           {orb && (
-            <div
-              style={{
-                alignSelf: 'flex-start',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                padding: '8px 12px',
-                borderRadius: 12,
-                background: 'rgba(20,16,12,0.75)',
-                fontSize: 12,
-                color: 'rgba(245,240,232,0.7)',
-              }}
-            >
+            <div style={{
+              alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: 10,
+              padding: '8px 12px', borderRadius: 12, background: 'rgba(20,16,12,0.75)',
+              fontSize: 12, color: 'rgba(245,240,232,0.7)',
+            }}>
               <ThinkingOrb state={orb} size={28} />
               <span>Director thinking…</span>
             </div>
@@ -591,127 +432,68 @@ export function AriaStage({ onOpenStudy }: Props) {
         </div>
       )}
 
-      {/* 底部 */}
-      <div
-        style={{
-          position: 'absolute',
-          left: 0,
-          right: 0,
-          bottom: 0,
-          zIndex: 6,
-          padding: '12px 16px 16px',
-          background: 'linear-gradient(180deg, transparent, rgba(8,6,5,0.92) 40%)',
-        }}
-      >
-        <div
-          style={{
-            fontSize: 11,
-            color: 'rgba(245,200,120,0.65)',
-            marginBottom: 8,
-            textAlign: 'center',
-          }}
-        >
+      {/* 底部交互 */}
+      <div style={{
+        position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 6,
+        padding: '12px 16px 16px',
+        background: 'linear-gradient(180deg, transparent, rgba(8,6,5,0.92) 40%)',
+      }}>
+        <div style={{ fontSize: 11, color: 'rgba(245,200,120,0.65)', marginBottom: 8, textAlign: 'center' }}>
           {status}
         </div>
 
         {pose === 'play_piano' && messages.length === 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
             <div style={{ fontSize: 12, color: 'rgba(245,240,232,0.45)' }}>
-              独立数字人 · LLM 调位置/手部 · 可说「往左/放大/手快一点」
+              3D 数字人 · 骨骼动画 · 可走可坐可弹可聊
             </div>
             <div style={{ display: 'flex', gap: 10, width: '100%', maxWidth: 400 }}>
-              <button
-                type="button"
-                onClick={wake}
-                style={{
-                  flex: 1,
-                  padding: '14px 18px',
-                  borderRadius: 99,
-                  border: '1px solid rgba(245,200,120,0.45)',
-                  background: 'linear-gradient(180deg, #3a2a18, #1a120c)',
-                  color: '#f5e6c8',
-                  fontSize: 15,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
+              <button type="button" onClick={wake} style={{
+                flex: 1, padding: '14px 18px', borderRadius: 99,
+                border: '1px solid rgba(245,200,120,0.45)',
+                background: 'linear-gradient(180deg, #3a2a18, #1a120c)',
+                color: '#f5e6c8', fontSize: 15, fontWeight: 600, cursor: 'pointer',
+              }}>
                 Talk to her
               </button>
-              <button
-                type="button"
-                onClick={startListen}
-                style={{
-                  width: 52,
-                  borderRadius: 99,
-                  border: '1px solid rgba(255,255,255,0.15)',
-                  background: listening ? 'rgba(45,90,158,0.6)' : 'rgba(255,255,255,0.08)',
-                  color: '#fff',
-                  fontSize: 20,
-                  cursor: 'pointer',
-                }}
-              >
+              <button type="button" onClick={startListen} style={{
+                width: 52, borderRadius: 99,
+                border: '1px solid rgba(255,255,255,0.15)',
+                background: listening ? 'rgba(45,90,158,0.6)' : 'rgba(255,255,255,0.08)',
+                color: '#fff', fontSize: 20, cursor: 'pointer',
+              }}>
                 🎙
               </button>
             </div>
           </div>
         ) : (
           <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
-            <button
-              type="button"
-              onClick={startListen}
-              disabled={busy}
-              style={{
-                width: 48,
-                height: 48,
-                borderRadius: 99,
-                border: '1px solid rgba(255,255,255,0.15)',
-                background: listening ? 'rgba(45,90,158,0.7)' : 'rgba(255,255,255,0.08)',
-                color: '#fff',
-                fontSize: 18,
-                cursor: busy ? 'default' : 'pointer',
-                flexShrink: 0,
-              }}
-            >
+            <button type="button" onClick={startListen} disabled={busy} style={{
+              width: 48, height: 48, borderRadius: 99,
+              border: '1px solid rgba(255,255,255,0.15)',
+              background: listening ? 'rgba(45,90,158,0.7)' : 'rgba(255,255,255,0.08)',
+              color: '#fff', fontSize: 18, cursor: busy ? 'default' : 'pointer', flexShrink: 0,
+            }}>
               🎙
             </button>
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.nativeEvent.isComposing) void send(input);
-              }}
-              placeholder={
-                loggedIn
-                  ? 'Speak English — she decides how to respond…'
-                  : 'Type English… (login for full Director LLM)'
-              }
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) void send(input); }}
+              placeholder={loggedIn ? 'Speak English — she decides how to respond…' : 'Type English… (login for full Director LLM)'}
               disabled={busy}
               style={{
-                flex: 1,
-                borderRadius: 16,
-                border: '1px solid rgba(255,255,255,0.12)',
-                background: 'rgba(20,16,12,0.85)',
-                color: '#f5f0e8',
-                padding: '12px 14px',
-                fontSize: 14,
-                outline: 'none',
+                flex: 1, borderRadius: 16, border: '1px solid rgba(255,255,255,0.12)',
+                background: 'rgba(20,16,12,0.85)', color: '#f5f0e8',
+                padding: '12px 14px', fontSize: 14, outline: 'none',
               }}
             />
-            <button
-              type="button"
-              onClick={() => void send(input)}
-              disabled={busy || !input.trim()}
-              style={{
-                padding: '12px 16px',
-                borderRadius: 16,
-                border: 'none',
-                background: busy || !input.trim() ? 'rgba(255,255,255,0.1)' : '#c9a66b',
-                color: busy || !input.trim() ? 'rgba(255,255,255,0.4)' : '#1a120c',
-                fontWeight: 700,
-                fontSize: 14,
-                cursor: busy || !input.trim() ? 'default' : 'pointer',
-              }}
-            >
+            <button type="button" onClick={() => void send(input)} disabled={busy || !input.trim()} style={{
+              padding: '12px 16px', borderRadius: 16, border: 'none',
+              background: busy || !input.trim() ? 'rgba(255,255,255,0.1)' : '#c9a66b',
+              color: busy || !input.trim() ? 'rgba(255,255,255,0.4)' : '#1a120c',
+              fontWeight: 700, fontSize: 14, cursor: busy || !input.trim() ? 'default' : 'pointer',
+            }}>
               Send
             </button>
           </div>
@@ -722,13 +504,7 @@ export function AriaStage({ onOpenStudy }: Props) {
 }
 
 const chipBtn: React.CSSProperties = {
-  fontSize: 12,
-  fontWeight: 600,
-  padding: '6px 12px',
-  borderRadius: 99,
-  border: '1px solid rgba(255,255,255,0.18)',
-  background: 'rgba(12,10,9,0.55)',
-  color: 'rgba(245,240,232,0.9)',
-  cursor: 'pointer',
-  backdropFilter: 'blur(8px)',
+  fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 99,
+  border: '1px solid rgba(255,255,255,0.18)', background: 'rgba(12,10,9,0.55)',
+  color: 'rgba(245,240,232,0.9)', cursor: 'pointer', backdropFilter: 'blur(8px)',
 };
