@@ -184,7 +184,7 @@ export type EmotionState = 'stable' | 'anxious' | 'low' | 'crisis';
 export interface ParentOverviewRes {
   headline: string;
   mastered_kc_count: number;
-  streak: any; // Using any for streak dict for now
+  streak: { current_streak: number; longest_streak?: number; freezes_available?: number };
   total_kc_practiced: number;
   weak_kc_count: number;
   recent_sessions: number;

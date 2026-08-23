@@ -58,13 +58,60 @@
    Base
    ───────────────────────────────────────────── */
 html { font-size: 16px; }
+:root { color-scheme: light; }
 body {
   background: var(--mn-paper);
   color: var(--mn-ink);
-  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+  /* CJK 优先的中文字体栈:拉丁字形由系统字体承载,汉字落到 PingFang/雅黑;
+     K-12 产品文字量大,中文字体缺失时渲染会明显发虚 */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    'PingFang SC', 'Hiragino Sans GB', 'HarmonyOS Sans SC',
+    'Noto Sans SC', 'Microsoft YaHei', 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   min-width: 375px;
+}
+
+/* 选中色跟随品牌蓝(淡) */
+::selection {
+  background: rgba(45, 90, 158, 0.18);
+}
+
+/* 桌面薄滚动条:内嵌滚动容器(如侧栏/长列表)观感统一 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--mn-border-2) transparent;
+}
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-thumb {
+  background: var(--mn-border-2);
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-track { background: transparent; }
+
+/* 键盘可达性:所有交互件都应有可见焦点环(此前只有按钮有) */
+.mn-side-link:focus-visible,
+.mn-tab-btn:focus-visible,
+.mn-card-interactive:focus-visible {
+  outline: 2px solid var(--mn-blue);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* 数字类信息(连续天数/掌握度/分数)用等宽数字,跳动时不抖动 */
+.mn-num { font-variant-numeric: tabular-nums; }
+
+/* 系统减少动效偏好:全局压平动画与过渡 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* ─────────────────────────────────────────────

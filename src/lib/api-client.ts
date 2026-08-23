@@ -81,7 +81,7 @@ function post<T>(path: string, body: unknown, auth = true) {
 }
 
 // 供未走命名接口封装的调用方(如 TextbookChat)直接用 req 的底层逻辑(超时/鉴权/错误翻译一致)。
-export const apiFetch = <T = any>(path: string, options?: RequestInit) => req<T>(path, options);
+export const apiFetch = <T = unknown>(path: string, options?: RequestInit) => req<T>(path, options);
 
 // ── 认证(无需 auth header) ──────────────────────────────────
 export const sendCode  = (r: SendCodeReq)         => USE_MOCK ? mock.mockSendCode()     : post<void>('/v1/auth/send-code', r, false);

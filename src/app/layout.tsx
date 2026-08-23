@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { ThemeProvider, LangProvider } from '@helios/blocks';
 import './globals.css';
 import { RegisterSW } from '@/components/shared/RegisterSW';
@@ -6,9 +6,12 @@ import { OfflineSync } from '@/components/shared/OfflineSync';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://sxueji.com'),
-  title: 'Mneme 善学记',
+  title: {
+    default: '善学记 · 学习成长档案',
+    template: '%s · 善学记',
+  },
   description: 'K12 认知状态追踪 — 善学记',
-  viewport: 'width=device-width, initial-scale=1, viewport-fit=cover',
+  formatDetection: { telephone: false },
   icons: {
     icon: [{ url: '/favicon.svg', type: 'image/svg+xml' }],
     shortcut: [{ url: '/favicon.svg', type: 'image/svg+xml' }],
@@ -29,6 +32,19 @@ export const metadata: Metadata = {
     description: '做题即时判分、错题自动入本、看见自己在变好',
     images: ['/og-image.png'],
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: '善学记',
+  },
+};
+
+// Next 16：viewport 必须独立导出（放在 metadata 里会产生构建告警）。
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#1e3a5f',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

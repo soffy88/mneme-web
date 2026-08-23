@@ -32,7 +32,7 @@ export function TextbookChat({ fileId }: { fileId: string }) {
   // Check if file is indexed
   useEffect(() => {
     (async () => {
-      const res = await apiFetch(`/v1/textbook-files/${fileId}/meta`);
+      const res = await apiFetch<{ index_status: string }>(`/v1/textbook-files/${fileId}/meta`);
       if (res.ok && res.data.index_status === 'ready') {
         setIndexStatus('ready');
       } else {
@@ -48,7 +48,7 @@ export function TextbookChat({ fileId }: { fileId: string }) {
   }, [fileId]);
 
   const sendFirstQuestion = async (q: string) => {
-    const res = await apiFetch(`/v1/textbook-files/${fileId}/qa`, {
+    const res = await apiFetch<{ session_id: string; answer: string; citations: Citation[] }>(`/v1/textbook-files/${fileId}/qa`, {
       method: 'POST',
       body: JSON.stringify({ file_id: fileId, question: q }),
     });

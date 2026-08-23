@@ -7,6 +7,7 @@ const nextConfig: NextConfig = {
     '@react-pdf-viewer/core', '@react-pdf-viewer/default-layout', '@react-pdf-viewer/highlight',
   ],
   output: 'standalone',
+  poweredByHeader: false,
   serverExternalPackages: [
     'three', '@react-three/fiber', '@react-three/drei',
     'pdfjs-dist', 'epubjs', 'react-reader',
