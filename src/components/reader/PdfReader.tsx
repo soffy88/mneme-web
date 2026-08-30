@@ -120,7 +120,7 @@ export function PdfReader({ blobUrl, fileId, onHighlightsChange }: Props) {
 
   return (
     <div style={{ height: '100%', border: '1px solid var(--mn-border)', borderRadius: '8px', overflow: 'hidden' }}>
-      <Worker workerUrl="/pdf.worker.min.js">
+      <Worker workerUrl="/pdf.worker.min.mjs">
         <Viewer
           fileUrl={blobUrl}
           plugins={[defaultLayoutPluginInstance, highlightPluginInstance]}
