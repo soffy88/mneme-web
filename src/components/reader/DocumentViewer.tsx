@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { fetchTextbookFileBlob, type HighlightItem } from '@/lib/reader-api';
+import { MNEME_API_BASE } from '@/lib/env';
 
 const PdfReader  = dynamic(() => import('./PdfReader').then(m => ({ default: m.PdfReader })),  { ssr: false });
 const EpubReader = dynamic(() => import('./EpubReader').then(m => ({ default: m.EpubReader })), { ssr: false });
@@ -35,7 +36,7 @@ export function DocumentViewer({ fileId, fileType, filename, fileSize, onHighlig
     (async () => {
       try {
         // Stream download with progress
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE ?? process.env.NEXT_PUBLIC_MNEME_API_BASE ?? 'http://localhost:8001'}/v1/textbook-files/${fileId}/content`, {
+        const res = await fetch(`${MNEME_API_BASE}/v1/textbook-files/${fileId}/content`, {
           headers: { Authorization: `Bearer ${typeof window !== 'undefined' ? localStorage.getItem('mneme_token') ?? '' : ''}` },
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);

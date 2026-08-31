@@ -1,7 +1,7 @@
 /**
  * Mneme API 类型(移交文档 v1.0 全量)。
  *
- * 后端 base URL: http://localhost:8001
+ * 后端 base URL 由 src/lib/env.ts 的 build-time contract 提供。
  * JWT:  Authorization: Bearer <token>
  * dev 验证码: 123456
  */

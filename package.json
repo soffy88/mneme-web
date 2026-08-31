@@ -7,6 +7,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "test:api-base": "node --experimental-strip-types --test scripts/test-api-base.mjs",
+    "test:api-base:build": "node --experimental-strip-types --test scripts/test-api-base-build.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit"

@@ -18,12 +18,23 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/vendor ./vendor
 COPY . .
+ARG NEXT_PUBLIC_MNEME_ENV=production
+ARG NEXT_PUBLIC_API_BASE=https://api-prod.sxueji.com
+ARG GIT_SHA=unknown
+ARG RELEASE_VERSION=dev
+ENV NEXT_PUBLIC_MNEME_ENV=${NEXT_PUBLIC_MNEME_ENV}
+ENV NEXT_PUBLIC_API_BASE=${NEXT_PUBLIC_API_BASE}
 ENV NODE_ENV=production
-RUN npm run build
+RUN test -n "$NEXT_PUBLIC_API_BASE" && npm run build
 
 # 3. 运行 (standalone 自包含)
 FROM node:20-slim AS runner
 WORKDIR /app
+ARG GIT_SHA=unknown
+ARG RELEASE_VERSION=dev
+LABEL org.opencontainers.image.revision=$GIT_SHA \
+      org.opencontainers.image.version=$RELEASE_VERSION \
+      org.opencontainers.image.source="https://github.com/mneme/mneme-web"
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { apiFetch } from '@/lib/api-client';
+import { MNEME_API_BASE } from '@/lib/env';
 
 interface Citation {
   citation: string;
@@ -70,7 +71,7 @@ export function TextbookChat({ fileId }: { fileId: string }) {
       { role: 'assistant', content: '' }
     ]);
     
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE || 'http://localhost:8000'}/v1/textbook-files/qa/${sessionId}/message`, {
+    const response = await fetch(`${MNEME_API_BASE}/v1/textbook-files/qa/${sessionId}/message`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
