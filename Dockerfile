@@ -10,7 +10,7 @@ COPY vendor ./vendor
 # 完整装依赖（含 lightningcss 平台包），但 --ignore-scripts 跳过
 # pdfjs optional canvas 的 node-gyp 编译（slim 上会卡死十几分钟）。
 ENV npm_config_build_from_source=false
-RUN npm ci --no-audit --no-fund --ignore-scripts
+RUN npm ci --legacy-peer-deps --no-audit --no-fund --ignore-scripts
 
 # 2. 构建
 FROM node:20-slim AS builder
