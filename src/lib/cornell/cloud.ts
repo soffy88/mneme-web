@@ -4,6 +4,7 @@
  */
 
 import * as api from '@/lib/api-client';
+import { TOKEN_EXPIRED_ERROR } from '@/lib/api-client';
 import { getUserId } from '@/lib/auth-store';
 import type { CornellState } from './types';
 import {
@@ -61,7 +62,7 @@ export async function pullAndMerge(local: CornellState): Promise<CloudResult | n
     return {
       ok: false,
       error: res.error,
-      unauthorized: res.error === 'UNAUTHORIZED',
+      unauthorized: res.error === TOKEN_EXPIRED_ERROR,
     };
   }
   try {
@@ -90,7 +91,7 @@ export async function pushState(local: CornellState): Promise<CloudResult> {
     return {
       ok: false,
       error: res.error,
-      unauthorized: res.error === 'UNAUTHORIZED',
+      unauthorized: res.error === TOKEN_EXPIRED_ERROR,
     };
   }
   try {

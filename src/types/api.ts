@@ -30,6 +30,7 @@ export interface RegisterParentReq {
 // 邮箱注册（新主标识；手机号类型保留兼容旧接口）
 export interface SendEmailCodeReq { email: string }
 export interface LoginEmailReq    { email: string; code: string }
+export interface LoginPasswordReq { email: string; password: string }
 export interface RegisterStudentEmailReq {
   email: string; code: string; name: string;
   birth_date: string; grade: string;
@@ -44,6 +45,7 @@ export interface UserProfile {
   grade?: string; phone?: string; email?: string;
   invite_code?: string;   // 学生邀请码（家长注册凭此绑定）；GET /v1/auth/me 返回
   share_process_with_parent?: boolean;  // L6 隐私分层
+  has_password?: boolean;   // 是否已设密码（仅本人可见）；决定是否展示密码登录入口
 }
 
 // ── 试卷 ─────────────────────────────────────────────────────
@@ -445,4 +447,25 @@ export interface PatternsRes {
   plateau_kcs: string[];
   overall_trend: number;   // 正=整体进步
   patterns: PatternItem[];
+}
+
+// ── 聊天（C1）────────────────────────────────────────────────────
+export interface ChatMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
+export interface ChatTurnReq {
+  student_id: string;
+  message: string;
+  history: ChatMessage[];
+  persona_slug?: string;
+  kc_ids?: string[];
+}
+export interface ChatTurnRes {
+  answer: string;
+  action?: 'goto_mastery_path' | 'free_qa';
+  kc_hint?: string;
+  kc_ids?: string[];
+  tools_used?: string[];
+  metadata?: Record<string, unknown>;
 }

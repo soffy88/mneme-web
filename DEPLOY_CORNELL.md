@@ -4,13 +4,15 @@
 
 - 源码已有 `/subjects/math/cornell` + 云同步 API 客户端
 - 生产镜像创建于 2026-07-20，**未含康奈尔** → `sxueji.com/.../cornell` 404
-- 后端 `api.sxueji.com` 康奈尔路由已就绪
+- 生产 API 走同源 `sxueji.com`（Caddy 把 `/v1/*` `/v2/*` `/mcp/*` `/health` 反代到 API）
 
 ## 步骤
 
 ```bash
 cd /data/soffy/projects/mneme-web
-# 构建期读 .env.production → NEXT_PUBLIC_API_BASE=https://api.sxueji.com
+# 构建期读 .env.production → NEXT_PUBLIC_API_BASE=https://sxueji.com
+# (Dockerfile ARG 默认值会 ENV 覆盖 .env.production, 两者必须一致 ——
+#  npm run test:api-base 会守住这条)
 docker compose build mneme-web
 docker compose up -d mneme-web
 ```

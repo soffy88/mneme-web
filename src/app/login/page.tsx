@@ -4,9 +4,12 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import * as api from '@/lib/api-client';
 import { setToken, setUser } from '@/lib/auth-store';
+import type { UserProfile } from '@/types/api';
 
 type Mode = 'login' | 'register' | 'parent';
 type Phase = 'email' | 'code' | 'loading';
+/** 登录卡内的两种凭证方式。验证码通道始终可用，密码是可选通道。 */
+type Method = 'code' | 'password';
 
 const IS_DEV = process.env.NODE_ENV === 'development';
 
@@ -46,9 +49,16 @@ export default function LoginPage() {
 
   // ── login state ──
   const [phase, setPhase] = useState<Phase>('email');
+  const [method, setMethod] = useState<Method>('code');
   const [email, setEmail] = useState('');
   const [code,  setCode]  = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  // 验证码登录成功后，若该账号还没设过密码，展开一个就地设置面板（本站没有
+  // 独立的账号设置页，放这里避免用户无处可设）。
+  const [setupOpen, setSetupOpen] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [setupMsg, setSetupMsg] = useState('');
 
   // ── register state ──
   const [rEmail, setREmail]   = useState('');
@@ -69,6 +79,26 @@ export default function LoginPage() {
   const [pCodeSent, setPCodeSent] = useState(false);
 
   const switchMode = (m: Mode) => { setMode(m); setError(''); };
+  const switchMethod = (m: Method) => { setMethod(m); setError(''); setPhase('email'); };
+
+  /** 登录成功后统一收尾：落 token → 拉 /me 补全身份 → 按角色分流。 */
+  const finishLogin = async (
+    res: { data: { token: string; user: Partial<UserProfile> } },
+    opts?: { promptPasswordSetup?: boolean },
+  ) => {
+    setToken(res.data.token);
+    // login 响应 user 不含 role/grade/invite_code，补拉 /v1/auth/me 后按身份分流
+    const me = await api.getMe();
+    const user = { ...res.data.user, ...(me.ok ? me.data : {}) } as UserProfile;
+    setUser(user);
+    // 没设过密码时先停下来给一次设置机会（本站无账号设置页），并让用户自己决定
+    // 是现在设还是直接进首页——不强制打断。
+    if (opts?.promptPasswordSetup && user.has_password === false) {
+      setSetupOpen(true);
+      return;
+    }
+    router.replace(user.role === 'parent' ? '/parent/overview' : '/home');
+  };
 
   // ── login handlers ──
   const sendCode = async () => {
@@ -83,12 +113,32 @@ export default function LoginPage() {
     setPhase('loading'); setError('');
     const res = await api.loginEmail({ email: email.trim(), code });
     if (!res.ok) { setError(res.error); setPhase('code'); return; }
-    setToken(res.data.token);
-    // login 响应 user 不含 role/grade/invite_code，补拉 /v1/auth/me 后按身份分流
-    const me = await api.getMe();
-    const user = me.ok ? { ...res.data.user, ...me.data } : res.data.user;
-    setUser(user);
-    router.replace(user.role === 'parent' ? '/parent/overview' : '/home');
+    await finishLogin(res as never, { promptPasswordSetup: true });
+  };
+  const loginByPassword = async () => {
+    if (!email.trim() || !password) return;
+    setPhase('loading'); setError('');
+    const res = await api.loginPassword({ email: email.trim(), password });
+    if (!res.ok) {
+      // 后端对「账号不存在」「密码错」「还没设过密码」故意返回**完全相同**的
+      // 401/文案（防枚举已注册邮箱），所以前端无法分辨具体是哪种——只能把三条
+      // 可能一起告诉用户，让 ta 自己判断，而不是显示一个无从下手的错误码。
+      setError(
+        `${res.error}。若你还没设过密码，请切到「验证码登录」用验证码登录，` +
+        `登录后页面会直接让你设置密码。`,
+      );
+      setPhase('email');
+      return;
+    }
+    await finishLogin(res as never);
+  };
+  const savePassword = async () => {
+    setSetupMsg(''); setError('');
+    const res = await api.setPassword(newPassword);
+    if (!res.ok) { setSetupMsg(res.error); return; }
+    setSetupMsg('密码已设置，之后可以用密码登录。');
+    setNewPassword('');
+    setTimeout(() => router.replace('/home'), 900);
   };
 
   // ── dev 快速登录（仅 dev 环境）──
@@ -230,8 +280,49 @@ export default function LoginPage() {
         </div>
 
         {/* ── Login card ── */}
-        {mode === 'login' && (
+        {mode === 'login' && !setupOpen && (
           <div className="mn-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* 凭证方式切换：验证码恒可用；密码是可选通道（后端未设密码时 401）。 */}
+            <div style={{ display: 'flex', gap: '4px', padding: '4px', background: 'var(--mn-surface-2, var(--mn-surface))', borderRadius: '11px' }}>
+              {([['code', '验证码登录'], ['password', '密码登录']] as [Method, string][]).map(([m, label]) => (
+                <button
+                  key={m} type="button" onClick={() => switchMethod(m)}
+                  style={{
+                    flex: 1, padding: '8px', borderRadius: '8px', fontSize: '13px', fontWeight: 700,
+                    border: 'none', cursor: 'pointer',
+                    background: method === m ? 'var(--mn-blue)' : 'transparent',
+                    color: method === m ? 'white' : 'var(--mn-ink-3)',
+                    transition: 'all var(--mn-duration-fast)',
+                  }}
+                >{label}</button>
+              ))}
+            </div>
+
+            {method === 'password' ? (
+              <>
+                <Field label="邮箱">
+                  <input
+                    type="email" value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@example.com" inputMode="email" autoComplete="email"
+                    disabled={phase === 'loading'} style={inputStyle}
+                  />
+                </Field>
+                <Field label="密码">
+                  <input
+                    type="password" value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onKeyDown={(e) => { if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') void loginByPassword(); }}
+                    placeholder="至少 8 位" autoComplete="current-password"
+                    disabled={phase === 'loading'} style={inputStyle}
+                  />
+                </Field>
+                <p style={{ fontSize: '12px', color: 'var(--mn-ink-3)', margin: '-6px 0 0', lineHeight: 1.7 }}>
+                  还没设过密码？切到「验证码登录」用验证码登录，登录后页面会直接让你设置密码。
+                </p>
+              </>
+            ) : (
+              <>
             {phase !== 'code' && (
               <Field label="邮箱">
                 <input
@@ -266,6 +357,8 @@ export default function LoginPage() {
                 )}
               </>
             )}
+            </>
+            )}
 
             {error && (
               <div style={{ fontSize: '13px', color: 'var(--mn-red)', padding: '8px 12px', borderRadius: '8px', background: 'var(--mn-red-dim)' }}>
@@ -279,6 +372,11 @@ export default function LoginPage() {
                 <span style={{ fontSize: '14px', color: 'var(--mn-ink-3)' }}>请稍候…</span>
                 <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
               </div>
+            ) : method === 'password' ? (
+              <button type="button" className="mn-btn-primary" style={{ width: '100%' }}
+                disabled={!email.trim() || !password} onClick={loginByPassword}>
+                登录
+              </button>
             ) : phase === 'email' ? (
               <button type="button" className="mn-btn-primary" style={{ width: '100%' }} disabled={!email.trim()} onClick={sendCode}>
                 发送验证码
@@ -288,6 +386,37 @@ export default function LoginPage() {
                 登录
               </button>
             )}
+          </div>
+        )}
+
+        {/* ── 登录后就地设置密码（仅当该账号尚未设过密码时出现）── */}
+        {mode === 'login' && setupOpen && (
+          <div className="mn-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--mn-ink)' }}>设置登录密码</div>
+            <p style={{ fontSize: '13px', color: 'var(--mn-ink-3)', margin: '-6px 0 0', lineHeight: 1.7 }}>
+              设置后可以用邮箱 + 密码登录，不用每次等验证码。验证码登录仍然保留。
+            </p>
+            <Field label="新密码">
+              <input
+                type="password" value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                onKeyDown={(e) => { if (e.nativeEvent.isComposing) return; if (e.key === 'Enter') void savePassword(); }}
+                placeholder="至少 8 位" autoComplete="new-password" style={inputStyle}
+              />
+            </Field>
+            {setupMsg && (
+              <div style={{ fontSize: '13px', color: setupMsg.startsWith('密码已设置') ? 'var(--mn-green, var(--mn-blue))' : 'var(--mn-red)', padding: '8px 12px', borderRadius: '8px', background: setupMsg.startsWith('密码已设置') ? 'var(--mn-blue-dim)' : 'var(--mn-red-dim)' }}>
+                {setupMsg}
+              </div>
+            )}
+            <button type="button" className="mn-btn-primary" style={{ width: '100%' }}
+              disabled={newPassword.length < 8} onClick={savePassword}>
+              保存并进入首页
+            </button>
+            <button type="button" className="mn-btn-secondary" style={{ width: '100%' }}
+              onClick={() => router.replace('/home')}>
+              跳过，先用验证码登录
+            </button>
           </div>
         )}
 

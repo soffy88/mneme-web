@@ -6,11 +6,11 @@
  * SSE 流式接口单独暴露(socraticStream)。
  */
 import { MNEME_API_BASE, USE_MOCK } from './env';
-import { authHeader, clearToken } from './auth-store';
+import { authHeader, clearToken, getToken } from './auth-store';
 import type {
   ApiResult,
   SendCodeReq, LoginReq, LoginRes, RegisterStudentReq, RegisterParentReq, UserProfile,
-  SendEmailCodeReq, LoginEmailReq, RegisterStudentEmailReq, RegisterParentEmailReq,
+  SendEmailCodeReq, LoginEmailReq, LoginPasswordReq, RegisterStudentEmailReq, RegisterParentEmailReq,
   PaperUploadRes, PaperResult,
   InteractionReq, InteractionRes, MasteryRes, MasteryCurveRes,
   SocraticStartRes, EscapeRes, SessionEndRes, SocraticOutcome,
@@ -25,7 +25,7 @@ import type {
   DailyPlanRes, DailyPlanPrefs, TextbookBindings, TextbookOption,
   KnowledgeUnitItem, QuestionBankRes, PracticeSubmitReq, PracticeSubmitRes,
   EffortfulGainsRes, ReviewQueueItem, WeakRootsRes,
-  Achievement, PatternsRes,
+  Achievement, PatternsRes, ChatTurnReq, ChatTurnRes,
   LearnerModel, LeagueRes, AffectRes, TeachingPolicy,
 } from '@/types/api';
 import * as mock from './mock-data';
@@ -39,6 +39,9 @@ async function req<T>(
 ): Promise<ApiResult<T>> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  // 本次请求是否真的带上了 token。登录/注册这类 auth=false 的接口不该因为
+  // 401（密码错、验证码错）把已登录用户踢下线。
+  const sentAuth = auth && !!getToken();
   try {
     const res = await fetch(`${MNEME_API_BASE}${path}`, {
       signal: ctrl.signal,
@@ -49,7 +52,11 @@ async function req<T>(
         ...options.headers,
       },
     });
-    if (res.status === 401) { clearToken(); return { ok: false, error: 'UNAUTHORIZED' }; }
+    if (res.status === 401 && sentAuth) {
+      // 真的带了 token 还被拒 = token 失效，清掉重新登录。
+      clearToken();
+      return { ok: false, error: TOKEN_EXPIRED_ERROR };
+    }
     if (!res.ok) {
       const body = await res.json().catch(() => ({ detail: res.statusText }));
       const detail = (body as { detail?: unknown }).detail ?? res.statusText;
@@ -88,13 +95,26 @@ export const sendCode  = (r: SendCodeReq)         => USE_MOCK ? mock.mockSendCod
 export const login     = (r: LoginReq)            => USE_MOCK ? mock.mockLogin(r)        : post<LoginRes>('/v1/auth/login', r, false);
 export const registerStudent = (r: RegisterStudentReq) => USE_MOCK ? mock.mockRegisterStudent() : post<LoginRes>('/v1/auth/register/student', r, false);
 export const registerParent  = (r: RegisterParentReq)  => USE_MOCK ? mock.mockRegisterParent()  : post<LoginRes>('/v1/auth/register/parent', r, false);
+
 export const getMe     = ()                       => USE_MOCK ? mock.mockMe()            : req<UserProfile>('/v1/auth/me');
+
+/**
+ * token 失效（请求带了 token 但被 401）时返回的固定错误串。
+ * 导出为常量而非裸字符串：cornell/cloud.ts 依赖它识别「需要重新登录」，
+ * 之前那里写的是字面量 'UNAUTHORIZED'，一改文案就静默失效。
+ */
+export const TOKEN_EXPIRED_ERROR = '登录已过期，请重新登录';
 
 // 邮箱注册/登录（新主标识）。mock 模式复用手机号那套 mock（mock 不关心标识）。
 export const sendEmailCode = (r: SendEmailCodeReq) => USE_MOCK ? mock.mockSendCode() : post<void>('/v1/auth/send-email-code', r, false);
 export const loginEmail    = (r: LoginEmailReq)    => USE_MOCK ? mock.mockLogin({ phone: r.email, code: r.code }) : post<LoginRes>('/v1/auth/login-email', r, false);
 export const registerStudentEmail = (r: RegisterStudentEmailReq) => USE_MOCK ? mock.mockRegisterStudent() : post<LoginRes>('/v1/auth/register/student-email', r, false);
 export const registerParentEmail  = (r: RegisterParentEmailReq)  => USE_MOCK ? mock.mockRegisterParent()  : post<LoginRes>('/v1/auth/register/parent-email', r, false);
+
+// 可选密码登录。验证码通道始终可用，两者互不取代——后端 password_hash 为空时
+// loginPassword 一律 401，前端据此提示改用验证码。
+export const loginPassword = (r: LoginPasswordReq) => USE_MOCK ? mock.mockLogin({ phone: r.email, code: '' }) : post<LoginRes>('/v1/auth/login-password', r, false);
+export const setPassword   = (password: string)   => USE_MOCK ? Promise.resolve({ ok: true as const, data: undefined }) : post<void>('/v1/auth/password', { password }, true);
 
 // ── 试卷 ────────────────────────────────────────────────────
 export async function uploadPaper(
@@ -463,6 +483,12 @@ export const getWeakRoots = (sid: string) =>
 // ── 个人学习模式识别（招牌洞察）─────────────────────────────────
 export const getPatterns = (sid: string) =>
   req<PatternsRes>(`/v1/patterns/${sid}`);
+
+// ── 聊天（C1）────────────────────────────────────────────────────
+export const submitChatTurn = (
+  body: ChatTurnReq
+) =>
+  req<ChatTurnRes>('/v1/chat/turn', { method: 'POST', body: JSON.stringify(body) });
 
 // ── 知识单元 ──────────────────────────────────────────────────
 export const listKnowledgePoints = (params: {
