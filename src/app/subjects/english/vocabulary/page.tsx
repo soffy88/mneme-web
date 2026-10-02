@@ -5,6 +5,7 @@ import { VOCAB_WORDS, type VocabWord } from './words.data';
 import { rate, stats, buildQueue, speak, type Rating } from './srs';
 import * as api from '@/lib/api-client';
 import { getUserId } from '@/lib/auth-store';
+import WordEnrichmentPanel from './WordEnrichmentPanel';
 
 type Scope = 'all' | 'zk' | 'gk';
 type Mode = 'browse' | 'recite';
@@ -53,6 +54,7 @@ function WordRow({ w }: { w: VocabWord }) {
         overflow: open ? 'visible' : 'hidden', textOverflow: 'ellipsis', whiteSpace: open ? 'normal' : 'nowrap' }}>
         {w.tr}
       </div>
+      {open && <WordEnrichmentPanel word={w.w} />}
     </div>
   );
 }

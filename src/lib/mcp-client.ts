@@ -107,6 +107,54 @@ export interface PosedQuestion {
   error?: string;
 }
 
+// ── 词汇增强层：词根词缀 + 象形9000 ────────────────────────────────────────────
+// 关键约定（与后端 services/vocab_affixes.py 一致，改一处必须改两处）：
+//   reference_confirmed  与教学参考词根表一致 —— 可当**词源**讲
+//   mnemonic_association 人为联想，无参考佐证 —— 只能当**记忆提示**讲
+//   disputed             与参考表冲突 —— 默认**不展示**
+// 379 条词缀分解的权威来源只是散文里「词根/前缀/后缀」的标注，不是历史语言学
+//（散文自身就常把词干/后缀写成「词根」：careless→less、chinese→ese）。
+// 所以 is_source_bearing 必须真的用来区分呈现方式，不能只是摆设字段。
+export type EtymologyStatus = 'reference_confirmed' | 'mnemonic_association' | 'disputed';
+
+export interface WordAffix {
+  prefix: string | null;
+  root: string | null;
+  suffix: string | null;
+  chain: string;
+  display_chain: string;
+  etymology_status: EtymologyStatus;
+  is_source_bearing: boolean;
+  should_display: boolean;
+  meaning_cn: string | null;
+  origin: string | null;
+  source: string | null;
+  confidence: number | null;
+}
+
+export interface WordXiangxing {
+  /** 粗 ASCII 转写（['erb]、[e'bav]），**不是标准 IPA** —— 不得与 vocabulary_items
+   *  的 ARPAbet 混渲染，字段名 ipa_ascii 已在后端做隔离。 */
+  ipa_ascii: string | null;
+  pos: string | null;
+  meaning_cn: string;
+  example_en: string | null;
+  example_cn: string | null;
+  source_volume: string;
+  /** false = 归属未经例句交叉验证（多为 OCR 形近字，如 physical→physicai），
+   *  须降级或标注，不要当作已校对的条目呈现。 */
+  ownership_verified: boolean;
+}
+
+export interface WordEnrichment {
+  word: string;
+  found: boolean;
+  meaning_cn?: string | null;
+  pos?: string | null;
+  affix: WordAffix | null;
+  xiangxing: WordXiangxing | null;
+}
+
 // ── Book Engine（W3 Part B B4）：教材引用三态（后端已滤 <0.60），只留两态 ──
 export type CitationState = 'verified' | 'inferred_unverified';
 
@@ -242,6 +290,10 @@ export const mcp = {
       student_id: args.studentId, kc_id: args.kcId, question_id: args.questionId,
       is_correct: args.isCorrect, verdict_source: 'llm_verified', evidence: args.evidence,
     }),
+
+  // 词汇增强层：共享参考内容（与 books 同性质），不传 student_id。
+  getWordEnrichment: (word: string) =>
+    call<WordEnrichment>('GetWordEnrichment', { word }),
 
   // 活书阅读器。非学生数据，不传 student_id。
   listBooks: () => call<{ books: BookSummary[] }>('ListBooks', {}),
