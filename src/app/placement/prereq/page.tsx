@@ -52,7 +52,7 @@ function PrereqInner() {
   }, [state]);
 
   const fail = (e: string) => {
-    if (e === 'UNAUTHORIZED') { router.push('/login'); return; }
+    if (e === 'UNAUTHORIZED') { router.push(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`); return; }
     setErr(e);
   };
 

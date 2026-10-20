@@ -9,6 +9,8 @@ services:
         # container configuration. Override these for demo/staging builds.
         NEXT_PUBLIC_MNEME_ENV: ${NEXT_PUBLIC_MNEME_ENV:-production}
         NEXT_PUBLIC_API_BASE: ${NEXT_PUBLIC_API_BASE:-https://sxueji.com}
+        # sxueji.com 公网只放出 /placement、/login：登录后默认回到先修诊断页
+        NEXT_PUBLIC_POST_LOGIN_DEFAULT: ${NEXT_PUBLIC_POST_LOGIN_DEFAULT:-/placement/prereq}
     image: mneme-web:latest
     container_name: mneme-web
     restart: unless-stopped

@@ -43,6 +43,17 @@ function Field({ children, label }: { children: React.ReactNode; label: string }
   );
 }
 
+// 登录后回跳：优先 ?next=（仅站内相对路径，防开放重定向），其次构建期
+// NEXT_PUBLIC_POST_LOGIN_DEFAULT（公网部署只放出了 /placement，设为 /placement/prereq），
+// 最后才是按角色的默认首页。
+function postLoginTarget(fallback: string): string {
+  if (typeof window !== 'undefined') {
+    const next = new URLSearchParams(window.location.search).get('next');
+    if (next && next.startsWith('/') && !next.startsWith('//') && !next.startsWith('/\\')) return next;
+  }
+  return process.env.NEXT_PUBLIC_POST_LOGIN_DEFAULT || fallback;
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>('login');
@@ -97,7 +108,7 @@ export default function LoginPage() {
       setSetupOpen(true);
       return;
     }
-    router.replace(user.role === 'parent' ? '/parent/overview' : '/home');
+    router.replace(postLoginTarget(user.role === 'parent' ? '/parent/overview' : '/home'));
   };
 
   // ── login handlers ──
@@ -138,7 +149,7 @@ export default function LoginPage() {
     if (!res.ok) { setSetupMsg(res.error); return; }
     setSetupMsg('密码已设置，之后可以用密码登录。');
     setNewPassword('');
-    setTimeout(() => router.replace('/home'), 900);
+    setTimeout(() => router.replace(postLoginTarget('/home')), 900);
   };
 
   // ── dev 快速登录（仅 dev 环境）──
@@ -150,7 +161,7 @@ export default function LoginPage() {
     const me = await api.getMe();
     const user = me.ok ? { ...res.data.user, ...me.data } : res.data.user;
     setUser(user);
-    router.replace(user.role === 'parent' ? '/parent/overview' : '/home');
+    router.replace(postLoginTarget(user.role === 'parent' ? '/parent/overview' : '/home'));
   };
 
   // ── register handlers ──
@@ -186,7 +197,7 @@ export default function LoginPage() {
     if (!res.ok) { setError(res.error); return; }
     setToken(res.data.token);
     setUser(res.data.user);
-    router.replace('/home');
+    router.replace(postLoginTarget('/home'));
   };
 
   // ── parent register handlers ──
@@ -214,7 +225,7 @@ export default function LoginPage() {
     setToken(res.data.token);
     // 后端注册响应 user 不带 role，显式标记为家长
     setUser({ ...res.data.user, role: 'parent' });
-    router.replace('/parent/overview');
+    router.replace(postLoginTarget('/parent/overview'));
   };
 
   return (
@@ -414,7 +425,7 @@ export default function LoginPage() {
               保存并进入首页
             </button>
             <button type="button" className="mn-btn-secondary" style={{ width: '100%' }}
-              onClick={() => router.replace('/home')}>
+              onClick={() => router.replace(postLoginTarget('/home'))}>
               跳过，先用验证码登录
             </button>
           </div>
