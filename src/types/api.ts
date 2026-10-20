@@ -469,3 +469,52 @@ export interface ChatTurnRes {
   tools_used?: string[];
   metadata?: Record<string, unknown>;
 }
+
+// ── 先修回溯诊断（cn-math-taxonomy 一—九年级，/v1/placement/prereq/*）──
+export interface MathTopicBrief {
+  id: string;            // cnm_xxx
+  ku_id: string;         // cnmath:cnm_xxx
+  name: string;
+  grade: number;
+  semester?: string | null;
+  chapter?: string | null;
+  domain?: string | null;
+}
+export interface PrereqChoice { key: string; text: string }
+export interface PrereqQuestion {
+  id: string;
+  topicId: string;
+  difficulty?: string;
+  type: 'numeric' | 'choice' | 'short' | 'self' | string;
+  prompt: string;
+  choices?: PrereqChoice[];
+  unordered?: boolean;
+}
+export interface PrereqItem { topic: MathTopicBrief; attempt: number; question: PrereqQuestion }
+export interface PrereqPathItem extends MathTopicBrief {
+  status: string;        // mastered / shaky / weak / unknown ...
+  is_root: boolean;
+  is_target: boolean;
+}
+export interface PrereqReport {
+  finished: boolean;
+  asked: number;
+  limit: number;
+  limit_reached: boolean;
+  weak_roots: (MathTopicBrief & { pending_prereqs: string[] })[];
+  learning_path: PrereqPathItem[];
+  weak: string[];
+  shaky: string[];
+  unconfirmed: string[];
+  mastered_count: number;
+  untested_count: number;
+  is_mastery_estimate: false;
+}
+export type PrereqSession = Record<string, unknown>;
+export interface PrereqStartRes { session: PrereqSession; next: PrereqItem | null; report: PrereqReport }
+export interface PrereqAnswerRes extends PrereqStartRes {
+  applied: boolean;
+  needs_self_assessment: boolean;
+  feedback: { verdict: unknown; result?: string | null; answer?: string; explanation?: string } | null;
+  mastery_writeback?: { written: boolean; reason?: string; is_correct?: boolean };
+}

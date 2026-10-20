@@ -27,6 +27,7 @@ import type {
   EffortfulGainsRes, ReviewQueueItem, WeakRootsRes,
   Achievement, PatternsRes, ChatTurnReq, ChatTurnRes,
   LearnerModel, LeagueRes, AffectRes, TeachingPolicy,
+  MathTopicBrief, PrereqSession, PrereqStartRes, PrereqAnswerRes,
 } from '@/types/api';
 import * as mock from './mock-data';
 
@@ -580,3 +581,12 @@ export const getTextbookFileMeta = (fileId: string) =>
   req<{ file_id: string; filename: string; file_type: 'pdf' | 'epub'; file_size: number | null;
         textbook_id: string | null; owner_student_id: string | null; has_text_layer: boolean | null;
         uploaded_at: string; }>(`/v1/textbook-files/${encodeURIComponent(fileId)}/meta`);
+
+// ── 先修回溯诊断（cn-math-taxonomy，无状态：会话 JSON 由前端保存回传）──
+export const searchMathTopic = (q: string, limit = 10) =>
+  post<{ topics: MathTopicBrief[] }>('/mcp/SearchMathTopic', { q, limit });
+export const startPrereqDiagnosis = (targets: string[], limit?: number) =>
+  post<PrereqStartRes>('/v1/placement/prereq/start', { targets, limit });
+export const answerPrereqDiagnosis = (
+  session: PrereqSession, answer?: string, result?: 'correct' | 'wrong' | 'skip',
+) => post<PrereqAnswerRes>('/v1/placement/prereq/answer', { session, answer, result });
