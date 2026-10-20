@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import * as api from '@/lib/api-client';
+import KUVizLesson from '@/components/student/KUVizLesson';
 import type {
   MathTopicBrief, PrereqAnswerRes, PrereqItem, PrereqReport, PrereqSession,
 } from '@/types/api';
@@ -228,9 +229,12 @@ function PrereqInner() {
             {report.weak_roots.length === 0 ? (
               <span style={{ fontSize: 14, color: 'var(--mn-ink-2)' }}>没有发现薄弱的先修知识点，可以直接学目标知识点。</span>
             ) : report.weak_roots.map((r) => (
-              <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                <span style={{ fontWeight: 600, color: STATUS.weak.color }}>{r.name}</span>
-                <span style={{ fontSize: 12, color: 'var(--mn-ink-3)' }}>{gradeName(r.grade)}{r.semester ?? ''}</span>
+              <div key={r.id} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                  <span style={{ fontWeight: 600, color: STATUS.weak.color }}>{r.name}</span>
+                  <span style={{ fontSize: 12, color: 'var(--mn-ink-3)' }}>{gradeName(r.grade)}{r.semester ?? ''}</span>
+                </div>
+                <KUVizLesson kuId={r.ku_id} name={r.name} />
               </div>
             ))}
             {report.limit_reached && (

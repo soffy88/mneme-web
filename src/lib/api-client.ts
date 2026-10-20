@@ -27,7 +27,7 @@ import type {
   EffortfulGainsRes, ReviewQueueItem, WeakRootsRes,
   Achievement, PatternsRes, ChatTurnReq, ChatTurnRes,
   LearnerModel, LeagueRes, AffectRes, TeachingPolicy,
-  MathTopicBrief, PrereqSession, PrereqStartRes, PrereqAnswerRes,
+  MathTopicBrief, PrereqSession, PrereqStartRes, PrereqAnswerRes, VizLessonRes, VizQuizAnswerRes,
 } from '@/types/api';
 import * as mock from './mock-data';
 
@@ -590,3 +590,11 @@ export const startPrereqDiagnosis = (targets: string[], limit?: number) =>
 export const answerPrereqDiagnosis = (
   session: PrereqSession, answer?: string, result?: 'correct' | 'wrong' | 'skip',
 ) => post<PrereqAnswerRes>('/v1/placement/prereq/answer', { session, answer, result });
+
+// AetherViz 知识点互动课：未缓存时后端后台生成，最多等 25s 返回 pending，调用方轮询
+export const generateKUVisualization = (kuId: string, weakPoints?: string[]) =>
+  req<VizLessonRes>('/v1/viz/ku', {
+    method: 'POST', body: JSON.stringify({ ku_id: kuId, weak_points: weakPoints, wait_seconds: 25 }),
+  }, true, 60_000);
+export const submitVizQuizAnswer = (b: { ku_id: string; variant: string; quiz_id: string; choice: number }) =>
+  post<VizQuizAnswerRes>('/v1/viz/quiz-answer', b);

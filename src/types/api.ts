@@ -511,6 +511,18 @@ export interface PrereqReport {
   is_mastery_estimate: false;
 }
 export type PrereqSession = Record<string, unknown>;
+// AetherViz 知识点互动课（/v1/viz/ku）：html 只放进 sandbox="allow-scripts" 的 iframe
+export interface VizLessonRes {
+  status: 'ready' | 'pending' | 'failed';
+  ku_id: string;
+  variant: string;
+  cached?: boolean;
+  html?: string;
+  quiz?: { id: string; prompt: string; choices: string[] }[];
+  error?: string;
+  retry_after?: number;
+}
+export interface VizQuizAnswerRes { written: boolean; reason?: string; is_correct?: boolean }
 export interface PrereqStartRes { session: PrereqSession; next: PrereqItem | null; report: PrereqReport }
 export interface PrereqAnswerRes extends PrereqStartRes {
   applied: boolean;
