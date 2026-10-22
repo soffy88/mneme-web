@@ -11,6 +11,7 @@ import type {
   ApiResult,
   SendCodeReq, LoginReq, LoginRes, RegisterStudentReq, RegisterParentReq, UserProfile,
   SendEmailCodeReq, LoginEmailReq, LoginPasswordReq, RegisterStudentEmailReq, RegisterParentEmailReq,
+  RegisterStudentInviteReq,
   PaperUploadRes, PaperResult,
   InteractionReq, InteractionRes, MasteryRes, MasteryCurveRes,
   SocraticStartRes, EscapeRes, SessionEndRes, SocraticOutcome,
@@ -111,6 +112,8 @@ export const sendEmailCode = (r: SendEmailCodeReq) => USE_MOCK ? mock.mockSendCo
 export const loginEmail    = (r: LoginEmailReq)    => USE_MOCK ? mock.mockLogin({ phone: r.email, code: r.code }) : post<LoginRes>('/v1/auth/login-email', r, false);
 export const registerStudentEmail = (r: RegisterStudentEmailReq) => USE_MOCK ? mock.mockRegisterStudent() : post<LoginRes>('/v1/auth/register/student-email', r, false);
 export const registerParentEmail  = (r: RegisterParentEmailReq)  => USE_MOCK ? mock.mockRegisterParent()  : post<LoginRes>('/v1/auth/register/parent-email', r, false);
+// 邀请制注册（上线主路径）：不经过 send-email-code，注册不依赖 SMTP。
+export const registerStudentInvite = (r: RegisterStudentInviteReq) => USE_MOCK ? mock.mockRegisterStudent() : post<LoginRes>('/v1/auth/register/student-invite', r, false);
 
 // 可选密码登录。验证码通道始终可用，两者互不取代——后端 password_hash 为空时
 // loginPassword 一律 401，前端据此提示改用验证码。

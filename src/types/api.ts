@@ -39,6 +39,12 @@ export interface RegisterStudentEmailReq {
 export interface RegisterParentEmailReq {
   email: string; code: string; name: string; invite_code: string;
 }
+/** 邀请制注册：管理员签发的邀请码 + 用户名/密码，不依赖邮件或短信。 */
+export interface RegisterStudentInviteReq {
+  invitation_code: string; username: string; password: string;
+  name: string; birth_date: string; grade: string;
+  guardian_email?: string; guardian_consent?: boolean;
+}
 
 export interface UserProfile {
   id: string; name: string; role: 'student' | 'parent';

@@ -6,7 +6,7 @@ import * as api from '@/lib/api-client';
 import { setToken, setUser } from '@/lib/auth-store';
 import type { UserProfile } from '@/types/api';
 
-type Mode = 'login' | 'register' | 'parent';
+type Mode = 'login' | 'register';
 type Phase = 'email' | 'code' | 'loading';
 /** 登录卡内的两种凭证方式。验证码通道始终可用，密码是可选通道。 */
 type Method = 'code' | 'password';
@@ -71,23 +71,16 @@ export default function LoginPage() {
   const [newPassword, setNewPassword] = useState('');
   const [setupMsg, setSetupMsg] = useState('');
 
-  // ── register state ──
-  const [rEmail, setREmail]   = useState('');
-  const [rCode,  setRCode]    = useState('');
+  // ── register state（邀请制：管理员发码，学生凭码注册，不依赖邮件）──
+  const [inviteCode, setInviteCode] = useState('');
+  const [rUsername, setRUsername] = useState('');
+  const [rPassword, setRPassword] = useState('');
   const [name,   setName]     = useState('');
   const [birth,  setBirth]    = useState('');
   const [grade,  setGrade]    = useState('');
   const [gEmail, setGEmail]   = useState('');
   const [gConsent, setGConsent] = useState(false);
-  const [codeSent, setCodeSent] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-
-  // ── parent register state ──
-  const [pEmail,  setPEmail]  = useState('');
-  const [pCode,   setPCode]   = useState('');
-  const [pName,   setPName]   = useState('');
-  const [pInvite, setPInvite] = useState('');
-  const [pCodeSent, setPCodeSent] = useState(false);
 
   const switchMode = (m: Mode) => { setMode(m); setError(''); };
   const switchMethod = (m: Method) => { setMethod(m); setError(''); setPhase('email'); };
@@ -164,20 +157,13 @@ export default function LoginPage() {
     router.replace(postLoginTarget(user.role === 'parent' ? '/parent/overview' : '/home'));
   };
 
-  // ── register handlers ──
+  // ── register handlers（邀请制：管理员发码，学生凭码注册，不依赖邮件）──
   const age = ageFromBirth(birth);
   const needGuardian = age !== null && age < 14;
 
-  const sendRegCode = async () => {
-    if (!rEmail.trim()) return;
-    setError('');
-    const res = await api.sendEmailCode({ email: rEmail.trim() });
-    if (!res.ok) { setError(res.error); return; }
-    setCodeSent(true);
-  };
-
   const registerReady =
-    rEmail.trim() && rCode.length >= 4 && name.trim() && birth && grade &&
+    inviteCode.trim().length >= 6 && rUsername.trim() && rPassword.length >= 8 &&
+    name.trim() && birth && grade &&
     (!needGuardian || (gEmail.trim() && gConsent));
 
   const register = async () => {
@@ -186,11 +172,12 @@ export default function LoginPage() {
       setError('未满 14 周岁，须填写监护人邮箱并勾选监护人同意');
       return;
     }
-    if (!registerReady) { setError('请完整填写注册信息'); return; }
+    if (!registerReady) { setError('请完整填写注册信息（密码至少 8 位）'); return; }
     setSubmitting(true);
-    const res = await api.registerStudentEmail({
-      email: rEmail.trim(), code: rCode, name: name.trim(),
-      birth_date: birth, grade,
+    const res = await api.registerStudentInvite({
+      invitation_code: inviteCode.trim().toUpperCase(),
+      username: rUsername.trim(), password: rPassword,
+      name: name.trim(), birth_date: birth, grade,
       ...(needGuardian ? { guardian_email: gEmail.trim(), guardian_consent: gConsent } : {}),
     });
     setSubmitting(false);
@@ -198,34 +185,6 @@ export default function LoginPage() {
     setToken(res.data.token);
     setUser(res.data.user);
     router.replace(postLoginTarget('/home'));
-  };
-
-  // ── parent register handlers ──
-  const sendParentCode = async () => {
-    if (!pEmail.trim()) return;
-    setError('');
-    const res = await api.sendEmailCode({ email: pEmail.trim() });
-    if (!res.ok) { setError(res.error); return; }
-    setPCodeSent(true);
-  };
-
-  const parentReady =
-    pEmail.trim() && pCode.length >= 4 && pName.trim() && pInvite.trim();
-
-  const registerParent = async () => {
-    setError('');
-    if (!parentReady) { setError('请完整填写注册信息'); return; }
-    setSubmitting(true);
-    const res = await api.registerParentEmail({
-      email: pEmail.trim(), code: pCode, name: pName.trim(),
-      invite_code: pInvite.trim().toUpperCase(),
-    });
-    setSubmitting(false);
-    if (!res.ok) { setError(res.error); return; }
-    setToken(res.data.token);
-    // 后端注册响应 user 不带 role，显式标记为家长
-    setUser({ ...res.data.user, role: 'parent' });
-    router.replace(postLoginTarget('/parent/overview'));
   };
 
   return (
@@ -272,7 +231,7 @@ export default function LoginPage() {
 
         {/* Tab toggle */}
         <div style={{ display: 'flex', background: 'var(--mn-surface)', borderRadius: '12px', padding: '4px', border: '1px solid var(--mn-border)' }}>
-          {(['login', 'register', 'parent'] as Mode[]).map((m) => (
+          {(['login', 'register'] as Mode[]).map((m) => (
             <button
               key={m}
               type="button"
@@ -285,7 +244,7 @@ export default function LoginPage() {
                 transition: 'all var(--mn-duration-fast)',
               }}
             >
-              {m === 'login' ? '登录' : m === 'register' ? '学生注册' : '家长注册'}
+              {m === 'login' ? '登录' : '邀请码注册'}
             </button>
           ))}
         </div>
@@ -434,26 +393,34 @@ export default function LoginPage() {
         {/* ── Register card ── */}
         {mode === 'register' && (
           <div className="mn-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <Field label="邮箱">
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <input
-                  type="email" value={rEmail}
-                  onChange={(e) => setREmail(e.target.value)}
-                  placeholder="you@example.com" inputMode="email" autoComplete="email"
-                  style={{ ...inputStyle, flex: 1 }}
-                />
-                <button type="button" className="mn-btn-secondary" style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
-                  disabled={!rEmail.trim()} onClick={sendRegCode}>
-                  {codeSent ? '重发' : '发送验证码'}
-                </button>
-              </div>
+            <p style={{ fontSize: '13px', color: 'var(--mn-ink-3)', lineHeight: 1.6, margin: 0 }}>
+              善学记目前为邀请制。请输入管理员发放的邀请码，设置用户名和密码即可注册，
+              无需邮箱验证。
+            </p>
+
+            <Field label="邀请码">
+              <input
+                type="text" value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                placeholder="如 SXJ-ABCD-EFGH" autoComplete="off"
+                style={{ ...inputStyle, letterSpacing: '0.08em' }}
+              />
             </Field>
 
-            <Field label="验证码">
+            <Field label="用户名">
               <input
-                type="text" value={rCode}
-                onChange={(e) => setRCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder={IS_DEV ? '6 位验证码（dev: 123456）' : '6 位验证码'} inputMode="numeric" maxLength={6}
+                type="text" value={rUsername}
+                onChange={(e) => setRUsername(e.target.value)}
+                placeholder="登录用户名（字母/数字）" autoComplete="username"
+                style={inputStyle}
+              />
+            </Field>
+
+            <Field label="密码">
+              <input
+                type="password" value={rPassword}
+                onChange={(e) => setRPassword(e.target.value)}
+                placeholder="至少 8 位" autoComplete="new-password"
                 style={inputStyle}
               />
             </Field>
@@ -504,61 +471,6 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* ── Parent register card ── */}
-        {mode === 'parent' && (
-          <div className="mn-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <p style={{ fontSize: '13px', color: 'var(--mn-ink-3)', lineHeight: 1.6, margin: 0 }}>
-              输入孩子注册后生成的邀请码（孩子首页「家长监督」卡可查看），注册即绑定，可查看学习周报。
-            </p>
-            <Field label="邮箱">
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <input
-                  type="email" value={pEmail}
-                  onChange={(e) => setPEmail(e.target.value)}
-                  placeholder="you@example.com" inputMode="email" autoComplete="email"
-                  style={{ ...inputStyle, flex: 1 }}
-                />
-                <button type="button" className="mn-btn-secondary" style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
-                  disabled={!pEmail.trim()} onClick={sendParentCode}>
-                  {pCodeSent ? '重发' : '发送验证码'}
-                </button>
-              </div>
-            </Field>
-
-            <Field label="验证码">
-              <input
-                type="text" value={pCode}
-                onChange={(e) => setPCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                placeholder={IS_DEV ? '6 位验证码（dev: 123456）' : '6 位验证码'} inputMode="numeric" maxLength={6}
-                style={inputStyle}
-              />
-            </Field>
-
-            <Field label="姓名">
-              <input type="text" value={pName} onChange={(e) => setPName(e.target.value)} placeholder="您的称呼" style={inputStyle} />
-            </Field>
-
-            <Field label="孩子的邀请码">
-              <input
-                type="text" value={pInvite}
-                onChange={(e) => setPInvite(e.target.value)}
-                placeholder="如 A1B2C3"
-                style={{ ...inputStyle, letterSpacing: '0.08em' }}
-              />
-            </Field>
-
-            {error && (
-              <div style={{ fontSize: '13px', color: 'var(--mn-red)', padding: '8px 12px', borderRadius: '8px', background: 'var(--mn-red-dim)' }}>
-                {error}
-              </div>
-            )}
-
-            <button type="button" className="mn-btn-primary" style={{ width: '100%' }}
-              disabled={submitting || !parentReady} onClick={registerParent}>
-              {submitting ? '注册中…' : '注册并绑定孩子'}
-            </button>
-          </div>
-        )}
       </div>
     </div>
   );
