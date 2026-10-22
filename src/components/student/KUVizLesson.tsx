@@ -1,5 +1,6 @@
 'use client';
 
+import SpeakButton from '@/components/shared/SpeakButton';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import * as api from '@/lib/api-client';
 import type { VizLessonRes } from '@/types/api';
@@ -75,6 +76,9 @@ export default function KUVizLesson({ kuId, name, weakPoints }: Props) {
         </span>
       )}
       {open && status === 'ready' && lesson?.html && (
+        <SpeakButton label="朗读这节课" text={lessonText(lesson.html)} />
+      )}
+      {open && status === 'ready' && lesson?.html && (
         <iframe
           ref={frame}
           title={`${name} 互动课`}
@@ -86,4 +90,13 @@ export default function KUVizLesson({ kuId, name, weakPoints }: Props) {
       )}
     </div>
   );
+}
+
+/** 从互动课 HTML 提取可朗读的正文（去脚本/样式/测验选项），截断到 TTS 上限。 */
+function lessonText(html: string): string {
+  if (typeof DOMParser === 'undefined') return '';
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  doc.querySelectorAll('script,style,svg,canvas,button,#mneme-quiz').forEach((n) => n.remove());
+  const t = (doc.body?.textContent ?? '').replace(/\s+/g, ' ').trim();
+  return t.slice(0, 580);
 }

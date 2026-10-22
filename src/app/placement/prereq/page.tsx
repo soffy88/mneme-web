@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import * as api from '@/lib/api-client';
 import KUVizLesson from '@/components/student/KUVizLesson';
+import SpeakButton from '@/components/shared/SpeakButton';
 import type {
   MathTopicBrief, PrereqAnswerRes, PrereqItem, PrereqReport, PrereqSession,
 } from '@/types/api';
@@ -114,6 +115,7 @@ function PrereqInner() {
       <p style={{ fontSize: 13, color: 'var(--mn-ink-3)', margin: '4px 0 0' }}>
         选一个要学的知识点，每个点最多 2 题；答错会往前追先修，帮你找到真正的薄弱根因。
       </p>
+      <a href="/placement/voice" style={{ fontSize: 13, color: 'var(--mn-blue)', marginTop: 4, display: 'inline-block' }}>🎤 和学习伙伴语音陪学 →</a>
     </div>
   );
 
@@ -168,6 +170,7 @@ function PrereqInner() {
           </span>
           {fb.answer && <span style={{ fontSize: 13, color: 'var(--mn-ink-2)' }}>参考答案：{fb.answer}</span>}
           {fb.explanation && <span style={{ fontSize: 12, color: 'var(--mn-ink-3)' }}>{fb.explanation}</span>}
+          <SpeakButton text={[fb.answer ? `参考答案：${fb.answer}` : '', fb.explanation ?? ''].filter(Boolean).join('。')} label="朗读讲解" />
         </div>
       )}
 
@@ -177,6 +180,7 @@ function PrereqInner() {
             {item.topic.name} · {gradeName(item.topic.grade)} · 第 {item.attempt} 题
           </span>
           <div style={{ fontSize: 16, color: 'var(--mn-ink)', whiteSpace: 'pre-wrap' }}>{item.question.prompt}</div>
+          <SpeakButton text={item.question.prompt + (item.question.type === 'choice' && item.question.choices ? '。' + item.question.choices.map((c) => `${c.key}，${c.text}`).join('；') : '')} label="读题" />
           {last?.needs_self_assessment ? (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <button type="button" className="mn-btn-primary" disabled={busy} onClick={() => void submit('correct')}>我答对了</button>
@@ -226,6 +230,8 @@ function PrereqInner() {
         <>
           <div className="mn-card" style={card()}>
             <span style={{ fontWeight: 700, color: 'var(--mn-ink)' }}>薄弱根因</span>
+            <SpeakButton label="朗读诊断结果" text={report.weak_roots.length === 0 ? '没有发现薄弱的先修知识点，可以直接学目标知识点。'
+              : `诊断结果：薄弱根因有${report.weak_roots.map((r) => r.name).join('、')}。建议按学习路径从低年级往上补，先学${report.weak_roots[0].name}。`} />
             {report.weak_roots.length === 0 ? (
               <span style={{ fontSize: 14, color: 'var(--mn-ink-2)' }}>没有发现薄弱的先修知识点，可以直接学目标知识点。</span>
             ) : report.weak_roots.map((r) => (
