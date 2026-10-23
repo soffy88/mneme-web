@@ -58,13 +58,60 @@
    Base
    ───────────────────────────────────────────── */
 html { font-size: 16px; }
+:root { color-scheme: light; }
 body {
   background: var(--mn-paper);
   color: var(--mn-ink);
-  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+  /* CJK 优先的中文字体栈:拉丁字形由系统字体承载,汉字落到 PingFang/雅黑;
+     K-12 产品文字量大,中文字体缺失时渲染会明显发虚 */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    'PingFang SC', 'Hiragino Sans GB', 'HarmonyOS Sans SC',
+    'Noto Sans SC', 'Microsoft YaHei', 'Inter', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   min-width: 375px;
+}
+
+/* 选中色跟随品牌蓝(淡) */
+::selection {
+  background: rgba(45, 90, 158, 0.18);
+}
+
+/* 桌面薄滚动条:内嵌滚动容器(如侧栏/长列表)观感统一 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--mn-border-2) transparent;
+}
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-thumb {
+  background: var(--mn-border-2);
+  border-radius: 99px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-track { background: transparent; }
+
+/* 键盘可达性:所有交互件都应有可见焦点环(此前只有按钮有) */
+.mn-side-link:focus-visible,
+.mn-tab-btn:focus-visible,
+.mn-card-interactive:focus-visible {
+  outline: 2px solid var(--mn-blue);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+/* 数字类信息(连续天数/掌握度/分数)用等宽数字,跳动时不抖动 */
+.mn-num { font-variant-numeric: tabular-nums; }
+
+/* 系统减少动效偏好:全局压平动画与过渡 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* ─────────────────────────────────────────────
@@ -173,6 +220,31 @@ body {
 .mn-tab-btn:active  { transform: scale(0.92); }
 .mn-tab-btn.active  { color: var(--mn-blue); }
 
+/* 桌面侧栏导航项 */
+.mn-side-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--mn-ink-2);
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--mn-duration-fast), color var(--mn-duration-fast);
+  -webkit-tap-highlight-color: transparent;
+}
+.mn-side-link:hover { background: var(--mn-surface-2); }
+.mn-side-link:active { transform: scale(0.98); }
+.mn-side-link.active {
+  background: var(--mn-blue-dim);
+  color: var(--mn-blue);
+  font-weight: 600;
+}
+
 /* 卡片基础 */
 .mn-card {
   background: var(--mn-surface);
@@ -225,4 +297,23 @@ body {
   display: flex; align-items: center; justify-content: center;
   font-size: 11px; font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+
+/* ─────────────────────────────────────────────
+   BlurText 进场(设计模式试点:冷启动空状态的"活的产品"预览用)。
+   来自 @helios/blocks(已随 vendor 升级至 4.6.0),这段自包含 CSS
+   只给冷启动空状态预览用。
+   ───────────────────────────────────────────── */
+@keyframes mn-blurtext-in {
+  0%   { filter: blur(10px); opacity: 0;   transform: translateY(20px); }
+  60%  { filter: blur(5px);  opacity: 0.5; transform: translateY(-2px); }
+  100% { filter: blur(0);    opacity: 1;   transform: translateY(0); }
+}
+.mn-blurtext-word {
+  display: inline-block;
+  animation: mn-blurtext-in 0.35s var(--mn-ease-out, ease-out) both;
+  animation-delay: calc(var(--i, 0) * 90ms);
+}
+@media (prefers-reduced-motion: reduce) {
+  .mn-blurtext-word { animation-duration: 0.01ms !important; }
 }

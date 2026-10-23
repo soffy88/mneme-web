@@ -1,4 +1,26 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#0066ff"/>
-  <text x="256" y="276" font-size="300" font-family="system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif" font-weight="800" fill="#ffffff" text-anchor="middle" dominant-baseline="central">善</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 100 100" role="img" aria-label="善学记">
+  <defs>
+    <linearGradient id="t" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2A57C9"/><stop offset="1" stop-color="#0F2350"/></linearGradient>
+    <linearGradient id="b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6AA0FC"/><stop offset="1" stop-color="#2A5AD4"/></linearGradient>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FCC94F"/><stop offset="1" stop-color="#E5981B"/></linearGradient>
+  </defs>
+  <rect width="100" height="100" rx="22" fill="url(#t)"/>
+  <path d="M34 12 L29 30 L45 25 Z" fill="url(#b)"/>
+  <path d="M66 12 L71 30 L55 25 Z" fill="url(#b)"/>
+  <path d="M50 16 C34 16 23 27 23 44 C23 63 34 75 50 75 C66 75 77 63 77 44 C77 27 66 16 50 16 Z" fill="url(#b)"/>
+  <circle cx="38.5" cy="43" r="13" fill="#EAF2FF"/>
+  <circle cx="61.5" cy="43" r="13" fill="#EAF2FF"/>
+  <circle cx="38.5" cy="43" r="9.4" fill="#fff"/>
+  <circle cx="61.5" cy="43" r="9.4" fill="#fff"/>
+  <circle cx="40.5" cy="44.2" r="4.7" fill="#0F2350"/>
+  <circle cx="59.5" cy="44.2" r="4.7" fill="#0F2350"/>
+  <circle cx="42.4" cy="42.4" r="1.5" fill="#fff"/>
+  <circle cx="61.4" cy="42.4" r="1.5" fill="#fff"/>
+  <path d="M50 49.5 L45.4 55 L54.6 55 Z" fill="url(#g)"/>
+  <path d="M50 74 C42 70 32 70 24.5 73 L24.5 83 C32 80 42 80 50 84.5 Z" fill="#F4F7FD"/>
+  <path d="M50 74 C58 70 68 70 75.5 73 L75.5 83 C68 80 58 80 50 84.5 Z" fill="#DBE6FA"/>
+  <line x1="31" y1="74.6" x2="44" y2="76.8" stroke="#AFC5EF" stroke-width="1.4" stroke-linecap="round"/>
+  <line x1="31" y1="78.4" x2="44" y2="80.6" stroke="#AFC5EF" stroke-width="1.4" stroke-linecap="round"/>
+  <line x1="56" y1="76.8" x2="69" y2="74.6" stroke="#C6D5F2" stroke-width="1.4" stroke-linecap="round"/>
+  <path d="M77 14 L79.4 20.2 L85.6 22 L79.4 23.8 L77 30 L74.6 23.8 L68.4 22 L74.6 20.2 Z" fill="url(#g)"/>
 </svg>

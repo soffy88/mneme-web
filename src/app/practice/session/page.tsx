@@ -6,6 +6,7 @@ import * as api from '@/lib/api-client';
 import { getUserId } from '@/lib/auth-store';
 import { enqueuePractice, isOffline } from '@/lib/offlineQueue';
 import { RichText } from '@/components/shared/RichText';
+import { ScratchBoard } from '@/components/student/ScratchBoard';
 import type { QuestionBankItem, PracticeSubmitRes, MasteryColor } from '@/types/api';
 
 // 非数学"跳到具体知识点做题"通用引擎（V.1 后续）。复制自
@@ -169,7 +170,8 @@ function PracticeBody({ kuId, subject }: { kuId: string; subject: string }) {
   const getStudentId = useCallback(() => getUserId(), []);
 
   useEffect(() => {
-    api.listQuestionBank({ subject, ku_id: kuId, needs_image: false, limit: 16 })
+    const sid = getUserId();
+    api.listQuestionBank({ subject, ku_id: kuId, student_id: sid || undefined, needs_image: false, limit: 16 })
       .then(res => {
         if (res.ok) setQuestions(res.data.items.filter(q => !missingImage(q)).slice(0, 10));
       })
@@ -294,9 +296,9 @@ function PracticeBody({ kuId, subject }: { kuId: string; subject: string }) {
         padding: '40px 24px', textAlign: 'center',
       }}>
         <div style={{ fontSize: '32px', opacity: 0.3 }}>📭</div>
-        <div style={{ fontSize: '15px', color: 'var(--mn-ink)' }}>该知识点暂无练习题</div>
+        <div style={{ fontSize: '15px', color: 'var(--mn-ink)' }}>该知识点暂无已匹配真题</div>
         <div style={{ fontSize: '13px', color: 'var(--mn-ink-3)', lineHeight: 1.6 }}>
-          题目匹配正在进行中，稍后再来看看
+          题库真题正按知识点挂接中；可先从「专项练习」选题表里挑带题量的主题
         </div>
         <button onClick={() => router.back()} style={{
           marginTop: '8px', padding: '10px 24px', borderRadius: '99px',
@@ -380,6 +382,12 @@ function PracticeBody({ kuId, subject }: { kuId: string; subject: string }) {
       </div>
 
       {currentQ && <QuestionCard q={currentQ} index={idx} total={questions.length} />}
+
+      {/* 解题草稿板（认知负荷②）：已知/中间结果/目标外化到板上，释放工作记忆；
+          中间结果钉住后切题不消失，答题框里写「=值」会自动记下并钉住。 */}
+      {currentQ && (
+        <ScratchBoard storageKey={kuId} questionKey={idx} answerText={answer} />
+      )}
 
       {/* 答题区 */}
       {phase === 'answering' && offlineSaved && (

@@ -26,11 +26,32 @@ export interface RegisterStudentReq {
 export interface RegisterParentReq {
   phone: string; code: string; name: string; invite_code: string;
 }
+
+// 邮箱注册（新主标识；手机号类型保留兼容旧接口）
+export interface SendEmailCodeReq { email: string }
+export interface LoginEmailReq    { email: string; code: string }
+export interface LoginPasswordReq { email: string; password: string }
+export interface RegisterStudentEmailReq {
+  email: string; code: string; name: string;
+  birth_date: string; grade: string;
+  guardian_email?: string; guardian_consent?: boolean;
+}
+export interface RegisterParentEmailReq {
+  email: string; code: string; name: string; invite_code: string;
+}
+/** 邀请制注册：管理员签发的邀请码 + 用户名/密码，不依赖邮件或短信。 */
+export interface RegisterStudentInviteReq {
+  invitation_code: string; username: string; password: string;
+  name: string; birth_date: string; grade: string;
+  guardian_email?: string; guardian_consent?: boolean;
+}
+
 export interface UserProfile {
   id: string; name: string; role: 'student' | 'parent';
-  grade?: string; phone: string;
+  grade?: string; phone?: string; email?: string;
   invite_code?: string;   // 学生邀请码（家长注册凭此绑定）；GET /v1/auth/me 返回
   share_process_with_parent?: boolean;  // L6 隐私分层
+  has_password?: boolean;   // 是否已设密码（仅本人可见）；决定是否展示密码登录入口
 }
 
 // ── 试卷 ─────────────────────────────────────────────────────
@@ -56,6 +77,7 @@ export interface InteractionReq {
   student_id: string; ku_id: string; is_correct: boolean;
   used_answer?: boolean; struggled?: boolean; effortless?: boolean;
   source: InteractionSource; question_id?: string; is_interleaved?: boolean;
+  predicted_confidence?: number; // JOL：作答前把握度自评(0~1)，不选则不发
 }
 export interface InteractionRes {
   p_mastery: number; long_term_mastery: number; effective_mastery: number;
@@ -168,9 +190,13 @@ export interface LessonRes {
 // ── 家长端 ────────────────────────────────────────────────────
 export type EmotionState = 'stable' | 'anxious' | 'low' | 'crisis';
 export interface ParentOverviewRes {
-  weak_kc_count: number; weak_kc_trend: number;
-  streak: number; emotion: EmotionState;
-  top_improved_kc: string; study_minutes_today: number;
+  headline: string;
+  mastered_kc_count: number;
+  streak: { current_streak: number; longest_streak?: number; freezes_available?: number };
+  total_kc_practiced: number;
+  weak_kc_count: number;
+  recent_sessions: number;
+  learner_profile: string;
 }
 export type AlertType = 'emotion' | 'score_drop' | 'task_missing' | 'time_drop' | 'late_night';
 export type AlertLevel = 'notice' | 'attention' | 'important';
@@ -427,4 +453,86 @@ export interface PatternsRes {
   plateau_kcs: string[];
   overall_trend: number;   // 正=整体进步
   patterns: PatternItem[];
+}
+
+// ── 聊天（C1）────────────────────────────────────────────────────
+export interface ChatMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
+export interface ChatTurnReq {
+  student_id: string;
+  message: string;
+  history: ChatMessage[];
+  persona_slug?: string;
+  kc_ids?: string[];
+}
+export interface ChatTurnRes {
+  answer: string;
+  action?: 'goto_mastery_path' | 'free_qa';
+  kc_hint?: string;
+  kc_ids?: string[];
+  tools_used?: string[];
+  metadata?: Record<string, unknown>;
+}
+
+// ── 先修回溯诊断（cn-math-taxonomy 一—九年级，/v1/placement/prereq/*）──
+export interface MathTopicBrief {
+  id: string;            // cnm_xxx
+  ku_id: string;         // cnmath:cnm_xxx
+  name: string;
+  grade: number;
+  semester?: string | null;
+  chapter?: string | null;
+  domain?: string | null;
+}
+export interface PrereqChoice { key: string; text: string }
+export interface PrereqQuestion {
+  id: string;
+  topicId: string;
+  difficulty?: string;
+  type: 'numeric' | 'choice' | 'short' | 'self' | string;
+  prompt: string;
+  choices?: PrereqChoice[];
+  unordered?: boolean;
+}
+export interface PrereqItem { topic: MathTopicBrief; attempt: number; question: PrereqQuestion }
+export interface PrereqPathItem extends MathTopicBrief {
+  status: string;        // mastered / shaky / weak / unknown ...
+  is_root: boolean;
+  is_target: boolean;
+}
+export interface PrereqReport {
+  finished: boolean;
+  asked: number;
+  limit: number;
+  limit_reached: boolean;
+  weak_roots: (MathTopicBrief & { pending_prereqs: string[] })[];
+  learning_path: PrereqPathItem[];
+  weak: string[];
+  shaky: string[];
+  unconfirmed: string[];
+  mastered_count: number;
+  untested_count: number;
+  is_mastery_estimate: false;
+}
+export type PrereqSession = Record<string, unknown>;
+// AetherViz 知识点互动课（/v1/viz/ku）：html 只放进 sandbox="allow-scripts" 的 iframe
+export interface VizLessonRes {
+  status: 'ready' | 'pending' | 'failed';
+  ku_id: string;
+  variant: string;
+  cached?: boolean;
+  html?: string;
+  quiz?: { id: string; prompt: string; choices: string[] }[];
+  error?: string;
+  retry_after?: number;
+}
+export interface VizQuizAnswerRes { written: boolean; reason?: string; is_correct?: boolean }
+export interface PrereqStartRes { session: PrereqSession; next: PrereqItem | null; report: PrereqReport }
+export interface PrereqAnswerRes extends PrereqStartRes {
+  applied: boolean;
+  needs_self_assessment: boolean;
+  feedback: { verdict: unknown; result?: string | null; answer?: string; explanation?: string } | null;
+  mastery_writeback?: { written: boolean; reason?: string; is_correct?: boolean };
 }

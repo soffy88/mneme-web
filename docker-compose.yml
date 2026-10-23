@@ -4,33 +4,24 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        # NEXT_PUBLIC_* is build-time browser configuration, not runtime
+        # container configuration. Override these for demo/staging builds.
+        NEXT_PUBLIC_MNEME_ENV: ${NEXT_PUBLIC_MNEME_ENV:-production}
+        NEXT_PUBLIC_API_BASE: ${NEXT_PUBLIC_API_BASE:-https://sxueji.com}
+        # sxueji.com 公网只放出 /placement、/login：登录后默认回到先修诊断页
+        NEXT_PUBLIC_POST_LOGIN_DEFAULT: ${NEXT_PUBLIC_POST_LOGIN_DEFAULT:-/placement/prereq}
     image: mneme-web:latest
     container_name: mneme-web
     restart: unless-stopped
     environment:
-      # 生产 API(NEXT_PUBLIC_* 构建期由 .env.production 内联=mneme-api.uex.hk,此为运行期兜底)
-      NEXT_PUBLIC_API_BASE: https://mneme-api.uex.hk
       NEXT_PUBLIC_USE_MOCK: "false"
+      # Aria 对话 API 密钥（服务端使用，不暴露给前端）
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
     networks:
       - helios-net
     ports:
-      - "3300:3000"   # 便于主机直连自检(localhost:3300)；公网走 cloudflared
-
-  # Cloudflare Tunnel(容器化,对齐 helios/tide/aegis 做法)：本地管理式配置,
-  # ingress 走 helios-net 内名 mneme-web:3000 / mneme-api-1:8000（见 ~/.cloudflared/mneme.yml）。
-  # user 1000 以读取宿主 soffy 的凭据(600)。
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    container_name: mneme-cloudflared
-    restart: unless-stopped
-    user: "1000:1000"
-    command: tunnel --no-autoupdate --config /etc/cloudflared/mneme.yml run
-    volumes:
-      - /home/soffy/.cloudflared:/etc/cloudflared:ro
-    networks:
-      - helios-net
-    depends_on:
-      - mneme-web
+      - "3300:3000"   # 便于主机直连自检(localhost:3300)；公网走共享边缘(aegis-caddy → sxueji.com)
 
 networks:
   helios-net:

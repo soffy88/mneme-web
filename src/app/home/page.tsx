@@ -4,10 +4,13 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getUserId } from '@/lib/auth-store';
 import * as api from '@/lib/api-client';
+import dynamic from 'next/dynamic';
+const FayAria = dynamic(() => import('@/components/aria/FayAria').then(m => ({ default: m.FayAria })), { ssr: false });
 import { StreakBadge } from '@/components/shared/StreakBadge';
 import { Achievements } from '@/components/shared/Achievements';
 import { EffortBoard } from '@/components/shared/EffortBoard';
 import { InterleaveCard } from '@/components/shared/InterleaveCard';
+import { MasteryRing } from '@/components/shared/MasteryRing';
 import { GrowthExtras } from '@/components/student/GrowthExtras';
 import { DailyPlanPrefsCard } from '@/components/shared/DailyPlanPrefsCard';
 import { TextbookBindingsCard } from '@/components/shared/TextbookBindingsCard';
@@ -50,6 +53,7 @@ export default function HomePage() {
   const [me,         setMe]         = useState<UserProfile | null>(null);
   const [codeCopied, setCodeCopied] = useState(false);
   const [shareProcess, setShareProcess] = useState(false);  // L6 隐私开关
+  const [showStudy,  setShowStudy]  = useState(false); // Aria 为主；学习中心可展开
 
   const load = async () => {
     const sid = getUserId();
@@ -84,23 +88,66 @@ export default function HomePage() {
     setData((d) => d ? { ...d, streak: res.data.streak } : d);
   };
 
-  if (loading) return <Skeleton />;
+  // 主视觉 Aria 始终可先渲染；学习数据异步
+  if (!loading && error && !data) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <FayAria />
+        <div style={{ padding: '16px 0', textAlign: 'center', color: 'var(--mn-ink-3)', fontSize: '14px' }}>
+          学习数据加载失败 — <button type="button" onClick={load} style={{ color: 'var(--mn-blue)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}>重试</button>
+        </div>
+      </div>
+    );
+  }
 
-  if (error) return (
-    <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--mn-ink-3)', fontSize: '14px' }}>
-      加载失败 — <button type="button" onClick={load} style={{ color: 'var(--mn-blue)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}>重试</button>
-    </div>
-  );
-
-  if (!data) return null;
-
-  const { mission, streak } = data;
-  const isRest = mission.mission_type === 'rest';
-  const meta   = TYPE_META[mission.mission_type] ?? TYPE_META.review;
+  const streakDays = data?.streak.current_streak ?? 0;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
+      {/* Piano Awakening · 数字钢琴师主场景 */}
+      <FayAria />
+
+      {/* 学习中心折叠入口 */}
+      <button
+        type="button"
+        onClick={() => setShowStudy((v) => !v)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          width: '100%',
+          padding: '12px 16px',
+          borderRadius: 14,
+          border: '1px solid var(--mn-border)',
+          background: 'var(--mn-surface)',
+          cursor: 'pointer',
+          textAlign: 'left',
+        }}
+      >
+        <span>
+          <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--mn-ink)' }}>学习中心 · 今日目标</span>
+          <span style={{ display: 'block', fontSize: 12, color: 'var(--mn-ink-3)', marginTop: 2 }}>
+            {loading ? '加载中…' : `连续 ${streakDays} 天 · 点开查看任务与掌握`}
+          </span>
+        </span>
+        <span style={{ fontSize: 18, color: 'var(--mn-ink-3)' }}>{showStudy ? '▴' : '▾'}</span>
+      </button>
+
+      {!showStudy && (
+        <p style={{ fontSize: 12, color: 'var(--mn-ink-3)', margin: 0, lineHeight: 1.5 }}>
+          首页是 Aria 的钢琴房：轻声唤醒她，用英语聊几句；练习与掌握请从下方「学习中心」或底栏进入。
+        </p>
+      )}
+
+      {showStudy && loading && <Skeleton />}
+
+      {showStudy && !loading && data ? (() => {
+      const { mission, streak } = data;
+      const isRest = mission.mission_type === 'rest';
+      const meta = TYPE_META[mission.mission_type] ?? TYPE_META.review;
+      return (
+      <>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
@@ -118,11 +165,22 @@ export default function HomePage() {
           新生计划里多是 new_learn(去讲解)，这里补一个"先做题/传卷"建档的快入口。 */}
       {streak.current_streak === 0 && reviewDue.length === 0 && (
         <div className="mn-card" style={{ padding: '20px', border: '1.5px solid var(--mn-blue)' }}>
-          <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--mn-ink)', marginBottom: '4px' }}>
-            👋 从一道题开始
+          {/* "活的产品"预览(CC 补充 spec 任务13 设计模式试点):新用户还没有任何数据,
+              与其用静态插画/纯文字介绍"我们会算掌握度",不如直接展示 MasteryRing 本身
+              ——用户做完题、有真实数据后,看到的会是同一个组件,不是"效果图"。 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '10px' }}>
+            <MasteryRing value={0.65} size={44} strokeWidth={6} />
+            <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--mn-ink)' }}>
+              {['👋', '从一道题开始'].map((w, i) => (
+                <span key={i} className="mn-blurtext-word" style={{ '--i': i } as React.CSSProperties}>
+                  {w}{' '}
+                </span>
+              ))}
+            </div>
           </div>
           <div style={{ fontSize: '13px', color: 'var(--mn-ink-3)', marginBottom: '14px', lineHeight: 1.6 }}>
-            做几道题或上传一张试卷，系统就会算出你的薄弱点、自动排复习、建立学习档案。
+            做几道题或上传一张试卷，系统就会算出你的薄弱点、自动排复习、建立学习档案——
+            左边这个环就是你的掌握度,现在是示例,做完题就会变成真的。
           </div>
           <div style={{ display: 'flex', gap: '10px' }}>
             <button type="button" onClick={() => router.push('/practice')}
@@ -536,6 +594,9 @@ export default function HomePage() {
         </div>
         <span style={{ color: 'var(--mn-ink-3)', fontSize: '16px' }}>›</span>
       </button>
+      </>
+      );
+      })() : null}
 
     </div>
   );

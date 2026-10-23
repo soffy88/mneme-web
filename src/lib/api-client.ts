@@ -6,10 +6,12 @@
  * SSE 流式接口单独暴露(socraticStream)。
  */
 import { MNEME_API_BASE, USE_MOCK } from './env';
-import { authHeader, clearToken } from './auth-store';
+import { authHeader, clearToken, getToken } from './auth-store';
 import type {
   ApiResult,
   SendCodeReq, LoginReq, LoginRes, RegisterStudentReq, RegisterParentReq, UserProfile,
+  SendEmailCodeReq, LoginEmailReq, LoginPasswordReq, RegisterStudentEmailReq, RegisterParentEmailReq,
+  RegisterStudentInviteReq,
   PaperUploadRes, PaperResult,
   InteractionReq, InteractionRes, MasteryRes, MasteryCurveRes,
   SocraticStartRes, EscapeRes, SessionEndRes, SocraticOutcome,
@@ -24,8 +26,9 @@ import type {
   DailyPlanRes, DailyPlanPrefs, TextbookBindings, TextbookOption,
   KnowledgeUnitItem, QuestionBankRes, PracticeSubmitReq, PracticeSubmitRes,
   EffortfulGainsRes, ReviewQueueItem, WeakRootsRes,
-  Achievement, PatternsRes,
+  Achievement, PatternsRes, ChatTurnReq, ChatTurnRes,
   LearnerModel, LeagueRes, AffectRes, TeachingPolicy,
+  MathTopicBrief, PrereqSession, PrereqStartRes, PrereqAnswerRes, VizLessonRes, VizQuizAnswerRes,
 } from '@/types/api';
 import * as mock from './mock-data';
 
@@ -38,6 +41,9 @@ async function req<T>(
 ): Promise<ApiResult<T>> {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  // 本次请求是否真的带上了 token。登录/注册这类 auth=false 的接口不该因为
+  // 401（密码错、验证码错）把已登录用户踢下线。
+  const sentAuth = auth && !!getToken();
   try {
     const res = await fetch(`${MNEME_API_BASE}${path}`, {
       signal: ctrl.signal,
@@ -48,7 +54,11 @@ async function req<T>(
         ...options.headers,
       },
     });
-    if (res.status === 401) { clearToken(); return { ok: false, error: 'UNAUTHORIZED' }; }
+    if (res.status === 401 && sentAuth) {
+      // 真的带了 token 还被拒 = token 失效，清掉重新登录。
+      clearToken();
+      return { ok: false, error: TOKEN_EXPIRED_ERROR };
+    }
     if (!res.ok) {
       const body = await res.json().catch(() => ({ detail: res.statusText }));
       const detail = (body as { detail?: unknown }).detail ?? res.statusText;
@@ -58,7 +68,18 @@ async function req<T>(
     const data = await res.json();
     return { ok: true, data: data as T };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+    if (e instanceof Error) {
+      // AbortController 超时 → 友好提示，不暴露技术细节
+      if (e.name === 'AbortError' || e.message.includes('aborted')) {
+        return { ok: false, error: '请求超时，请检查网络连接后重试' };
+      }
+      // 无法连接到服务器（ECONNREFUSED / Failed to fetch）
+      if (e.message.includes('Failed to fetch') || e.message.includes('fetch')) {
+        return { ok: false, error: '无法连接到服务器，请稍后重试' };
+      }
+      return { ok: false, error: e.message };
+    }
+    return { ok: false, error: String(e) };
   } finally {
     clearTimeout(timer);
   }
@@ -68,12 +89,36 @@ function post<T>(path: string, body: unknown, auth = true) {
   return req<T>(path, { method: 'POST', body: JSON.stringify(body) }, auth);
 }
 
+// 供未走命名接口封装的调用方(如 TextbookChat)直接用 req 的底层逻辑(超时/鉴权/错误翻译一致)。
+export const apiFetch = <T = unknown>(path: string, options?: RequestInit) => req<T>(path, options);
+
 // ── 认证(无需 auth header) ──────────────────────────────────
 export const sendCode  = (r: SendCodeReq)         => USE_MOCK ? mock.mockSendCode()     : post<void>('/v1/auth/send-code', r, false);
 export const login     = (r: LoginReq)            => USE_MOCK ? mock.mockLogin(r)        : post<LoginRes>('/v1/auth/login', r, false);
 export const registerStudent = (r: RegisterStudentReq) => USE_MOCK ? mock.mockRegisterStudent() : post<LoginRes>('/v1/auth/register/student', r, false);
 export const registerParent  = (r: RegisterParentReq)  => USE_MOCK ? mock.mockRegisterParent()  : post<LoginRes>('/v1/auth/register/parent', r, false);
+
 export const getMe     = ()                       => USE_MOCK ? mock.mockMe()            : req<UserProfile>('/v1/auth/me');
+
+/**
+ * token 失效（请求带了 token 但被 401）时返回的固定错误串。
+ * 导出为常量而非裸字符串：cornell/cloud.ts 依赖它识别「需要重新登录」，
+ * 之前那里写的是字面量 'UNAUTHORIZED'，一改文案就静默失效。
+ */
+export const TOKEN_EXPIRED_ERROR = '登录已过期，请重新登录';
+
+// 邮箱注册/登录（新主标识）。mock 模式复用手机号那套 mock（mock 不关心标识）。
+export const sendEmailCode = (r: SendEmailCodeReq) => USE_MOCK ? mock.mockSendCode() : post<void>('/v1/auth/send-email-code', r, false);
+export const loginEmail    = (r: LoginEmailReq)    => USE_MOCK ? mock.mockLogin({ phone: r.email, code: r.code }) : post<LoginRes>('/v1/auth/login-email', r, false);
+export const registerStudentEmail = (r: RegisterStudentEmailReq) => USE_MOCK ? mock.mockRegisterStudent() : post<LoginRes>('/v1/auth/register/student-email', r, false);
+export const registerParentEmail  = (r: RegisterParentEmailReq)  => USE_MOCK ? mock.mockRegisterParent()  : post<LoginRes>('/v1/auth/register/parent-email', r, false);
+// 邀请制注册（上线主路径）：不经过 send-email-code，注册不依赖 SMTP。
+export const registerStudentInvite = (r: RegisterStudentInviteReq) => USE_MOCK ? mock.mockRegisterStudent() : post<LoginRes>('/v1/auth/register/student-invite', r, false);
+
+// 可选密码登录。验证码通道始终可用，两者互不取代——后端 password_hash 为空时
+// loginPassword 一律 401，前端据此提示改用验证码。
+export const loginPassword = (r: LoginPasswordReq) => USE_MOCK ? mock.mockLogin({ phone: r.email, code: '' }) : post<LoginRes>('/v1/auth/login-password', r, false);
+export const setPassword   = (password: string)   => USE_MOCK ? Promise.resolve({ ok: true as const, data: undefined }) : post<void>('/v1/auth/password', { password }, true);
 
 // ── 试卷 ────────────────────────────────────────────────────
 export async function uploadPaper(
@@ -168,9 +213,10 @@ export const getMission      = (sid: string)       => USE_MOCK ? mock.mockMissio
 export const completeMission = (mid: string)       => USE_MOCK ? mock.mockCompleteMission()  : post<CompleteMissionRes>(`/v1/missions/${mid}/complete`, {});
 
 // ── 变式题 ───────────────────────────────────────────────────
-export const generatePractice = (kuId: string, count = 3, difficulty = 0.5) => {
+export const generatePractice = (kuId: string, count = 3, difficulty = 0.5, studentId?: string) => {
   if (USE_MOCK) return mock.mockPractice();
   const qs = new URLSearchParams({ ku_id: kuId, count: String(count), difficulty: String(difficulty) });
+  if (studentId) qs.set('student_id', studentId);
   return req<PracticeRes>(`/v1/practice/generate?${qs}`, { method: 'POST' });
 };
 
@@ -232,6 +278,38 @@ export const getErrorJournal = (
   const qs = p.toString();
   return req<ErrorJournalRes>(`/v1/error-journal/${sid}${qs ? `?${qs}` : ''}`);
 };
+
+// ── 康奈尔笔记进度云同步（自报 checklist，≠ BKT）──────────────
+export type CornellProgressRow = {
+  topic_id: string;
+  version: number;
+  state: Record<string, unknown>;
+  updated_at: string | null;
+};
+
+export const listCornellProgress = (sid: string) =>
+  req<{ items: CornellProgressRow[] }>(`/v1/cornell/${sid}/progress`);
+
+export const getCornellProgress = (sid: string, topicId: string) =>
+  req<CornellProgressRow>(
+    `/v1/cornell/${sid}/progress/${encodeURIComponent(topicId)}`,
+  );
+
+export const putCornellProgress = (
+  sid: string,
+  topicId: string,
+  state: Record<string, unknown>,
+) =>
+  req<CornellProgressRow>(
+    `/v1/cornell/${sid}/progress/${encodeURIComponent(topicId)}`,
+    { method: 'PUT', body: JSON.stringify({ state }) },
+  );
+
+export const deleteCornellProgress = (sid: string, topicId: string) =>
+  req<{ deleted: boolean; topic_id: string }>(
+    `/v1/cornell/${sid}/progress/${encodeURIComponent(topicId)}`,
+    { method: 'DELETE' },
+  );
 
 // ── 待复习 ────────────────────────────────────────────────────
 export const getReviewDue = (sid: string) =>
@@ -410,6 +488,12 @@ export const getWeakRoots = (sid: string) =>
 export const getPatterns = (sid: string) =>
   req<PatternsRes>(`/v1/patterns/${sid}`);
 
+// ── 聊天（C1）────────────────────────────────────────────────────
+export const submitChatTurn = (
+  body: ChatTurnReq
+) =>
+  req<ChatTurnRes>('/v1/chat/turn', { method: 'POST', body: JSON.stringify(body) });
+
 // ── 知识单元 ──────────────────────────────────────────────────
 export const listKnowledgePoints = (params: {
   subject?: string; textbook_id?: string; cluster_id?: string;
@@ -431,11 +515,12 @@ export const getKnowledgePoint = (kuId: string, studentId?: string) => {
 
 // ── 题库 & 专题练习 ───────────────────────────────────────────
 export const listQuestionBank = (params: {
-  subject?: string; ku_id?: string; needs_image?: boolean; limit?: number; offset?: number;
+  subject?: string; ku_id?: string; student_id?: string; needs_image?: boolean; limit?: number; offset?: number;
 }) => {
   const p = new URLSearchParams();
   if (params.subject)                    p.set('subject',      params.subject);
   if (params.ku_id)                      p.set('ku_id',        params.ku_id);
+  if (params.student_id)                 p.set('student_id',   params.student_id);
   if (params.needs_image !== undefined)  p.set('needs_image',  String(params.needs_image));
   if (params.limit !== undefined)        p.set('limit',        String(params.limit));
   if (params.offset !== undefined)       p.set('offset',       String(params.offset));
@@ -463,6 +548,23 @@ export const getDailyPlanPrefs = (sid: string) => req<DailyPlanPrefs>(`/v1/users
 export const setDailyPlanPrefs = (sid: string, updates: Partial<DailyPlanPrefs>) =>
   req<DailyPlanPrefs>(`/v1/users/${sid}/daily-plan-prefs`, { method: 'POST', body: JSON.stringify(updates) });
 
+// ── 深度研究多步推理解题 ──────────────────────────────────────────────
+export interface DeepSolveRes {
+  ok: boolean;
+  data: {
+    analysis: {
+      problem_type: string;
+      required_kus: string[];
+      difficulty_estimate: number;
+    };
+    method_template: string;
+    roadmap: string;
+  };
+}
+
+export const deepSolve = (problem_text: string) =>
+  req<DeepSolveRes>('/v1/deep-solve', { method: 'POST', body: JSON.stringify({ problem_text }) });
+
 // ── 用户教材绑定（N.4）── real-only，涉及真实调度行为，不走 mock
 export const getTextbookBindings = (sid: string) => req<TextbookBindings>(`/v1/users/${sid}/textbook-bindings`);
 export const setTextbookBindings = (sid: string, updates: TextbookBindings) =>
@@ -482,3 +584,20 @@ export const getTextbookFileMeta = (fileId: string) =>
   req<{ file_id: string; filename: string; file_type: 'pdf' | 'epub'; file_size: number | null;
         textbook_id: string | null; owner_student_id: string | null; has_text_layer: boolean | null;
         uploaded_at: string; }>(`/v1/textbook-files/${encodeURIComponent(fileId)}/meta`);
+
+// ── 先修回溯诊断（cn-math-taxonomy，无状态：会话 JSON 由前端保存回传）──
+export const searchMathTopic = (q: string, limit = 10) =>
+  post<{ topics: MathTopicBrief[] }>('/mcp/SearchMathTopic', { q, limit });
+export const startPrereqDiagnosis = (targets: string[], limit?: number) =>
+  post<PrereqStartRes>('/v1/placement/prereq/start', { targets, limit });
+export const answerPrereqDiagnosis = (
+  session: PrereqSession, answer?: string, result?: 'correct' | 'wrong' | 'skip',
+) => post<PrereqAnswerRes>('/v1/placement/prereq/answer', { session, answer, result });
+
+// AetherViz 知识点互动课：未缓存时后端后台生成，最多等 25s 返回 pending，调用方轮询
+export const generateKUVisualization = (kuId: string, weakPoints?: string[]) =>
+  req<VizLessonRes>('/v1/viz/ku', {
+    method: 'POST', body: JSON.stringify({ ku_id: kuId, weak_points: weakPoints, wait_seconds: 25 }),
+  }, true, 60_000);
+export const submitVizQuizAnswer = (b: { ku_id: string; variant: string; quiz_id: string; choice: number }) =>
+  post<VizQuizAnswerRes>('/v1/viz/quiz-answer', b);

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 100 100" role="img" aria-label="善学记">
+  <defs>
+    <linearGradient id="t" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2A57C9"/><stop offset="1" stop-color="#0F2350"/></linearGradient>
+    <linearGradient id="b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6AA0FC"/><stop offset="1" stop-color="#2A5AD4"/></linearGradient>
+    <linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FCC94F"/><stop offset="1" stop-color="#E5981B"/></linearGradient>
+  </defs>
+  <rect width="100" height="100" rx="22" fill="url(#t)"/>
+  <path d="M31 18 L25 39 L46 33 Z" fill="url(#b)"/>
+  <path d="M69 18 L75 39 L54 33 Z" fill="url(#b)"/>
+  <path d="M50 20 C30 20 17 35 17 55 C17 77 32 89 50 89 C68 89 83 77 83 55 C83 35 70 20 50 20 Z" fill="url(#b)"/>
+  <circle cx="37" cy="53" r="16" fill="#EAF2FF"/>
+  <circle cx="63" cy="53" r="16" fill="#EAF2FF"/>
+  <circle cx="37" cy="53" r="11.6" fill="#fff"/>
+  <circle cx="63" cy="53" r="11.6" fill="#fff"/>
+  <circle cx="39.6" cy="54.4" r="5.8" fill="#0F2350"/>
+  <circle cx="60.4" cy="54.4" r="5.8" fill="#0F2350"/>
+  <circle cx="42" cy="52" r="2" fill="#fff"/>
+  <circle cx="63" cy="52" r="2" fill="#fff"/>
+  <path d="M50 61 L44 67.5 L56 67.5 Z" fill="url(#g)"/>
+</svg>
